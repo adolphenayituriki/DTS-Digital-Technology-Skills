@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Calendar, Users, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
 import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
@@ -165,10 +165,15 @@ export default function Apply() {
                       {intake.deadline && (
                         <span><Clock size={13} /> Deadline {fmtDate(intake.deadline)}</span>
                       )}
-                      <span><Users size={13} /> {intake.enrolled || 0} / {intake.capacity || '—'} enrolled</span>
                     </div>
-                    <div className="intake-bar">
-                      <div className="intake-bar-fill" style={{ width: `${pct}%` }} />
+                    <div className="intake-progress">
+                      <div className="intake-progress-head">
+                        <span className="intake-progress-label">Enrolled</span>
+                        <span className="intake-progress-count">{intake.enrolled || 0} / {intake.capacity || '—'}</span>
+                      </div>
+                      <div className="intake-bar">
+                        <div className="intake-bar-fill" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
                     {open ? (
                       <button className="btn btn-primary btn-sm intake-btn" onClick={() => openForm(intake)}>
