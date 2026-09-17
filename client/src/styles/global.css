@@ -203,9 +203,14 @@ input, textarea, select { font-family: inherit; }
     padding: 0.95rem 1rem; border-radius: 10px; font-size: 1rem;
   }
   .navbar-cta:hover { background: #2e8f3d; color: #fff; }
+  .navbar-auth-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+    margin-top: 0.9rem;
+  }
+  .navbar-auth-row .navbar-cta { margin-top: 0; padding: 0.85rem 1rem; font-size: 0.95rem; }
   .navbar-links .navbar-cta-ghost {
-    margin-top: 0.7rem; border: 1.5px solid var(--primary); color: var(--primary);
-    background: transparent; font-weight: 600;
+    border: 1.5px solid var(--primary); color: var(--primary);
+    background: transparent; font-weight: 600; margin-top: 0;
   }
   .navbar-links .navbar-cta-ghost:hover { background: var(--primary); color: #fff; }
   .navbar-links .admin-link {
