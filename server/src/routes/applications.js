@@ -22,7 +22,6 @@ router.post("/", async (req, res) => {
     const { intakeId, email, phone, campus, motivation, preferredCourses } = req.body;
     const name = (req.body.name || "").trim();
     const program = (req.body.program || "").trim();
-    const name = (req.body.name || "").trim();
     if (!intakeId || !name || !email) {
       return res.status(400).json({ message: "Intake, name, and email are required" });
     }
