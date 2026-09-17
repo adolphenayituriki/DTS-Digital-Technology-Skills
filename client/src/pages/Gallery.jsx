@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, ZoomIn, Camera } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, Camera, Search } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 
 const images = [
@@ -17,17 +17,19 @@ const categories = ['All', 'Training', 'Events'];
 
 export default function Gallery() {
   const [filter, setFilter] = useState('All');
+  const [q, setQ] = useState('');
   const [lightbox, setLightbox] = useState(null);
 
-  const visible = filter === 'All' ? images : images.filter((i) => i.category === filter);
+  const query = q.trim().toLowerCase();
+  const matches = (i) => !query || (i.label + ' ' + i.category).toLowerCase().includes(query);
+  const visible = (filter === 'All' ? images : images.filter((i) => i.category === filter)).filter(matches);
 
   const close = () => setLightbox(null);
   const move = (dir) => {
     setLightbox((current) => {
-      const list = filter === 'All' ? images : images.filter((i) => i.category === filter);
-      const idx = list.findIndex((i) => i.src === current.src && i.label === current.label);
-      const next = (idx + dir + list.length) % list.length;
-      return list[next];
+      const idx = visible.findIndex((i) => i.src === current.src && i.label === current.label);
+      const next = (idx + dir + visible.length) % visible.length;
+      return visible[next];
     });
   };
 
@@ -70,6 +72,25 @@ export default function Gallery() {
               ))}
             </div>
           </div>
+
+          <div className="gallery-toolbar gallery-toolbar-search">
+            <div className="search-box">
+              <Search size={15} />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search photos..."
+                aria-label="Search gallery"
+              />
+            </div>
+          </div>
+
+          {visible.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem 0' }}>
+              No photos match your search.
+            </p>
+          )}
 
           <div className="gallery-masonry">
             {visible.map((item, i) => (

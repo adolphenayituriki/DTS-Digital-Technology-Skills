@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import apiFetch from '../api';
-import { ArrowRight, Image } from 'lucide-react';
+import { ArrowRight, Image, Search, FileText } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 
 export default function News() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [q, setQ] = useState('');
 
   useEffect(() => {
     apiFetch('/posts')
@@ -15,6 +16,15 @@ export default function News() {
       .catch(() => setError('Failed to load news posts.'))
       .finally(() => setLoading(false));
   }, []);
+
+  const query = q.trim().toLowerCase();
+  const filtered = posts.filter(
+    (p) =>
+      !query ||
+      [p.title, p.category, p.excerpt, p.content]
+        .filter(Boolean)
+        .some((v) => v.toString().toLowerCase().includes(query)),
+  );
 
   return (
     <>
@@ -29,11 +39,31 @@ export default function News() {
         <div className="container">
           {loading && <div className="loading"><div className="spinner" />Loading news...</div>}
           {error && <div className="alert alert-error">{error}</div>}
+          {!loading && !error && (
+            <div className="list-toolbar">
+              <p className="list-count">
+                <FileText size={15} /> {filtered.length} {filtered.length === 1 ? 'post' : 'posts'}
+              </p>
+              <div className="search-box">
+                <Search size={15} />
+                <input
+                  type="search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search news..."
+                  aria-label="Search news posts"
+                />
+              </div>
+            </div>
+          )}
           {!loading && !error && posts.length === 0 && (
             <p style={{ textAlign: 'center', color: 'var(--text-light)' }}>No news posts yet. Check back soon!</p>
           )}
+          {!loading && !error && posts.length > 0 && filtered.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'var(--text-light)' }}>No posts match your search.</p>
+          )}
           <div className="grid-3">
-            {posts.map((p, i) => (
+            {filtered.map((p, i) => (
               <FadeIn key={p._id} delay={(i % 3) * 100}>
                 <Link to={`/news/${p.slug}`} className="card news-card" style={{ textDecoration: 'none' }}>
                 <div className="image-placeholder">
