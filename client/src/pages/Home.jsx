@@ -1,16 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Monitor, Wifi, Zap, GraduationCap, Award } from 'lucide-react';
+import { ArrowRight, Monitor, Wifi, Zap } from 'lucide-react';
 import TestimonialCarousel from '../components/TestimonialCarousel';
 import FadeIn from '../components/FadeIn';
-
-const heroImages = [
-  '/hero-1.jpg',
-  '/hero-2.jpg',
-  '/hero-3.jpg',
-  '/hero-5.jpg',
-  '/hero-6.jpg',
-];
 
 const programs = [
   { title: 'Google Services', desc: 'Master Gmail, Drive, Docs, and Google Workspace tools for productivity.', icon: <Wifi size={20} />, color: 'blue' },
@@ -23,23 +15,12 @@ function applyUrl(title) {
 }
 
 function Hero() {
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-
-  const next = useCallback(() => setActive((c) => (c + 1) % heroImages.length), []);
-
-  useEffect(() => {
-    if (paused) return;
-    const timer = setInterval(next, 5000);
-    return () => clearInterval(timer);
-  }, [next, paused]);
-
   return (
     <section className="hero">
       <div className="container hero-inner">
         <div className="hero-copy">
           <div className="hero-badge">
-            <span className="pulse-dot" />
+            <span className="status-dot" />
             Established 2022 · UR-Huye Campus
           </div>
           <h1>Empowering Rwanda's <span>Digital</span> Future</h1>
@@ -64,39 +45,11 @@ function Hero() {
         </div>
 
         <div className="hero-media">
-          <div className="hero-frame" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-            <div className="hero-slides">
-              {heroImages.map((img, i) => (
-                <div
-                  key={img}
-                  className={`hero-slide ${i === active ? 'active' : ''} ${i === (active + heroImages.length - 1) % heroImages.length ? 'prev' : ''}`}
-                >
-                  <div className="hero-slide-bg" style={{ backgroundImage: `url(${img})` }} />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="hero-glass g1">
-            <GraduationCap size={18} /> <b>200+</b> Certified
-          </div>
-          <div className="hero-glass g2">
-            <Award size={18} /> Certified Training
-          </div>
-          <div className="hero-thumbs">
-            {heroImages.map((img, i) => (
-              <button
-                key={img}
-                className={`hero-thumb ${i === active ? 'active' : ''}`}
-                onClick={() => setActive(i)}
-                aria-label={`Show slide ${i + 1}`}
-              >
-                <img src={img} alt="" />
-              </button>
-            ))}
+          <div className="hero-frame">
+            <img src="/hero-1.jpg" alt="DTS training session at UR-Huye Campus" />
           </div>
         </div>
       </div>
-      <div className="hero-scroll" aria-hidden="true" />
     </section>
   );
 }
