@@ -180,9 +180,7 @@ input, textarea, select { font-family: inherit; }
 
 @media (max-width: 900px) {
   .admin-icon { display: none; }
-  .btn.navbar-cta-desktop, .btn.navbar-login-desktop {
-    padding: 0.5rem 1rem; font-size: 0.85rem; border-radius: 999px;
-  }
+  .btn.navbar-cta-desktop { padding: 0.5rem 1rem; font-size: 0.85rem; border-radius: 999px; }
   .navbar-top, .navbar-right { gap: 0.5rem; }
   .hamburger { display: flex; }
   .navbar-links {
@@ -221,7 +219,7 @@ input, textarea, select { font-family: inherit; }
 @media (max-width: 420px) {
   .navbar-title small { display: none; }
   .navbar-logo { height: 42px; }
-  .btn.navbar-cta-desktop, .btn.navbar-login-desktop { padding: 0.45rem 0.85rem; font-size: 0.8rem; }
+  .btn.navbar-cta-desktop { padding: 0.45rem 0.85rem; font-size: 0.8rem; }
 }
 @media (max-width: 380px) {
   .navbar-title { display: none; }
@@ -1476,7 +1474,7 @@ main:has(.auth-page) .auth-page { min-height: calc(100vh - 72px); }
 .btn.navbar-login-desktop { border-radius: 8px; padding: 0.5rem 1.1rem; }
 
 @media (max-width: 900px) {
-  .admin-icon { display: none; }
+  .admin-icon, .navbar-login-desktop { display: none; }
   .navbar-links .navbar-cta { display: flex; }
   .navbar-links .dash-link-logout { display: flex; }
 }
