@@ -35,7 +35,7 @@ export default function Footer() {
 
           <div>
             <h4>Programs</h4>
-            <ul>
+            <ul className="footer-links-2">
               <li><Link to="/programs">Google Services</Link></li>
               <li><Link to="/programs">Microsoft Office</Link></li>
               <li><Link to="/programs">Photo & Video Editing</Link></li>
