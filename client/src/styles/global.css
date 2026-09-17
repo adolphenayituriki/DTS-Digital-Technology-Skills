@@ -200,6 +200,11 @@ input, textarea, select { font-family: inherit; }
     padding: 0.95rem 1rem; border-radius: 10px; font-size: 1rem;
   }
   .navbar-cta:hover { background: #2e8f3d; color: #fff; }
+  .navbar-links .navbar-cta-ghost {
+    margin-top: 0.7rem; border: 1.5px solid var(--primary); color: var(--primary);
+    background: transparent; font-weight: 600;
+  }
+  .navbar-links .navbar-cta-ghost:hover { background: var(--primary); color: #fff; }
   .navbar-links .admin-link {
     display: flex; margin-top: auto; justify-content: center;
     border-top: 1px solid #eef0f4; padding-top: 1rem;

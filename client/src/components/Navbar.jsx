@@ -122,9 +122,14 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link to="/signup" className="navbar-cta" onClick={() => setOpen(false)}>
-                Sign Up
-              </Link>
+              <>
+                <Link to="/signup" className="navbar-cta" onClick={() => setOpen(false)}>
+                  Sign Up
+                </Link>
+                <Link to="/login" className="navbar-cta navbar-cta-ghost" onClick={() => setOpen(false)}>
+                  Log In
+                </Link>
+              </>
             )}
             <Link to="/contact" className="navbar-cta navbar-cta-ghost" onClick={() => setOpen(false)}>
               Contact
