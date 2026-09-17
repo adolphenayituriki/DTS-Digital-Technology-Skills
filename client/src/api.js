@@ -1,4 +1,8 @@
-const API_URL = '/api';
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://dts-digital-technology-skills.onrender.com/api'
+    : '/api');
 
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('dts_token');
