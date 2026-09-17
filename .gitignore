@@ -1,1 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+client/dist/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# opencode
 .opencode
+
+# Scratch
+*.tmp-inspect*.js
+tmp-inspect-local.js
