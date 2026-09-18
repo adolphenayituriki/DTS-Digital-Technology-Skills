@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, BookOpen, Save } from 'lucide-react';
 import apiFetch from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 
-const emptyForm = { title: '', program: '', description: '', courses: '', startDate: '', endDate: '', deadline: '', capacity: 50, status: 'open' };
+const emptyForm = { title: '', program: '', description: '', courses: [], courseDraft: '', startDate: '', endDate: '', deadline: '', capacity: 50, status: 'open' };
 
 export default function IntakesAdmin() {
   const toast = useToast();
@@ -15,6 +15,8 @@ export default function IntakesAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [confirmId, setConfirmId] = useState(null);
+  const [courseIntake, setCourseIntake] = useState(null);
+  const [newCourse, setNewCourse] = useState('');
 
   const fetchIntakes = () => {
     apiFetch('/intakes/all')
@@ -30,15 +32,22 @@ export default function IntakesAdmin() {
     setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const addFormCourse = () => {
+    const c = (form.courseDraft || '').trim();
+    if (!c) return toast.error('Enter a course name first.');
+    if (form.courses.includes(c)) return toast.error('This course is already added.');
+    setForm((f) => ({ ...f, courses: [...f.courses, c], courseDraft: '' }));
+  };
+
+  const removeFormCourse = (c) => setForm((f) => ({ ...f, courses: f.courses.filter((x) => x !== c) }));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     const wasEdit = !!editId;
     try {
       const payload = { ...form, capacity: Number(form.capacity) || 50 };
-      payload.courses = typeof form.courses === 'string'
-        ? form.courses.split(',').map((c) => c.trim()).filter(Boolean)
-        : form.courses;
+      delete payload.courseDraft;
       if (editId) {
         await apiFetch(`/intakes/${editId}`, { method: 'PUT', body: JSON.stringify(payload) });
       } else {
@@ -59,7 +68,8 @@ export default function IntakesAdmin() {
       title: item.title || '',
       program: item.program || '',
       description: item.description || '',
-      courses: Array.isArray(item.courses) ? item.courses.join(', ') : '',
+      courses: Array.isArray(item.courses) ? [...item.courses] : [],
+      courseDraft: '',
       startDate: item.startDate ? item.startDate.slice(0, 10) : '',
       endDate: item.endDate ? item.endDate.slice(0, 10) : '',
       deadline: item.deadline ? item.deadline.slice(0, 10) : '',
@@ -68,6 +78,29 @@ export default function IntakesAdmin() {
     });
     setEditId(item._id);
     setShowForm(true);
+  };
+
+  const addCourse = () => {
+    const c = (newCourse || '').trim();
+    if (!c) return toast.error('Enter a course name.');
+    if ((courseIntake.courses || []).includes(c)) return toast.error('This course is already added.');
+    setCourseIntake((p) => ({ ...p, courses: [...(p.courses || []), c] }));
+    setNewCourse('');
+  };
+
+  const removeCourse = (c) =>
+    setCourseIntake((p) => ({ ...p, courses: (p.courses || []).filter((x) => x !== c) }));
+
+  const saveCourses = async () => {
+    try {
+      await apiFetch(`/intakes/${courseIntake._id}`, { method: 'PUT', body: JSON.stringify({ courses: courseIntake.courses || [] }) });
+      setIntakes((prev) => prev.map((i) => (i._id === courseIntake._id ? { ...i, courses: courseIntake.courses || [] } : i)));
+      toast.success('Courses updated.');
+      setCourseIntake(null);
+      setNewCourse('');
+    } catch (err) {
+      toast.error(err.message || 'Failed to save courses.');
+    }
   };
 
   const deleteIntake = async (id) => {
@@ -109,8 +142,33 @@ export default function IntakesAdmin() {
               <textarea name="description" className="form-control" rows={3} value={form.description} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label>Courses (comma-separated)</label>
-              <textarea name="courses" className="form-control" rows={2} value={form.courses} onChange={handleChange} placeholder="e.g. Google Services, Microsoft Office, Online Job Applications" />
+              <label>Courses</label>
+              <div className="chip-editor">
+                {form.courses.length > 0 && (
+                  <div className="chip-editor-list">
+                    {form.courses.map((c) => (
+                      <span className="chip" key={c}>
+                        <span>{c}</span>
+                        <button type="button" onClick={() => removeFormCourse(c)} aria-label={`Remove ${c}`}>
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="chip-editor-add">
+                  <input
+                    value={form.courseDraft}
+                    onChange={(e) => setForm((f) => ({ ...f, courseDraft: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addFormCourse(); } }}
+                    placeholder="Add a course and press Enter"
+                    aria-label="New course name"
+                  />
+                  <button type="button" onClick={addFormCourse} className="btn btn-outline btn-sm">
+                    <Plus size={14} /> Add
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="grid-3">
               <div className="form-group">
@@ -166,9 +224,10 @@ export default function IntakesAdmin() {
                 <td><strong>{item.title}</strong></td>
                 <td>{item.program}</td>
                 <td>
-                  {Array.isArray(item.courses) && item.courses.length > 0
-                    ? item.courses.join(', ')
-                    : <span style={{ color: 'var(--text-light)' }}>—</span>}
+                  {Array.isArray(item.courses) && item.courses.length > 0 ? (
+                    <span style={{ display: 'block' }}>{item.courses.join(', ')}</span>
+                  ) : (
+                    <span style={{ color: 'var(--text-light)' }}>—</span>)}
                 </td>
                 <td>{item.enrolled || 0} / {item.capacity}</td>
               <td style={{ fontSize: '0.85rem' }}>
@@ -184,6 +243,9 @@ export default function IntakesAdmin() {
               </td>
               <td>
                 <div className="actions">
+                  <button className="btn btn-outline btn-sm" onClick={() => setCourseIntake({ ...item, courses: item.courses || [] })} title="Manage courses">
+                    <BookOpen size={14} />
+                  </button>
                   <button className="btn btn-outline btn-sm" onClick={() => startEdit(item)}><Edit size={14} /></button>
                   <button className="btn btn-danger btn-sm" onClick={() => setConfirmId(item._id)}><Trash2 size={14} /></button>
                 </div>
@@ -192,6 +254,57 @@ export default function IntakesAdmin() {
           ))}
         </tbody>
       </table>
+
+      {courseIntake && (
+        <div className="dialog-overlay" onClick={() => setCourseIntake(null)}>
+          <div className="dialog-card course-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <button className="dialog-close" onClick={() => setCourseIntake(null)} aria-label="Close">
+              <X size={16} />
+            </button>
+            <div className="dialog-icon course-modal-icon">
+              <BookOpen size={22} />
+            </div>
+            <h3>Manage Courses</h3>
+            <p>
+              Add or remove courses for <strong>{courseIntake.title}</strong> ({courseIntake.program} level).
+            </p>
+            <div className="chip-editor">
+              {courseIntake.courses.length > 0 ? (
+                <div className="chip-editor-list">
+                  {courseIntake.courses.map((c) => (
+                    <span className="chip" key={c}>
+                      <span>{c}</span>
+                      <button type="button" onClick={() => removeCourse(c)} aria-label={`Remove ${c}`}>
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="chip-editor-empty">No courses yet. Add the first one below.</p>
+              )}
+              <div className="chip-editor-add">
+                <input
+                  value={newCourse}
+                  onChange={(e) => setNewCourse(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCourse(); } }}
+                  placeholder="e.g. Computer Graphics"
+                  aria-label="New course name"
+                />
+                <button type="button" onClick={addCourse} className="btn btn-outline btn-sm">
+                  <Plus size={14} /> Add
+                </button>
+              </div>
+            </div>
+            <div className="dialog-actions">
+              <button className="btn btn-outline btn-sm" onClick={() => setCourseIntake(null)}>Close</button>
+              <button className="btn btn-success btn-sm" onClick={saveCourses}>
+                <Save size={14} /> Save Courses
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!confirmId}

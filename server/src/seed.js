@@ -28,82 +28,10 @@ const seed = async () => {
     });
     console.log("Admin user created");
 
-    const members = await Member.insertMany([
-      {
-        name: "Jean-Pierre Niyonzima",
-        role: "Chairperson",
-        bio: "Visionary leader with over 15 years of experience in ICT development across East Africa.",
-        email: "chairperson@dts.rw",
-        isLeadership: true,
-        order: 1,
-      },
-      {
-        name: "Marie Claire Uwimana",
-        role: "Vice Chairperson",
-        bio: "Dedicated professional specializing in digital transformation and capacity building.",
-        email: "vicechair@dts.rw",
-        isLeadership: true,
-        order: 2,
-      },
-      {
-        name: "Emmanuel Habimana",
-        role: "Secretary General",
-        bio: "Experienced administrator with a passion for community engagement and organizational development.",
-        email: "secretary@dts.rw",
-        isLeadership: true,
-        order: 3,
-      },
-      {
-        name: "Ange Iradukunda",
-        role: "Treasurer",
-        bio: "Financial expert committed to transparent management and sustainable growth of the association.",
-        email: "treasurer@dts.rw",
-        isLeadership: true,
-        order: 4,
-      },
-      {
-        name: "Patrick Mugisha",
-        role: "Lead Trainer",
-        bio: "Certified ICT trainer with expertise in cybersecurity, networking, and software development.",
-        email: "trainer@dts.rw",
-        isLeadership: true,
-        order: 5,
-      },
-    ]);
+    const members = await Member.insertMany([]);
     console.log(`${members.length} members created`);
 
-    const posts = await Post.create([
-      {
-        title: "DTS Annual General Meeting 2026",
-        content:
-          "<p>The Digital Technology Skills Association is pleased to announce its Annual General Meeting scheduled for March 2026. All members are invited to attend and participate in shaping the future of ICT skills development in Rwanda.</p><p>Key agenda items include election of new board members, review of annual activities, and strategic planning for the coming year.</p>",
-        excerpt:
-          "Join us for the DTS Annual General Meeting to shape the future of ICT skills development in Rwanda.",
-        category: "announcement",
-        isPublished: true,
-        author: admin._id,
-      },
-      {
-        title: "New Cybersecurity Training Program Launched",
-        content:
-          "<p>DTS is excited to launch a comprehensive cybersecurity training program aimed at equipping Rwandan professionals with essential skills to protect digital infrastructure.</p><p>The program covers network security, ethical hacking, incident response, and compliance frameworks. Registration is now open for the first cohort.</p>",
-        excerpt:
-          "DTS launches a comprehensive cybersecurity training program for Rwandan professionals.",
-        category: "news",
-        isPublished: true,
-        author: admin._id,
-      },
-      {
-        title: "DTS Partners with Rwanda ICT Chamber",
-        content:
-          "<p>The Digital Technology Skills Association has signed a memorandum of understanding with the Rwanda ICT Chamber to collaborate on skills development initiatives.</p><p>This partnership will create new opportunities for DTS members including internships, job placements, and access to industry events.</p>",
-        excerpt:
-          "DTS signs MOU with Rwanda ICT Chamber for collaborative skills development initiatives.",
-        category: "news",
-        isPublished: true,
-        author: admin._id,
-      },
-    ]);
+    const posts = await Post.create([]);
     console.log(`${posts.length} posts created`);
 
     const testimonials = await Testimonial.create([
