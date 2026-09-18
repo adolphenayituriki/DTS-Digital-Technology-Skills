@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import apiFetch from '../api';
-import { ArrowRight, Image, Search, FileText } from 'lucide-react';
+import { ArrowRight, Image, Search, FileText, Newspaper } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 
 export default function News() {
@@ -57,7 +57,11 @@ export default function News() {
             </div>
           )}
           {!loading && !error && posts.length === 0 && (
-            <p style={{ textAlign: 'center', color: 'var(--text-light)' }}>No news posts yet. Check back soon!</p>
+            <div className="news-empty">
+              <div className="news-empty-icon"><Newspaper size={24} /></div>
+              <h2>No news yet</h2>
+              <p>News and updates will be posted here by the DTS admin. Check back soon!</p>
+            </div>
           )}
           {!loading && !error && posts.length > 0 && filtered.length === 0 && (
             <p style={{ textAlign: 'center', color: 'var(--text-light)' }}>No posts match your search.</p>
