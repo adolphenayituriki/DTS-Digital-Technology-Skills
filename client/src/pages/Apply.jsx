@@ -95,7 +95,7 @@ export default function Apply() {
           program: form.preferred.join(', '),
         }),
       });
-      toast.success('Application submitted!', { title: 'You are in the queue 🎉', duration: 5000 });
+      toast.success('Application submitted!', { title: 'Check your email for your DTS Reg Number and PIN 🎉', duration: 6000 });
       setForm((f) => ({
         name: isLoggedIn ? user.name : '',
         email: isLoggedIn ? user.email : '',
@@ -238,9 +238,7 @@ export default function Apply() {
                   </div>
                   {!isLoggedIn && (
                     <div className="alert alert-info" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      Applying as a guest.
-                      <Link to="/signup" style={{ fontWeight: 700, color: 'var(--primary)' }}>Sign up</Link> or
-                      <Link to="/login" style={{ fontWeight: 700, color: 'var(--primary)' }}>log in</Link> to track your application.
+                      Applying as a guest. After you submit, you will receive your DTS Registration Number and PIN by email to view your profile.
                     </div>
                   )}
                   <ol className="apply-steps">

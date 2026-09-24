@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, Calendar, FileText, ArrowRight } from 'lucide-react';
+import { ClipboardList, Calendar, FileText, ArrowRight, GraduationCap, IdCard } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
 
@@ -11,10 +11,17 @@ const statusMap = {
   rejected: { label: 'Rejected', color: 'var(--error)' },
 };
 
+const studentStatusMap = {
+  applicant: { label: 'Applicant', color: 'var(--primary)' },
+  active: { label: 'Active Student', color: 'var(--success)' },
+  rejected: { label: 'Rejected', color: 'var(--error)' },
+};
+
 export default function Dashboard() {
   const { user, isLoggedIn, ready } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +32,9 @@ export default function Dashboard() {
     }
     apiFetch('/applications/mine')
       .then((d) => setApplications(Array.isArray(d) ? d : []))
+      .catch(() => {});
+    apiFetch('/students/mine')
+      .then((d) => setStudents(Array.isArray(d) ? d : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [ready, isLoggedIn, navigate]);
@@ -60,6 +70,29 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+
+              {students.length > 0 && (
+                <div className="card mb-3" style={{ padding: '1.25rem', background: 'linear-gradient(135deg, #142851, #1a3a6e)', border: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                      <GraduationCap size={18} />
+                    </div>
+                    <div style={{ color: '#fff' }}>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aebfe0', fontWeight: 700 }}>DTS Student</div>
+                      <b style={{ fontSize: '0.95rem' }}>{students[0].regNumber}</b>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#cfe0ff' }}>{students[0].intakeTitle}</span>
+                    <span className="dash-status" style={{ color: '#7dd3fc', background: 'rgba(125,211,252,0.15)' }}>
+                      {(studentStatusMap[students[0].status] || studentStatusMap.applicant).label}
+                    </span>
+                  </div>
+                  <Link to="/profile" className="btn btn-sm" style={{ background: '#fff', color: '#142851', fontWeight: 700, width: '100%', justifyContent: 'center' }}>
+                    <IdCard size={14} /> View My Student Profile
+                  </Link>
+                </div>
+              )}
 
               <div className="card" style={{ padding: '1.5rem' }}>
                 <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Quick Actions</h3>

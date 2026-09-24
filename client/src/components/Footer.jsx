@@ -30,6 +30,7 @@ export default function Footer() {
               <li><Link to="/team">Our Team</Link></li>
               <li><Link to="/news">News</Link></li>
               <li><Link to="/contact">Contact</Link></li>
+              <li><Link to="/profile">Student Profile</Link></li>
             </ul>
           </div>
 

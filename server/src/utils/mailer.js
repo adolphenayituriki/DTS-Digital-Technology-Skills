@@ -179,6 +179,15 @@ const ctaButton = (label, href) => `
     </tr>
   </table>`;
 
+const credentialsCard = (regNumber, pin) => `
+  ${sectionLabel("Your DTS Profile Access")}
+  ${detailCard("Your Credentials — Keep Them Safe", [
+    ["Registration Number", `<strong style="font-size:15px;color:#142851;">${escapeHtml(regNumber)}</strong>`],
+    ["Profile PIN", `<strong style="font-size:15px;color:#142851;">${escapeHtml(pin)}</strong>`],
+  ])}
+  <p style="font-family:${FONT};font-size:13px;line-height:1.65;color:#64748b;margin:10px 0 0;">Use your Registration Number and PIN to log in to your DTS student profile and check your application status, intake details, and results. Do not share your PIN with anyone.</p>
+  ${ctaButton("View My Profile", `${siteUrl()}/profile`)}`;
+
 const footerBand = () => {
   const fromEmail = process.env.BREVO_FROM_EMAIL || "";
   return `
@@ -247,7 +256,7 @@ const NEXT_STEPS = [
   { title: "Orientation & Training", text: "If accepted, you will receive details about orientation and the training schedule." },
 ];
 
-export async function sendApplicationConfirmation(application, intake) {
+export async function sendApplicationConfirmation(application, intake, credentials) {
   const intakeTitle = intake?.title || application.intakeTitle;
   const level = intake?.program || application.program;
   const body = `
@@ -261,6 +270,7 @@ export async function sendApplicationConfirmation(application, intake) {
       ["Submitted on", formatDate(application.createdAt)],
     ])}
     ${statusPill("Application status: Pending Review")}
+    ${credentials ? credentialsCard(credentials.regNumber, credentials.pin) : ""}
     ${sectionLabel("What Happens Next?")}
     ${stepsList(NEXT_STEPS)}
     <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:18px 0 0;">If you have any questions about your application, our team is here to help &mdash; simply reply to this email.</p>
@@ -273,7 +283,7 @@ export async function sendApplicationConfirmation(application, intake) {
   });
 }
 
-export async function sendApplicationStatusChange(application) {
+export async function sendApplicationStatusChange(application, student) {
   const status = String(application.status || "").toLowerCase();
   const intakeTitle = application.intakeTitle || "the intake";
   let heading;
@@ -286,6 +296,10 @@ export async function sendApplicationStatusChange(application) {
     body = `
       <p style="font-family:${FONT};font-size:15px;line-height:1.6;color:#1a202c;margin:0 0 14px;">Hello <strong style="color:#142851;">${escapeHtml(application.name)}</strong>,</p>
       <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:0;">Congratulations! We are pleased to inform you that you have been <strong style="color:#142851;">accepted</strong> into <strong style="color:#142851;">${escapeHtml(intakeTitle)}</strong>.</p>
+      ${student ? detailCard("Your DTS Registration", [
+        ["Registration Number", `<strong style="color:#142851;">${escapeHtml(student.regNumber)}</strong>`],
+      ]) : ""}
+      ${student ? ctaButton("View My Profile", `${siteUrl()}/profile`) : ""}
       ${sectionLabel("What Happens Next?")}
       ${stepsList([...NEXT_STEPS])}
       <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:18px 0 0;">We look forward to welcoming you. If you have any questions before orientation, simply reply to this email.</p>
@@ -372,6 +386,22 @@ export async function notifyAdminsNewMessage(message) {
       })
     )
   );
+}
+
+export async function sendStudentCredentials(student, { pin, intakeTitle } = {}) {
+  const title = intakeTitle || student.intakeTitle || "the intake";
+  const body = `
+    <p style="font-family:${FONT};font-size:15px;line-height:1.6;color:#1a202c;margin:0 0 14px;">Hello <strong style="color:#142851;">${escapeHtml(student.name)}</strong>,</p>
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:0;">Here are your DTS profile credentials for <strong style="color:#142851;">${escapeHtml(title)}</strong>. Use them to sign in to your student profile and check your application status, intake details, and results.</p>
+    ${credentialsCard(student.regNumber, pin)}
+    <p style="font-family:${FONT};font-size:13px;line-height:1.65;color:#64748b;margin:16px 0 0;">For your security, do not share your PIN with anyone. DTS staff will never ask you for your PIN.</p>
+    <p style="font-family:${FONT};font-size:14px;line-height:1.6;color:#1a202c;margin:16px 0 0;">Best regards,<br><strong style="color:#142851;">The DTS Team</strong></p>
+  `;
+  return sendMail({
+    to: student.email,
+    subject: `Your DTS credentials - ${student.regNumber}`,
+    html: layout({ heading: "Your DTS Credentials", heroLabel: "Student Profile", body }),
+  });
 }
 
 export async function notifyAdminsNewTestimonial(testimonial) {

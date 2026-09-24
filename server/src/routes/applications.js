@@ -2,7 +2,12 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import Application from "../models/Application.js";
 import Intake from "../models/Intake.js";
+import Student from "../models/Student.js";
 import auth from "../middleware/auth.js";
+import {
+  createStudentForApplication,
+  studentStatusFromApplication,
+} from "../services/studentService.js";
 import {
   sendApplicationConfirmation,
   sendApplicationStatusChange,
@@ -42,8 +47,8 @@ router.post("/", async (req, res) => {
       await Intake.findByIdAndUpdate(intakeId, { status: "closed" });
       return res.status(400).json({ message: "The application deadline for this intake has passed" });
     }
-    const enrolledCount = await Application.countDocuments({ intakeId });
-    if (intake.status === "full" || enrolledCount >= intake.capacity) {
+    const activeCount = await Student.countDocuments({ intakeId, status: "active" });
+    if (intake.status === "full" || activeCount >= intake.capacity) {
       await Intake.findByIdAndUpdate(intakeId, { status: "full" });
       return res.status(400).json({ message: "This intake has reached full capacity" });
     }
@@ -68,8 +73,14 @@ router.post("/", async (req, res) => {
       preferredCourses: courseList,
       motivation,
     });
-    await Intake.findByIdAndUpdate(intakeId, { enrolled: intake.enrolled + 1 });
-    sendApplicationConfirmation(application, intake);
+    let credentials = null;
+    try {
+      const { student, pin } = await createStudentForApplication(application);
+      credentials = { regNumber: student.regNumber, pin };
+    } catch (error) {
+      console.error("[applications] Failed to create student profile:", error.message);
+    }
+    sendApplicationConfirmation(application, intake, credentials);
     notifyAdminsNewApplication(application, intake);
     res.status(201).json({ message: "Application submitted successfully", application });
   } catch (error) {
@@ -102,7 +113,12 @@ router.put("/:id", auth, async (req, res) => {
     const application = await Application.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!application) return res.status(404).json({ message: "Application not found" });
     if (req.body.status && req.body.status !== previous.status) {
-      sendApplicationStatusChange(application);
+      const student = await Student.findOne({ applicationId: application._id });
+      if (student) {
+        student.status = studentStatusFromApplication(application.status);
+        await student.save().catch(() => {});
+      }
+      sendApplicationStatusChange(application, student);
     }
     res.json(application);
   } catch (error) {
@@ -114,7 +130,7 @@ router.delete("/:id", auth, async (req, res) => {
   try {
     const application = await Application.findByIdAndDelete(req.params.id);
     if (!application) return res.status(404).json({ message: "Application not found" });
-    await Intake.findByIdAndUpdate(application.intakeId, { $inc: { enrolled: -1 } });
+    await Student.findOneAndDelete({ applicationId: application._id });
     res.json({ message: "Application deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

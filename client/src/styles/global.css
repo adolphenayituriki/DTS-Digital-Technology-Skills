@@ -1918,3 +1918,113 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .items-center { align-items: center; }
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
+
+/* ── Student Profile (public /profile) ── */
+.profile-key-icon {
+  width: 52px; height: 52px; border-radius: 14px; margin: 0 auto;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+}
+.profile-input-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.profile-input-wrap svg {
+  position: absolute; left: 12px; color: var(--text-light); pointer-events: none;
+}
+.profile-input-wrap .form-control { padding-left: 2.4rem; }
+.profile-head {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  padding: 1.5rem;
+}
+.profile-avatar {
+  width: 64px; height: 64px; border-radius: 16px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff; font-weight: 800; font-size: 1.35rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.profile-reg {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  margin-top: 0.35rem; font-size: 0.82rem; font-weight: 700;
+  color: var(--primary);
+}
+.profile-status-msg {
+  display: flex !important; align-items: flex-start; gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+.profile-status-msg svg { flex-shrink: 0; margin-top: 0.15rem; }
+.profile-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem 1.25rem;
+}
+.profile-field { display: flex; flex-direction: column; gap: 0.15rem; }
+.profile-field span {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-light);
+}
+.profile-field span svg { color: var(--primary); }
+.profile-field b { font-size: 0.93rem; font-weight: 600; color: var(--text); }
+.profile-marks {
+  width: 100%; border-collapse: collapse; font-size: 0.88rem;
+}
+.profile-marks th, .profile-marks td {
+  text-align: left; padding: 0.7rem 0.85rem; border-bottom: 1px solid #f1f5f9;
+}
+.profile-marks th {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-light); background: #f8fafc;
+}
+.profile-marks td:last-child, .profile-marks th:last-child { text-align: right; }
+.profile-safe {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 10px;
+  background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+  font-size: 0.82rem; line-height: 1.55;
+}
+.profile-safe svg { flex-shrink: 0; margin-top: 0.1rem; }
+
+/* ── Admin Students ── */
+.app-adm-toolbar {
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.app-adm-toolbar .admin-filter-tabs { margin-bottom: 0; flex: 1; }
+.student-reg-cell {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-weight: 700; font-size: 0.82rem; color: var(--primary);
+  white-space: nowrap;
+}
+.student-reg-cell svg { opacity: 0.7; }
+.student-detail { max-width: 640px; }
+.student-detail-reg {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.85); font-size: 0.85rem; font-weight: 700;
+  margin: 0.1rem 0 0.75rem;
+}
+.student-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem;
+}
+.student-form-grid .form-group { margin-bottom: 0.85rem; }
+.student-pin-result { margin: 0.75rem 0 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.student-pin-result code {
+  background: rgba(20, 100, 166, 0.1); padding: 0.15rem 0.55rem; border-radius: 6px;
+  font-weight: 800; font-size: 1rem;
+}
+.student-marks-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 1rem;
+}
+.student-marks-table th, .student-marks-table td {
+  text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid #f1f5f9;
+}
+.student-marks-table th {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-light); background: #f8fafc;
+}
+.mark-form {
+  border-top: 1px dashed #e2e5ea; padding-top: 1rem; margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .student-form-grid { grid-template-columns: 1fr; }
+  .profile-grid { grid-template-columns: 1fr; }
+}

@@ -1,12 +1,13 @@
 import { Router } from "express";
 import Intake from "../models/Intake.js";
-import Application from "../models/Application.js";
+import Student from "../models/Student.js";
 import auth from "../middleware/auth.js";
 
 const router = Router();
 
 const withEnrollment = async (intakes) => {
-  const counts = await Application.aggregate([
+  const counts = await Student.aggregate([
+    { $match: { status: "active" } },
     { $group: { _id: "$intakeId", count: { $sum: 1 } } },
   ]);
   const map = new Map(counts.map((r) => [String(r._id), r.count]));

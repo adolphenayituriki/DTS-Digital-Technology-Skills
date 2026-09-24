@@ -13,6 +13,7 @@ import testimonialRoutes from "./routes/testimonials.js";
 import uploadRoutes from "./routes/upload.js";
 import intakeRoutes from "./routes/intakes.js";
 import applicationRoutes from "./routes/applications.js";
+import studentRoutes from "./routes/students.js";
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/intakes", intakeRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/students", studentRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "DTS API is running" });

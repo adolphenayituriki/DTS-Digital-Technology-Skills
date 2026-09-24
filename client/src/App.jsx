@@ -23,6 +23,8 @@ import PostsAdmin from './pages/admin/PostsAdmin';
 import IntakesAdmin from './pages/admin/IntakesAdmin';
 import ApplicationsAdmin from './pages/admin/ApplicationsAdmin';
 import TestimonialsAdmin from './pages/admin/TestimonialsAdmin';
+import StudentsAdmin from './pages/admin/StudentsAdmin';
+import Profile from './pages/Profile';
 
 const titles = {
   '/': 'Home',
@@ -36,12 +38,14 @@ const titles = {
   '/login': 'Login',
   '/signup': 'Sign Up',
   '/dashboard': 'My Dashboard',
+  '/profile': 'Student Profile',
   '/admin': 'Admin Dashboard',
   '/admin/messages': 'Messages',
   '/admin/members': 'Members',
   '/admin/posts': 'Posts',
   '/admin/intakes': 'Intakes',
   '/admin/applications': 'Applications',
+  '/admin/students': 'Students',
   '/admin/testimonials': 'Testimonials',
 };
 
@@ -70,6 +74,7 @@ export default function App() {
           <Route path="posts" element={<PostsAdmin />} />
           <Route path="intakes" element={<IntakesAdmin />} />
           <Route path="applications" element={<ApplicationsAdmin />} />
+          <Route path="students" element={<StudentsAdmin />} />
           <Route path="testimonials" element={<TestimonialsAdmin />} />
         </Route>
         <Route
@@ -88,6 +93,7 @@ export default function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/gallery" element={<Gallery />} />
                   <Route path="/apply" element={<Apply />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/login" element={<Auth mode="login" />} />
                   <Route path="/signup" element={<Auth mode="signup" />} />
                   <Route path="/dashboard" element={<Dashboard />} />

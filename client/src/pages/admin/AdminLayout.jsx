@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut } from 'lucide-react';
 
 const navItems = [
   { to: '/admin', icon: <LayoutDashboard size={18} />, label: 'Dashboard', end: true },
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/admin/posts', icon: <FileText size={18} />, label: 'Posts' },
   { to: '/admin/intakes', icon: <Calendar size={18} />, label: 'Intakes' },
   { to: '/admin/applications', icon: <ClipboardList size={18} />, label: 'Applications' },
+  { to: '/admin/students', icon: <GraduationCap size={18} />, label: 'Students' },
   { to: '/admin/testimonials', icon: <Star size={18} />, label: 'Testimonials' },
 ];
 
