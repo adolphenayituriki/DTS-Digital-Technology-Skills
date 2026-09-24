@@ -180,8 +180,8 @@ export default function Profile() {
                 </div>
               )}
 
-              <div className="card" style={{ padding: '1.5rem' }}>
-                <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem' }}>Intake Details</h3>
+              <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
+                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem' }}>Intake Details</h3>
                 <div className="profile-grid">
                   <div className="profile-field"><span><GraduationCap size={14} /> Intake</span><b>{student.intakeTitle}</b></div>
                   {student.program && <div className="profile-field"><span><BookOpen size={14} /> Level</span><b>{student.program}</b></div>}
@@ -202,9 +202,10 @@ export default function Profile() {
                 )}
               </div>
 
-              <div className="card" style={{ padding: '1.5rem' }}>
-                <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem' }}>Results & Marks</h3>
+              <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
+                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem' }}>Results & Marks</h3>
                 {Array.isArray(student.marks) && student.marks.length > 0 ? (
+                  <div className="profile-marks-wrap">
                   <table className="profile-marks">
                     <thead>
                       <tr>
@@ -225,6 +226,7 @@ export default function Profile() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-light)' }}>
                     <ClipboardList size={30} style={{ opacity: 0.35, marginBottom: '0.5rem' }} />
