@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap, IdCard, KeyRound,
+  LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap, IdCard, KeyRound, Mail,
 } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
@@ -53,6 +53,11 @@ export default function Auth({ mode }) {
   const [stuForm, setStuForm] = useState({ regNumber: '', pin: '' });
   const [stuAuthing, setStuAuthing] = useState(false);
   const [stuError, setStuError] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [stuForgot, setStuForgot] = useState({ regNumber: '', email: '' });
+  const [stuForgotLoading, setStuForgotLoading] = useState(false);
+  const [stuForgotMsg, setStuForgotMsg] = useState('');
+  const [stuForgotOk, setStuForgotOk] = useState(false);
 
   const change = (setter) => (e) => setter((f) => ({ ...f, [e.target.name]: e.target.value }));
   const stuChange = (e) => setStuForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -110,6 +115,30 @@ export default function Auth({ mode }) {
       setStuError(err.message || 'Failed to sign in with these credentials.');
     } finally {
       setStuAuthing(false);
+    }
+  };
+
+  const handleForgotPin = async (e) => {
+    e.preventDefault();
+    setStuForgotMsg('');
+    if (!stuForgot.regNumber.trim() || !stuForgot.email.trim()) {
+      setStuForgotOk(false);
+      setStuForgotMsg('Enter your registration number and email.');
+      return;
+    }
+    setStuForgotLoading(true);
+    try {
+      const res = await apiFetch('/students/forgot-pin', {
+        method: 'POST',
+        body: JSON.stringify(stuForgot),
+      });
+      setStuForgotOk(true);
+      setStuForgotMsg(res.message || 'A new PIN has been sent if the details match.');
+    } catch (err) {
+      setStuForgotOk(false);
+      setStuForgotMsg(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setStuForgotLoading(false);
     }
   };
 
@@ -191,35 +220,71 @@ export default function Auth({ mode }) {
           <aside className="auth-student-card">
             <span className="auth-student-head"><GraduationCap size={22} /></span>
             <h2>Student / Applicant Sign In</h2>
-            <p className="auth-student-sub">
-              Sign in with the Registration Number and PIN from your application email.
-            </p>
-            <form onSubmit={handleStudentLogin}>
-              <div className="form-group">
-                <label htmlFor="stu-reg">Registration Number</label>
-                <div className="profile-input-wrap">
-                  <IdCard size={16} />
-                  <input id="stu-reg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForm.regNumber} onChange={stuChange} placeholder="e.g. DTS-2026-0001" required />
+            {showForgot ? (
+              <form onSubmit={handleForgotPin} className="auth-student-forgot">
+                <p className="auth-student-forgot-note">
+                  Forgot your PIN? Enter the Registration Number and the email you applied with — we'll email you a new PIN.
+                </p>
+                <div className="form-group">
+                  <label htmlFor="stu-freg">Registration Number</label>
+                  <div className="profile-input-wrap">
+                    <IdCard size={16} />
+                    <input id="stu-freg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForgot.regNumber} onChange={(e) => setStuForgot((f) => ({ ...f, regNumber: e.target.value }))} placeholder="e.g. DTS-2026-0001" required />
+                  </div>
                 </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="stu-pin">PIN</label>
-                <div className="profile-input-wrap">
-                  <KeyRound size={16} />
-                  <input id="stu-pin" name="pin" className="form-control" type="password" inputMode="numeric" maxLength={6} value={stuForm.pin} onChange={stuChange} placeholder="6-digit PIN" required />
+                <div className="form-group">
+                  <label htmlFor="stu-femail">Application Email</label>
+                  <div className="profile-input-wrap">
+                    <Mail size={16} />
+                    <input id="stu-femail" name="email" type="email" className="form-control" value={stuForgot.email} onChange={(e) => setStuForgot((f) => ({ ...f, email: e.target.value }))} placeholder="you@example.com" required />
+                  </div>
                 </div>
-              </div>
-              {stuError && <div className="alert alert-error">{stuError}</div>}
-              <button type="submit" className="btn btn-primary" disabled={stuAuthing}>
-                {stuAuthing ? 'Verifying...' : 'View My Profile'}
-              </button>
-            </form>
-            <div className="auth-student-foot">
-              <p>Credentials are emailed right after you apply.</p>
-              <Link to="/apply" className="btn btn-outline btn-sm">
-                Apply for an Intake
-              </Link>
-            </div>
+                {stuForgotMsg && (
+                  <div className={stuForgotOk ? 'alert alert-info' : 'alert alert-error'}>{stuForgotMsg}</div>
+                )}
+                <button type="submit" className="btn btn-primary" disabled={stuForgotLoading}>
+                  {stuForgotLoading ? 'Sending...' : 'Send New PIN'}
+                </button>
+                <button type="button" className="auth-btn-link" onClick={() => { setShowForgot(false); setStuForgotMsg(''); }}>
+                  <ArrowLeft size={13} /> Back to sign in
+                </button>
+              </form>
+            ) : (
+              <>
+                <p className="auth-student-sub">
+                  Sign in with the Registration Number and PIN from your application email.
+                </p>
+                <form onSubmit={handleStudentLogin}>
+                  <div className="form-group">
+                    <label htmlFor="stu-reg">Registration Number</label>
+                    <div className="profile-input-wrap">
+                      <IdCard size={16} />
+                      <input id="stu-reg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForm.regNumber} onChange={stuChange} placeholder="e.g. DTS-2026-0001" required />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="stu-pin">PIN</label>
+                    <div className="profile-input-wrap">
+                      <KeyRound size={16} />
+                      <input id="stu-pin" name="pin" className="form-control" type="password" inputMode="numeric" maxLength={6} value={stuForm.pin} onChange={stuChange} placeholder="6-digit PIN" required />
+                    </div>
+                  </div>
+                  {stuError && <div className="alert alert-error">{stuError}</div>}
+                  <button type="submit" className="btn btn-primary" disabled={stuAuthing}>
+                    {stuAuthing ? 'Verifying...' : 'View My Profile'}
+                  </button>
+                  <button type="button" className="auth-forgot-link" onClick={() => { setShowForgot(true); setStuError(''); }}>
+                    Forgot your PIN?
+                  </button>
+                </form>
+                <div className="auth-student-foot">
+                  <p>Credentials are emailed right after you apply.</p>
+                  <Link to="/apply" className="btn btn-outline btn-sm">
+                    Apply for an Intake
+                  </Link>
+                </div>
+              </>
+            )}
           </aside>
         </div>
       )}

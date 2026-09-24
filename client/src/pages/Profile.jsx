@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
-  ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight,
+  ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight, ArrowLeft,
 } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
@@ -26,6 +26,11 @@ export default function Profile() {
   const [authing, setAuthing] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ regNumber: '', pin: '' });
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgot, setForgot] = useState({ regNumber: '', email: '' });
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotOk, setForgotOk] = useState(false);
 
   useEffect(() => {
     if (!ready) return;
@@ -76,6 +81,30 @@ export default function Profile() {
     }
   };
 
+  const handleForgotPin = async (e) => {
+    e.preventDefault();
+    setForgotMsg('');
+    if (!forgot.regNumber.trim() || !forgot.email.trim()) {
+      setForgotOk(false);
+      setForgotMsg('Enter your registration number and email.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await apiFetch('/students/forgot-pin', {
+        method: 'POST',
+        body: JSON.stringify(forgot),
+      });
+      setForgotOk(true);
+      setForgotMsg(res.message || 'A new PIN has been sent if the details match.');
+    } catch (err) {
+      setForgotOk(false);
+      setForgotMsg(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const meta = student ? STATUS_META[student.status] || STATUS_META.applicant : null;
 
   const signOut = () => {
@@ -105,43 +134,101 @@ export default function Profile() {
                   Enter the Registration Number and PIN you received by email.
                 </p>
               </div>
-              <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label>DTS Registration Number</label>
-                  <div className="profile-input-wrap">
-                    <IdCard size={16} />
-                    <input
-                      className="form-control"
-                      value={form.regNumber}
-                      onChange={(e) => setForm({ ...form, regNumber: e.target.value })}
-                      placeholder="e.g. DTS-2026-0001"
-                      autoCapitalize="characters"
-                    />
+              {showForgot ? (
+                <form onSubmit={handleForgotPin}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-light)', lineHeight: '1.45', margin: '0 0 1rem' }}>
+                    Forgot your PIN? Enter the Registration Number and the email you applied with — we'll email you a new PIN.
+                  </p>
+                  <div className="form-group">
+                    <label>DTS Registration Number</label>
+                    <div className="profile-input-wrap">
+                      <IdCard size={16} />
+                      <input
+                        className="form-control"
+                        value={forgot.regNumber}
+                        onChange={(e) => setForgot({ ...forgot, regNumber: e.target.value })}
+                        placeholder="e.g. DTS-2026-0001"
+                        autoCapitalize="characters"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>PIN</label>
-                  <div className="profile-input-wrap">
-                    <KeyRound size={16} />
-                    <input
-                      className="form-control"
-                      type="number"
-                      value={form.pin}
-                      onChange={(e) => setForm({ ...form, pin: e.target.value })}
-                      placeholder="6-digit PIN"
-                      maxLength={6}
-                    />
+                  <div className="form-group">
+                    <label>Application Email</label>
+                    <div className="profile-input-wrap">
+                      <Mail size={16} />
+                      <input
+                        className="form-control"
+                        type="email"
+                        value={forgot.email}
+                        onChange={(e) => setForgot({ ...forgot, email: e.target.value })}
+                        placeholder="you@example.com"
+                      />
+                    </div>
                   </div>
-                </div>
-                {error && <div className="alert alert-error">{error}</div>}
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={authing}>
-                  {authing ? 'Verifying...' : 'View My Profile'}
-                </button>
-              </form>
-              {isLoggedIn && (
-                <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '1rem', marginBottom: 0 }}>
-                  No student record linked to your account? Use the credentials from your application email.
-                </p>
+                  {forgotMsg && (
+                    <div className={forgotOk ? 'alert alert-info' : 'alert alert-error'}>{forgotMsg}</div>
+                  )}
+                  <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={forgotLoading}>
+                    {forgotLoading ? 'Sending...' : 'Send New PIN'}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-btn-link"
+                    style={{ marginTop: '0.6rem' }}
+                    onClick={() => { setShowForgot(false); setForgotMsg(''); }}
+                  >
+                    <ArrowLeft size={13} /> Back to sign in
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                      <label>DTS Registration Number</label>
+                      <div className="profile-input-wrap">
+                        <IdCard size={16} />
+                        <input
+                          className="form-control"
+                          value={form.regNumber}
+                          onChange={(e) => setForm({ ...form, regNumber: e.target.value })}
+                          placeholder="e.g. DTS-2026-0001"
+                          autoCapitalize="characters"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>PIN</label>
+                      <div className="profile-input-wrap">
+                        <KeyRound size={16} />
+                        <input
+                          className="form-control"
+                          type="number"
+                          value={form.pin}
+                          onChange={(e) => setForm({ ...form, pin: e.target.value })}
+                          placeholder="6-digit PIN"
+                          maxLength={6}
+                        />
+                      </div>
+                    </div>
+                    {error && <div className="alert alert-error">{error}</div>}
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={authing}>
+                      {authing ? 'Verifying...' : 'View My Profile'}
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-forgot-link"
+                      style={{ marginTop: '0.5rem' }}
+                      onClick={() => { setShowForgot(true); setError(''); }}
+                    >
+                      Forgot your PIN?
+                    </button>
+                  </form>
+                  {isLoggedIn && (
+                    <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '1rem', marginBottom: 0 }}>
+                      No student record linked to your account? Use the credentials from your application email.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

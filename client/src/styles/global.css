@@ -1753,6 +1753,20 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 }
 .auth-student-foot p { font-size: 0.72rem; color: var(--text-light); line-height: 1.4; margin: 0; }
 .auth-student-card .btn-sm { width: auto; margin-top: 0; padding: 0.4rem 0.6rem; font-size: 0.76rem; flex: 0 0 auto; }
+.auth-student-card .auth-student-foot { margin-top: 0.75rem; }
+.auth-student-forgot-note { font-size: 0.75rem; color: var(--text-light); line-height: 1.45; margin: 0 0 0.8rem; }
+.auth-student-card .auth-btn-link,
+.auth-btn-link {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: none; border: none; padding: 0;
+  color: var(--primary); font-size: 0.75rem; font-weight: 600; cursor: pointer;
+}
+.auth-forgot-link {
+  display: block; margin-top: 0.5rem;
+  background: none; border: none; padding: 0;
+  color: var(--primary); font-size: 0.75rem; font-weight: 600; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}
 
 .auth-student-jump { display: none; }
 

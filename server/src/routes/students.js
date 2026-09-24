@@ -49,6 +49,31 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.post("/forgot-pin", async (req, res) => {
+  try {
+    const regNumber = String(req.body.regNumber || "").trim().toUpperCase();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!regNumber || !email) {
+      return res.status(400).json({ message: "Registration number and email are required" });
+    }
+    const generic = {
+      message: "If your registration number and email match, a new PIN has been sent to your email.",
+    };
+    const student = await Student.findOne({ regNumber: new RegExp(`^${regNumber}$`, "i") });
+    if (!student || String(student.email || "").toLowerCase() !== email) {
+      return res.json(generic);
+    }
+    const { student: updated, pin } = await resetStudentPin(student);
+    await updated.save();
+    sendStudentCredentials(updated, { pin }).catch((e) =>
+      console.error("[mailer] forgot-pin email failed:", e.message)
+    );
+    res.json(generic);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/mine", auth, async (req, res) => {
   try {
     const students = await Student.find({ userId: req.user._id })
