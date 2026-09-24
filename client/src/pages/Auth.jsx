@@ -38,28 +38,6 @@ function Brand({ title, tagline, features }) {
   );
 }
 
-function Seam({ path, line, gradient, dots }) {
-  return (
-    <>
-      <svg className="auth-seam" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <defs>
-          <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-            <stop offset="50%" stopColor="#7fe0a8" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.9" />
-          </linearGradient>
-        </defs>
-        <path d={path} fill="none" stroke="#ffffff" strokeOpacity="0.16" strokeWidth="8" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <path d={path} fill="none" stroke={`url(#${gradient})`} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <path d={line} fill="none" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="0.7" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </svg>
-      {dots.map((d, i) => (
-        <span key={i} className="seam-dot" style={{ left: `${d.x}%`, top: `${d.y}%` }} />
-      ))}
-    </>
-  );
-}
-
 export default function Auth({ mode }) {
   const isSignup = mode === 'signup';
   const { setSession } = useAuth();
@@ -108,21 +86,21 @@ export default function Auth({ mode }) {
 
   return (
     <section className="auth-page">
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-        <defs>
-          <clipPath id="slant-left" clipPathUnits="objectBoundingBox">
-            <path d="M 0.18 0 C 0.04 0.32, 0.04 0.68, 0.18 1 L 1 1 L 1 0 Z" />
-          </clipPath>
-          <clipPath id="slant-right" clipPathUnits="objectBoundingBox">
-            <path d="M 0 0 L 0.82 0 C 0.96 0.32, 0.96 0.68, 0.82 1 L 0 1 Z" />
-          </clipPath>
-        </defs>
-      </svg>
-      <div className={`auth-flip ${isSignup ? 'flipped' : ''}`}>
-        <div className="auth-flip-inner">
-          {/* Front face: login form | brand */}
-          <div className="auth-face auth-face-login">
-            <div className="auth-panel-form">
+      <div className={`auth-card ${isSignup ? 'auth-card-signup' : 'auth-card-login'}`}>
+        <Brand
+          title={isSignup ? 'Join DTS' : 'Welcome Back'}
+          tagline={isSignup ? 'Apply for training intakes and get certified.' : 'Continue your digital learning journey.'}
+          features={isSignup ? signupFeatures : loginFeatures}
+        />
+
+        <div className="auth-panel-form">
+          <div className="auth-mobile-brand">
+            <img src="/Logo.png" alt="DTS Logo" />
+            <h2>Digital Technology Skills</h2>
+          </div>
+
+          {!isSignup ? (
+            <>
               <h1>Log In</h1>
               <p className="auth-subtitle">Welcome back — access your account</p>
               <form onSubmit={handleLogin}>
@@ -150,26 +128,9 @@ export default function Auth({ mode }) {
                 </div>
                 <Link to="/profile" className="btn btn-outline btn-sm">View My Profile</Link>
               </div>
-            </div>
-            <Brand title="Welcome Back" tagline="Continue your digital learning journey." features={loginFeatures} />
-            <Seam
-              path="M 58.5 0 C 52 32, 52 68, 58.5 100"
-              line="M 59 0 C 52.9 32, 52.9 68, 59 100"
-              gradient="seam-grad-login"
-              dots={[{ x: 56.6, y: 16 }, { x: 53.4, y: 50 }, { x: 56.6, y: 84 }]}
-            />
-          </div>
-
-          {/* Back face: brand | signup form (mirrored) */}
-          <div className="auth-face auth-face-signup">
-            <Brand title="Join DTS" tagline="Apply for training intakes and get certified." features={signupFeatures} />
-            <Seam
-              path="M 41.5 0 C 48 32, 48 68, 41.5 100"
-              line="M 41 0 C 47.1 32, 47.1 68, 41 100"
-              gradient="seam-grad-signup"
-              dots={[{ x: 43.4, y: 16 }, { x: 46.6, y: 50 }, { x: 43.4, y: 84 }]}
-            />
-            <div className="auth-panel-form">
+            </>
+          ) : (
+            <>
               <h1>Create Your Account</h1>
               <p className="auth-subtitle">Join DTS and apply for training intakes</p>
               <form onSubmit={handleSignup}>
@@ -199,8 +160,8 @@ export default function Auth({ mode }) {
                 Already have an account?{' '}
                 <Link to="/login" className="auth-flip-link">Log in</Link>
               </p>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </section>
