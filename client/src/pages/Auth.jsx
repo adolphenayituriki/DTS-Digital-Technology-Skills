@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
@@ -142,6 +142,14 @@ export default function Auth({ mode }) {
                 Don't have an account?{' '}
                 <Link to="/signup" className="auth-flip-link">Sign up</Link>
               </p>
+              <div className="auth-student">
+                <div className="auth-student-ic"><GraduationCap size={20} /></div>
+                <div>
+                  <strong>Are you an applicant or student?</strong>
+                  <span>Sign in with the Registration Number and PIN you received by email.</span>
+                </div>
+                <Link to="/profile" className="btn btn-outline btn-sm">View My Profile</Link>
+              </div>
             </div>
             <Brand title="Welcome Back" tagline="Continue your digital learning journey." features={loginFeatures} />
             <Seam

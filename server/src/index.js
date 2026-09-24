@@ -48,9 +48,18 @@ app.use("/api/intakes", intakeRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/students", studentRoutes);
 
-app.get("/", (req, res) => {
-  res.json({ message: "DTS API is running" });
-});
+const distDir = path.join(__dirname, "../../client/dist");
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(distDir, "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.json({ message: "DTS API is running" });
+  });
+}
 
 connectDB().then(() => {
   app.listen(PORT, () => {
