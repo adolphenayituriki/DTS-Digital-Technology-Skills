@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
@@ -24,6 +25,17 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.get("/assets/Logo.png", (req, res) => {
+  const logoPath = path.join(__dirname, "../../client/public/Logo.png");
+  if (!fs.existsSync(logoPath)) return res.status(404).end();
+  const buffer = fs.readFileSync(logoPath);
+  const signature = buffer.subarray(0, 3).toString("hex");
+  const contentType =
+    signature === "ffd8ff" ? "image/jpeg" : signature === "89504e" ? "image/png" : "application/octet-stream";
+  res.setHeader("Content-Type", contentType);
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(buffer);
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);

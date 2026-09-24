@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Testimonial from "../models/Testimonial.js";
 import auth from "../middleware/auth.js";
+import { notifyAdminsNewTestimonial } from "../utils/mailer.js";
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.post("/", async (req, res) => {
       content,
       rating,
     });
+    notifyAdminsNewTestimonial(testimonial);
     res.status(201).json(testimonial);
   } catch (error) {
     res.status(500).json({ message: error.message });

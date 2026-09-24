@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2 } from 'lucide-react';
 import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
@@ -114,7 +114,7 @@ export default function Apply() {
   };
 
   return (
-    <>
+    <div className="apply-page">
       <section className="page-header">
         <div className="container">
           <h1>Apply for an Intake</h1>
@@ -135,55 +135,86 @@ export default function Apply() {
             </div>
           )}
 
-          <div className="grid-3">
+          <div className="intake-grid">
             {!selected && intakes.map((intake) => {
               const deadlinePassed = isDeadlinePassed(intake);
               const full = isFull(intake);
               const open = canApply(intake);
-              const pct = Math.min(100, Math.round(((intake.enrolled || 0) / intake.capacity) * 100));
+              const pct = Math.min(100, Math.round(((intake.enrolled || 0) / (intake.capacity || 1)) * 100));
+              const seatsLeft = Math.max(0, (intake.capacity || 0) - (intake.enrolled || 0));
+              const tone = String(intake.program || '').toLowerCase().includes('basic') ? 'basic' : 'advanced';
+              const splitIdx = (intake.title || '').indexOf('·');
+              const levelName = splitIdx >= 0 ? intake.title.slice(0, splitIdx).trim() : (intake.program || intake.title);
+              const intakePeriod = splitIdx >= 0 ? intake.title.slice(splitIdx + 1).trim() : '';
+              const statusText = full ? 'Full' : deadlinePassed ? 'Closed' : intake.status === 'open' ? 'Open' : 'Closed';
               return (
                 <FadeIn key={intake._id}>
-                  <div className={`card intake-card ${open ? '' : 'intake-closed'}`}>
+                  <div className={`card intake-card intake-tone-${tone} ${open ? 'is-open' : 'intake-closed'}`}>
                     <div className="intake-card-head">
-                      <h3>{intake.title}</h3>
+                      <div className="intake-head-main">
+                        <span className="intake-level">
+                          <span className="intake-level-icon"><GraduationCap size={15} /></span>
+                          <span className="intake-level-name">{levelName}</span>
+                        </span>
+                        {intakePeriod && <span className="intake-period">{intakePeriod}</span>}
+                      </div>
                       <span className={`intake-status ${open ? '' : 'danger'}`}>
-                        {full ? 'Full' : deadlinePassed ? 'Closed' : intake.status === 'open' ? 'Open' : 'Closed'}
+                        <span className="intake-status-dot" />
+                        {statusText}
                       </span>
                     </div>
-                    {intake.description && <p className="intake-desc">{intake.description}</p>}
-                    {Array.isArray(intake.courses) && intake.courses.length > 0 && (
-                      <div className="intake-courses">
-                        {intake.courses.map((c) => (
-                          <span key={c} className="intake-course-chip">{c}</span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="intake-meta">
-                      {intake.startDate && (
-                        <span><Calendar size={13} /> Starts {fmtDate(intake.startDate)}</span>
+                    <div className="intake-card-body">
+                      {intake.description && <p className="intake-desc">{intake.description}</p>}
+                      {Array.isArray(intake.courses) && intake.courses.length > 0 && (
+                        <div className="intake-courses">
+                          <span className="intake-courses-label">Curriculum</span>
+                          <ul className="intake-course-list">
+                            {intake.courses.map((c) => (
+                              <li key={c} className="intake-course-item">
+                                <CheckCircle2 size={14} />
+                                <span>{c}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
-                      {intake.deadline && (
-                        <span><Clock size={13} /> Deadline {fmtDate(intake.deadline)}</span>
+                      <div className="intake-meta">
+                        {intake.startDate && (
+                          <span className="intake-meta-item">
+                            <Calendar size={15} />
+                            <span><small>Starts</small><b>{fmtDate(intake.startDate)}</b></span>
+                          </span>
+                        )}
+                        {intake.deadline && (
+                          <span className="intake-meta-item">
+                            <Clock size={15} />
+                            <span><small>Deadline</small><b>{fmtDate(intake.deadline)}</b></span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="intake-progress">
+                        <div className="intake-progress-head">
+                          <span className="intake-progress-label">Enrolled</span>
+                          <span className="intake-progress-pct">{pct}%</span>
+                        </div>
+                        <div className="intake-bar">
+                          <div className="intake-bar-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="intake-progress-foot">
+                          <span>{intake.enrolled || 0} of {intake.capacity || '—'} seats</span>
+                          <span>{seatsLeft} left</span>
+                        </div>
+                      </div>
+                      {open ? (
+                        <button className="btn intake-btn" onClick={() => openForm(intake)}>
+                          Apply Now <ArrowRight size={15} />
+                        </button>
+                      ) : (
+                        <button className="btn intake-btn" disabled>
+                          <XCircle size={15} /> {full ? 'Capacity Full' : 'Applications Closed'}
+                        </button>
                       )}
                     </div>
-                    <div className="intake-progress">
-                      <div className="intake-progress-head">
-                        <span className="intake-progress-label">Enrolled</span>
-                        <span className="intake-progress-count">{intake.enrolled || 0} / {intake.capacity || '—'}</span>
-                      </div>
-                      <div className="intake-bar">
-                        <div className="intake-bar-fill" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                    {open ? (
-                      <button className="btn btn-primary btn-sm intake-btn" onClick={() => openForm(intake)}>
-                        Apply Now <ArrowRight size={14} />
-                      </button>
-                    ) : (
-                      <button className="btn btn-outline btn-sm intake-btn" disabled>
-                        <XCircle size={14} /> {full ? 'Capacity Full' : 'Applications Closed'}
-                      </button>
-                    )}
                   </div>
                 </FadeIn>
               );
@@ -325,6 +356,6 @@ export default function Apply() {
           )}
         </div>
       </section>
-    </>
+    </div>
   );
 }

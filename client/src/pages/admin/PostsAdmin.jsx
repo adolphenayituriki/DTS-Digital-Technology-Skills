@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import apiFetch from '../../api';
+import { Plus, Edit, Trash2, ImagePlus, X } from 'lucide-react';
+import apiFetch, { API_URL } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
-const emptyForm = { title: '', content: '', excerpt: '', category: '', published: true };
+const emptyForm = { title: '', content: '', excerpt: '', category: '', published: true, featuredImage: '' };
 
 export default function PostsAdmin() {
   const [posts, setPosts] = useState([]);
@@ -12,6 +12,7 @@ export default function PostsAdmin() {
   const [editId, setEditId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchPosts = () => {
@@ -26,6 +27,32 @@ export default function PostsAdmin() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('dts_token');
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const origin = API_URL.replace(/\/api\/?$/, '');
+      setForm((f) => ({ ...f, featuredImage: origin + data.url }));
+    } catch (err) {
+      setError(err.message || 'Image upload failed.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -47,7 +74,7 @@ export default function PostsAdmin() {
   };
 
   const startEdit = (p) => {
-    setForm({ title: p.title, content: p.content || '', excerpt: p.excerpt || '', category: p.category || '', published: p.published !== false });
+    setForm({ title: p.title, content: p.content || '', excerpt: p.excerpt || '', category: p.category || '', published: p.published !== false, featuredImage: p.featuredImage || '' });
     setEditId(p._id);
     setShowForm(true);
   };
@@ -75,6 +102,32 @@ export default function PostsAdmin() {
           <h3 style={{ marginBottom: '1rem' }}>{editId ? 'Edit Post' : 'Add New Post'}</h3>
           {error && <div className="alert alert-error">{error}</div>}
           <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Featured Image</label>
+              <div className="img-upload">
+                {form.featuredImage ? (
+                  <div className="img-upload-preview">
+                    <img src={form.featuredImage} alt="Featured image preview" />
+                    <div className="img-upload-actions">
+                      <label className="btn btn-outline btn-sm">
+                        <ImagePlus size={14} /> Replace
+                        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleUpload} hidden />
+                      </label>
+                      <button type="button" className="btn btn-danger btn-sm" onClick={() => setForm((f) => ({ ...f, featuredImage: '' }))}>
+                        <X size={14} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="img-upload-empty">
+                    <ImagePlus size={22} />
+                    <span>{uploading ? 'Uploading...' : 'Click to upload an image'}</span>
+                    <small>JPG, PNG, GIF or WebP · max 5 MB</small>
+                    <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleUpload} hidden />
+                  </label>
+                )}
+              </div>
+            </div>
             <div className="grid-2">
               <div className="form-group">
                 <label>Title *</label>

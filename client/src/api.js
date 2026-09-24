@@ -4,6 +4,8 @@ const API_URL =
     ? 'https://dts-digital-technology-skills.onrender.com/api'
     : '/api');
 
+export { API_URL };
+
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('dts_token');
   const headers = { 'Content-Type': 'application/json', ...options.headers };

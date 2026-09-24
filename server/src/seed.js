@@ -107,6 +107,7 @@ const seed = async () => {
         "<p>Applications for the Digital Technology Skills 2026–2027 intake are now open at two levels. Follow these simple steps to apply and begin your digital skills training journey.</p><p>Choose the <strong>Basic Level</strong> (Google Services, Microsoft Office, Online Job Applications) or the <strong>Advanced Level</strong> (Photo & Video Editing, Computer Maintenance, Computer Graphics). Each training runs for 2–3 months, with certificates awarded on completion.</p>",
       excerpt:
         "Step-by-step guide to applying for the DTS 2026–2027 intake program.",
+      featuredImage: "/activity-1.jpg",
       category: "announcement",
       isPublished: true,
       author: admin._id,

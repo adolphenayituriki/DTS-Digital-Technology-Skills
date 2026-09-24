@@ -1,13 +1,22 @@
 import { Router } from "express";
 import Intake from "../models/Intake.js";
+import Application from "../models/Application.js";
 import auth from "../middleware/auth.js";
 
 const router = Router();
 
+const withEnrollment = async (intakes) => {
+  const counts = await Application.aggregate([
+    { $group: { _id: "$intakeId", count: { $sum: 1 } } },
+  ]);
+  const map = new Map(counts.map((r) => [String(r._id), r.count]));
+  return intakes.map((i) => ({ ...i.toObject(), enrolled: map.get(String(i._id)) || 0 }));
+};
+
 router.get("/", async (req, res) => {
   try {
     const intakes = await Intake.find({ status: "open" }).sort({ deadline: 1 });
-    res.json(intakes);
+    res.json(await withEnrollment(intakes));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -16,7 +25,7 @@ router.get("/", async (req, res) => {
 router.get("/all", auth, async (req, res) => {
   try {
     const intakes = await Intake.find().sort({ createdAt: -1 });
-    res.json(intakes);
+    res.json(await withEnrollment(intakes));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

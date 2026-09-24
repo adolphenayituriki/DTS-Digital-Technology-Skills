@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Message from "../models/Message.js";
 import auth from "../middleware/auth.js";
+import { notifyAdminsNewMessage } from "../utils/mailer.js";
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.post("/", async (req, res) => {
     }
 
     const newMessage = await Message.create({ name, email, phone, subject, message });
+    notifyAdminsNewMessage(newMessage);
     res.status(201).json(newMessage);
   } catch (error) {
     res.status(500).json({ message: error.message });
