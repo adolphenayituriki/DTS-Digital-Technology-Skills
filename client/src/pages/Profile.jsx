@@ -87,7 +87,7 @@ export default function Profile() {
 
   return (
     <>
-      <section className="page-header">
+      <section className="page-header page-header-compact">
         <div className="container">
           <h1>Student Profile</h1>
           <p>View your intake, application status, and results</p>
