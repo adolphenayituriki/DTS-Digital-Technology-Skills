@@ -1752,6 +1752,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 
 @media (max-width: 920px) {
   .auth-login-split { grid-template-columns: 1fr; }
+  .auth-login-split .auth-student-card { order: -1; }
 }
 
 .auth-panel-form {
