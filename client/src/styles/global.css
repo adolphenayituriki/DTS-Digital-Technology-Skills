@@ -1754,6 +1754,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 
 @media (max-width: 920px) {
   .auth-login-split { grid-template-columns: 1fr; }
+  .auth-student-card { display: none; }
   .auth-student-jump {
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     width: 100%;

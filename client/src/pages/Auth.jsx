@@ -113,11 +113,6 @@ export default function Auth({ mode }) {
     }
   };
 
-  const scrollToStudent = () => {
-    const el = document.getElementById('auth-student');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   return (
     <section className="auth-page">
       {isSignup ? (
@@ -161,9 +156,9 @@ export default function Auth({ mode }) {
         </div>
       ) : (
         <div className="auth-login-split">
-          <button type="button" className="auth-student-jump" onClick={scrollToStudent}>
+          <Link to="/profile" className="auth-student-jump">
             <GraduationCap size={16} /> Student Login <ArrowLeft size={13} style={{ transform: 'rotate(180deg)' }} />
-          </button>
+          </Link>
           <div className="auth-card auth-card-login">
             <Brand title="Welcome Back" tagline="Continue your digital learning journey." features={loginFeatures} />
             <div className="auth-panel-form">
@@ -193,7 +188,7 @@ export default function Auth({ mode }) {
             </div>
           </div>
 
-          <aside id="auth-student" className="auth-student-card">
+          <aside className="auth-student-card">
             <span className="auth-student-head"><GraduationCap size={22} /></span>
             <h2>Student / Applicant Sign In</h2>
             <p className="auth-student-sub">
