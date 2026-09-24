@@ -1750,9 +1750,18 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .auth-student-foot p { font-size: 0.72rem; color: var(--text-light); line-height: 1.4; margin: 0; }
 .auth-student-card .btn-sm { width: auto; margin-top: 0; padding: 0.4rem 0.6rem; font-size: 0.76rem; flex: 0 0 auto; }
 
+.auth-student-jump { display: none; }
+
 @media (max-width: 920px) {
   .auth-login-split { grid-template-columns: 1fr; }
-  .auth-login-split .auth-student-card { order: -1; }
+  .auth-student-jump {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary), #005f3e); color: #fff;
+    border: none; border-radius: 12px; padding: 0.7rem;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    margin-bottom: 0.5rem;
+  }
 }
 
 .auth-panel-form {
