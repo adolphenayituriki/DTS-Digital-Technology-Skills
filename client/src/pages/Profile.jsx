@@ -248,7 +248,7 @@ export default function Profile() {
 
               <div className="profile-safe">
                 <ShieldCheck size={16} />
-                <span>Keep your Registration Number and PIN safe — you will use them to access your profile. DTS staff will never ask for your PIN.</span>
+                <span>Keep your Registration Number and PIN safe. You will use them to access your profile. DTS staff will never ask for your PIN.</span>
               </div>
 
               {!isLoggedIn && student && (
