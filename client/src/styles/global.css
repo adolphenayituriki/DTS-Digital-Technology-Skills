@@ -1793,31 +1793,13 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .auth-switch { text-align: center; margin-top: 1rem; font-size: 0.83rem; color: var(--text-light); }
 .auth-flip-link { color: var(--primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
-.auth-student {
-  display: flex; align-items: center; gap: 0.7rem;
-  margin-top: 1.5rem; padding: 0.85rem 0.9rem;
-  border: 1px solid rgba(0, 128, 96, 0.22); border-radius: 14px;
-  background: var(--hero-bg2, rgba(224, 250, 240, 0.55));
-}
-.auth-student-ic {
-  flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 12px;
-  color: #fff; background: linear-gradient(135deg, var(--primary), var(--primary-dark, #005f3e));
-}
-.auth-student strong { display: block; font-size: 0.8rem; }
-.auth-student span { display: block; font-size: 0.72rem; color: var(--text-light); line-height: 1.35; margin-top: 2px; }
-.auth-student .btn { margin-left: auto; flex: 0 0 auto; white-space: nowrap; }
 .btn-outline {
   background: transparent; color: var(--primary);
   border: 1.5px solid var(--primary); display: inline-flex; align-items: center; gap: 0.4rem;
 }
 .btn-outline:hover { background: var(--primary); color: #fff; }
 .btn-sm { padding: 0.42rem 0.8rem; font-size: 0.78rem; }
-
-@media (max-width: 680px) {
-  .auth-student { align-items: flex-start; flex-wrap: wrap; }
-  .auth-student .btn { margin-left: auto; }
-}
+.btn.navbar-student-desktop { border-radius: 8px; padding: 0.5rem 0.9rem; }
 
 .auth-panel-form h1, .auth-panel-form .auth-subtitle { text-align: left; }
 .auth-panel-form .auth-subtitle { margin-bottom: 0.9rem; }
@@ -1874,7 +1856,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .btn.navbar-login-desktop { border-radius: 8px; padding: 0.5rem 1.1rem; }
 
 @media (max-width: 900px) {
-  .admin-icon, .navbar-login-desktop { display: none; }
+  .admin-icon, .navbar-login-desktop, .navbar-student-desktop { display: none; }
   .navbar-links .navbar-cta { display: flex; }
   .navbar-links .dash-link-logout { display: flex; }
 }

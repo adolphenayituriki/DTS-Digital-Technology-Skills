@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   Menu, X, LogOut, LayoutDashboard, Search,
-  Home, Info, BookOpen, Users, Newspaper, Camera, FilePlus2, Mail, User
+  Home, Info, BookOpen, Users, Newspaper, Camera, FilePlus2, Mail, User, GraduationCap
 } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import apiFetch from '../api';
@@ -25,6 +25,7 @@ const pageItems = [
   { to: '/news', label: 'News', icon: <Newspaper size={15} /> },
   { to: '/gallery', label: 'Gallery', icon: <Camera size={15} /> },
   { to: '/apply', label: 'Apply', icon: <FilePlus2 size={15} /> },
+  { to: '/profile', label: 'Student Profile', icon: <GraduationCap size={15} /> },
   { to: '/contact', label: 'Contact', icon: <Mail size={15} /> },
 ];
 
@@ -134,9 +135,15 @@ export default function Navbar() {
             <Link to="/contact" className="navbar-cta navbar-cta-ghost" onClick={() => setOpen(false)}>
               Contact
             </Link>
+            <Link to="/profile" className="navbar-cta navbar-cta-ghost" onClick={() => setOpen(false)}>
+              <GraduationCap size={15} /> Student Profile
+            </Link>
           </nav>
 
           <div className="navbar-right">
+            <Link to="/profile" className="btn btn-outline btn-sm navbar-student-desktop" onClick={() => setOpen(false)}>
+              <GraduationCap size={15} /> Student Profile
+            </Link>
             <Link to="/apply" className="btn btn-accent btn-sm navbar-cta-desktop">
               Apply Now
             </Link>
