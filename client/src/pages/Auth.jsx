@@ -189,7 +189,7 @@ export default function Auth({ mode }) {
             <span className="auth-student-head"><GraduationCap size={22} /></span>
             <h2>Student / Applicant Sign In</h2>
             <p className="auth-student-sub">
-              View your intake details, application status and results using the credentials from your application email.
+              Sign in with the Registration Number and PIN from your application email.
             </p>
             <form onSubmit={handleStudentLogin}>
               <div className="form-group">
@@ -212,9 +212,9 @@ export default function Auth({ mode }) {
               </button>
             </form>
             <div className="auth-student-foot">
-              <p>Just applied and need your credentials? Check your inbox — they are sent right after you apply.</p>
+              <p>Credentials are emailed right after you apply.</p>
               <Link to="/apply" className="btn btn-outline btn-sm">
-                Apply for an Intake <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+                Apply for an Intake
               </Link>
             </div>
           </aside>
