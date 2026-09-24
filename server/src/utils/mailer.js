@@ -12,7 +12,7 @@ const escapeHtml = (value) =>
     .replace(/'/g, "&#39;");
 
 const siteUrl = () =>
-  (process.env.RENDER_EXTERNAL_URL || process.env.SITE_URL || "http://localhost:5000").replace(/\/+$/, "");
+  (process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:5000").replace(/\/+$/, "");
 
 const getLogoUrl = () => process.env.BREVO_LOGO_URL || `${siteUrl()}/Logo.png`;
 
