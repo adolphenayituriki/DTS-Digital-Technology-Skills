@@ -48,6 +48,16 @@ app.use("/api/intakes", intakeRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/students", studentRoutes);
 
+app.get("/api/status", (req, res) => {
+  res.json({
+    ok: true,
+    service: "dts-api",
+    version: "student-registry-v2",
+    hasStudents: true,
+    time: new Date().toISOString(),
+  });
+});
+
 const distDir = path.join(__dirname, "../../client/dist");
 if (fs.existsSync(distDir)) {
   app.use(express.static(distDir));

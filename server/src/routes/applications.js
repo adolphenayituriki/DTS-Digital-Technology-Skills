@@ -80,8 +80,12 @@ router.post("/", async (req, res) => {
     } catch (error) {
       console.error("[applications] Failed to create student profile:", error.message);
     }
-    sendApplicationConfirmation(application, intake, credentials);
-    notifyAdminsNewApplication(application, intake);
+    sendApplicationConfirmation(application, intake, credentials).catch((e) =>
+      console.error("[mailer] confirmation email failed:", e.message)
+    );
+    notifyAdminsNewApplication(application, intake).catch((e) =>
+      console.error("[mailer] admin notify email failed:", e.message)
+    );
     res.status(201).json({ message: "Application submitted successfully", application });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -118,7 +122,9 @@ router.put("/:id", auth, async (req, res) => {
         student.status = studentStatusFromApplication(application.status);
         await student.save().catch(() => {});
       }
-      sendApplicationStatusChange(application, student);
+      sendApplicationStatusChange(application, student).catch((e) =>
+        console.error("[mailer] status-change email failed:", e.message)
+      );
     }
     res.json(application);
   } catch (error) {
