@@ -94,7 +94,7 @@ export default function Profile() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section section-compact">
         <div className="container" style={{ maxWidth: 780 }}>
           {!student && showForm && (
             <div className="card" style={{ padding: '2rem', maxWidth: 480, margin: '0 auto' }}>
