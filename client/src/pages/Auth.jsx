@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import {
+  LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap, IdCard, KeyRound,
+} from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
@@ -48,7 +50,12 @@ export default function Auth({ mode }) {
   const [signup, setSignup] = useState({ name: '', email: '', password: '', campus: '' });
   const [loading, setLoading] = useState(false);
 
+  const [stuForm, setStuForm] = useState({ regNumber: '', pin: '' });
+  const [stuAuthing, setStuAuthing] = useState(false);
+  const [stuError, setStuError] = useState('');
+
   const change = (setter) => (e) => setter((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const stuChange = (e) => setStuForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -84,23 +91,78 @@ export default function Auth({ mode }) {
     }
   };
 
+  const handleStudentLogin = async (e) => {
+    e.preventDefault();
+    setStuError('');
+    if (!stuForm.regNumber.trim() || !stuForm.pin.trim()) {
+      setStuError('Enter your registration number and PIN.');
+      return;
+    }
+    setStuAuthing(true);
+    try {
+      const result = await apiFetch('/students/login', {
+        method: 'POST',
+        body: JSON.stringify({ regNumber: stuForm.regNumber, pin: stuForm.pin }),
+      });
+      sessionStorage.setItem('dts_student', JSON.stringify(result));
+      navigate('/profile');
+    } catch (err) {
+      setStuError(err.message || 'Failed to sign in with these credentials.');
+    } finally {
+      setStuAuthing(false);
+    }
+  };
+
   return (
     <section className="auth-page">
-      <div className={`auth-card ${isSignup ? 'auth-card-signup' : 'auth-card-login'}`}>
-        <Brand
-          title={isSignup ? 'Join DTS' : 'Welcome Back'}
-          tagline={isSignup ? 'Apply for training intakes and get certified.' : 'Continue your digital learning journey.'}
-          features={isSignup ? signupFeatures : loginFeatures}
-        />
-
-        <div className="auth-panel-form">
-          <div className="auth-mobile-brand">
-            <img src="/Logo.png" alt="DTS Logo" />
-            <h2>Digital Technology Skills</h2>
+      {isSignup ? (
+        <div className="auth-card auth-card-signup">
+          <Brand title="Join DTS" tagline="Apply for training intakes and get certified." features={signupFeatures} />
+          <div className="auth-panel-form">
+            <div className="auth-mobile-brand">
+              <img src="/Logo.png" alt="DTS Logo" />
+              <h2>Digital Technology Skills</h2>
+            </div>
+            <h1>Create Your Account</h1>
+            <p className="auth-subtitle">Join DTS and apply for training intakes</p>
+            <form onSubmit={handleSignup}>
+              <div className="auth-row">
+                <div className="form-group">
+                  <label htmlFor="signup-name">Full Name</label>
+                  <input id="signup-name" name="name" className="form-control" value={signup.name} onChange={change(setSignup)} placeholder="Your full name" required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="signup-campus">Campus / Location</label>
+                  <input id="signup-campus" name="campus" className="form-control" value={signup.campus} onChange={change(setSignup)} placeholder="e.g. UR-Huye" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="signup-email">Email</label>
+                <input id="signup-email" name="email" type="email" className="form-control" value={signup.email} onChange={change(setSignup)} placeholder="you@example.com" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="signup-password">Password (min 6 chars)</label>
+                <input id="signup-password" name="password" type="password" className="form-control" value={signup.password} onChange={change(setSignup)} placeholder="••••••••" required />
+              </div>
+              <button type="submit" className="btn btn-accent" disabled={loading}>
+                <UserPlus size={16} /> {loading ? 'Creating account...' : 'Sign Up'}
+              </button>
+            </form>
+            <p className="auth-switch">
+              Already have an account?{' '}
+              <Link to="/login" className="auth-flip-link">Log in</Link>
+            </p>
           </div>
-
-          {!isSignup ? (
-            <>
+        </div>
+      ) : (
+        <div className="auth-login-split">
+          <div className="auth-card auth-card-login">
+            <Brand title="Welcome Back" tagline="Continue your digital learning journey." features={loginFeatures} />
+            <div className="auth-panel-form">
+              <div className="auth-mobile-brand">
+                <img src="/Logo.png" alt="DTS Logo" />
+                <h2>Digital Technology Skills</h2>
+              </div>
               <h1>Log In</h1>
               <p className="auth-subtitle">Welcome back — access your account</p>
               <form onSubmit={handleLogin}>
@@ -120,42 +182,44 @@ export default function Auth({ mode }) {
                 Don't have an account?{' '}
                 <Link to="/signup" className="auth-flip-link">Sign up</Link>
               </p>
-            </>
-          ) : (
-            <>
-              <h1>Create Your Account</h1>
-              <p className="auth-subtitle">Join DTS and apply for training intakes</p>
-              <form onSubmit={handleSignup}>
-                <div className="auth-row">
-                  <div className="form-group">
-                    <label htmlFor="signup-name">Full Name</label>
-                    <input id="signup-name" name="name" className="form-control" value={signup.name} onChange={change(setSignup)} placeholder="Your full name" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="signup-campus">Campus / Location</label>
-                    <input id="signup-campus" name="campus" className="form-control" value={signup.campus} onChange={change(setSignup)} placeholder="e.g. UR-Huye" />
-                  </div>
+            </div>
+          </div>
+
+          <aside className="auth-student-card">
+            <span className="auth-student-head"><GraduationCap size={22} /></span>
+            <h2>Student / Applicant Sign In</h2>
+            <p className="auth-student-sub">
+              View your intake details, application status and results using the credentials from your application email.
+            </p>
+            <form onSubmit={handleStudentLogin}>
+              <div className="form-group">
+                <label htmlFor="stu-reg">Registration Number</label>
+                <div className="profile-input-wrap">
+                  <IdCard size={16} />
+                  <input id="stu-reg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForm.regNumber} onChange={stuChange} placeholder="e.g. DTS-2026-0001" required />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="signup-email">Email</label>
-                  <input id="signup-email" name="email" type="email" className="form-control" value={signup.email} onChange={change(setSignup)} placeholder="you@example.com" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="stu-pin">PIN</label>
+                <div className="profile-input-wrap">
+                  <KeyRound size={16} />
+                  <input id="stu-pin" name="pin" className="form-control" type="password" inputMode="numeric" maxLength={6} value={stuForm.pin} onChange={stuChange} placeholder="6-digit PIN" required />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="signup-password">Password (min 6 chars)</label>
-                  <input id="signup-password" name="password" type="password" className="form-control" value={signup.password} onChange={change(setSignup)} placeholder="••••••••" required />
-                </div>
-                <button type="submit" className="btn btn-accent" disabled={loading}>
-                  <UserPlus size={16} /> {loading ? 'Creating account...' : 'Sign Up'}
-                </button>
-              </form>
-              <p className="auth-switch">
-                Already have an account?{' '}
-                <Link to="/login" className="auth-flip-link">Log in</Link>
-              </p>
-            </>
-          )}
+              </div>
+              {stuError && <div className="alert alert-error">{stuError}</div>}
+              <button type="submit" className="btn btn-primary" disabled={stuAuthing}>
+                {stuAuthing ? 'Verifying...' : 'View My Profile'}
+              </button>
+            </form>
+            <div className="auth-student-foot">
+              <p>Just applied and need your credentials? Check your inbox — they are sent right after you apply.</p>
+              <Link to="/apply" className="btn btn-outline btn-sm">
+                Apply for an Intake <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+              </Link>
+            </div>
+          </aside>
         </div>
-      </div>
+      )}
     </section>
   );
 }

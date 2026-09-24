@@ -30,6 +30,15 @@ export default function Profile() {
   useEffect(() => {
     if (!ready) return;
     if (!isLoggedIn) {
+      const saved = sessionStorage.getItem('dts_student');
+      if (saved) {
+        try {
+          setStudent(JSON.parse(saved));
+          return;
+        } catch (err) {
+          sessionStorage.removeItem('dts_student');
+        }
+      }
       setShowForm(true);
       return;
     }
@@ -57,6 +66,7 @@ export default function Profile() {
         method: 'POST',
         body: JSON.stringify({ regNumber: form.regNumber, pin: form.pin }),
       });
+      sessionStorage.setItem('dts_student', JSON.stringify(result));
       setStudent(result);
       setShowForm(false);
     } catch (err) {
@@ -67,6 +77,13 @@ export default function Profile() {
   };
 
   const meta = student ? STATUS_META[student.status] || STATUS_META.applicant : null;
+
+  const signOut = () => {
+    sessionStorage.removeItem('dts_student');
+    setStudent(null);
+    setShowForm(true);
+    setForm({ regNumber: '', pin: '' });
+  };
 
   return (
     <>
@@ -231,6 +248,14 @@ export default function Profile() {
                 <ShieldCheck size={16} />
                 <span>Keep your Registration Number and PIN safe — you will use them to access your profile. DTS staff will never ask for your PIN.</span>
               </div>
+
+              {!isLoggedIn && student && (
+                <div style={{ textAlign: 'center', marginTop: '0.9rem' }}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={signOut}>
+                    Sign Out
+                  </button>
+                </div>
+              )}
 
               <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
                 <Link to="/apply" className="btn btn-outline btn-sm">
