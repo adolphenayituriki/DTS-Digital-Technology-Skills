@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Wallet, Download, Mail, FileText, X, Save, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import apiFetch from '../api';
+import apiFetch, { onFinanceRefresh, triggerFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
 
 const money = (value) => `${Number(value || 0).toLocaleString('en-RW')} RWF`;
@@ -29,11 +29,7 @@ export default function FinanceStudentBalances() {
     navigate('/finance/records', { replace: true, state: { prefillStudentId } });
   }
 
-  useEffect(() => {
-    apiFetch('/finance/intakes').then((data) => setIntakes(Array.isArray(data) ? data : [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
@@ -41,6 +37,16 @@ export default function FinanceStudentBalances() {
       .then((data) => setStudents(Array.isArray(data) ? data : []))
       .catch((error) => toast.error(error.message || 'Failed to load student balances.'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    apiFetch('/finance/intakes').then((data) => setIntakes(Array.isArray(data) ? data : [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const cleanup = onFinanceRefresh(loadData);
+    return cleanup;
   }, [filters, toast]);
 
   const handleRowClick = (student) => {
@@ -48,6 +54,10 @@ export default function FinanceStudentBalances() {
   };
 
   const openPaymentModal = (student) => {
+    if (!student.intakeId) {
+      toast.error('This student has no intake assigned. Cannot record payment.');
+      return;
+    }
     setPaymentModal({
       student,
       amount: student.balance > 0 ? Number(student.balance).toFixed(2) : '',
@@ -86,11 +96,7 @@ export default function FinanceStudentBalances() {
       });
       toast.success(`Payment of ${money(amount)} recorded for ${paymentModal.student.name}.`);
       closePaymentModal();
-      // Refresh student balances
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
-      const data = await apiFetch(`/finance/students?${params.toString()}`);
-      setStudents(Array.isArray(data) ? data : []);
+      triggerFinanceRefresh();
     } catch (error) {
       toast.error(error.message || 'Failed to record payment.');
     } finally {

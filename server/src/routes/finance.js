@@ -216,8 +216,8 @@ router.post("/transactions", async (req, res) => {
     if (kind === "payment" && !student) return res.status(400).json({ message: "A student is required for a payment" });
     const intakeId = student?.intakeId || (validId(rawIntakeId) ? rawIntakeId : undefined);
     if (rawIntakeId && !validId(rawIntakeId)) return res.status(400).json({ message: "Invalid intake" });
-    const intake = intakeId ? await Intake.findById(intakeId).select("currency") : null;
-    if (rawIntakeId && !intake) return res.status(404).json({ message: "Intake not found" });
+    const intake = intakeId ? await Intake.findById(intakeId).select("currency tuitionFee") : null;
+    if (intakeId && !intake) return res.status(404).json({ message: "Intake not found" });
     const currency = rawCurrency || intake?.currency || "RWF";
     if (!currencyValues.has(currency)) return res.status(400).json({ message: "Invalid currency" });
     const date = occurredAt ? new Date(occurredAt) : new Date();

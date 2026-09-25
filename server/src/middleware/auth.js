@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+const JWT_SECRET = process.env.JWT_SECRET || "dts-dev-secret-change-in-production-2026";
+
 const auth = async (req, res, next) => {
   try {
     const header = req.header("Authorization");
@@ -10,7 +12,7 @@ const auth = async (req, res, next) => {
     }
 
     const token = header.replace("Bearer ", "");
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
 
     if (!user || user.active === false) {

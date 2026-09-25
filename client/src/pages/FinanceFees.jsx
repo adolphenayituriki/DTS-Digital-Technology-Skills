@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Save, Wallet } from 'lucide-react';
-import apiFetch from '../api';
+import apiFetch, { triggerFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
 
 export default function FinanceFees() {
@@ -29,6 +29,7 @@ export default function FinanceFees() {
       const updated = await apiFetch(`/finance/intakes/${intake._id}/fee`, { method: 'PUT', body: JSON.stringify({ tuitionFee: Number(draft.tuitionFee), currency: draft.currency }) });
       setIntakes((current) => current.map((item) => item._id === updated._id ? updated : item));
       toast.success('Intake fee updated.');
+      triggerFinanceRefresh();
     } catch (error) { toast.error(error.message || 'Failed to update intake fee.'); } finally { setSaving(''); }
   };
 

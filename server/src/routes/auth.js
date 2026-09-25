@@ -3,10 +3,10 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import auth from "../middleware/auth.js";
 
-const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || "dts-dev-secret-change-in-production-2026";
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id }, JWT_SECRET, { expiresIn: "7d" });
 };
 
 router.post("/register", async (req, res) => {

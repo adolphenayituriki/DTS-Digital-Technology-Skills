@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Banknote, CreditCard, Receipt, TrendingDown, Users } from 'lucide-react';
-import apiFetch from '../api';
+import apiFetch, { onFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
 
 const money = (value) => `${Number(value || 0).toLocaleString('en-RW')} RWF`;
@@ -11,11 +11,17 @@ export default function FinanceDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
     apiFetch('/finance/dashboard')
       .then(setData)
       .catch((error) => toast.error(error.message || 'Failed to load finance dashboard.'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
+    const cleanup = onFinanceRefresh(loadData);
+    return cleanup;
   }, [toast]);
 
   if (loading) return <div className="loading"><div className="spinner" />Loading finance workspace...</div>;

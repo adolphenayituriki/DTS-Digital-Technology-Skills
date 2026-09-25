@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Receipt, Save, Eye, FileText, Download, Mail, MoreVertical, ChevronDown, ChevronUp, X } from 'lucide-react';
-import apiFetch from '../api';
+import apiFetch, { onFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -19,11 +19,22 @@ export default function FinanceRecords() {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const loadTransactions = () => apiFetch(`/finance/transactions${filterKind ? `?kind=${filterKind}` : ''}`).then((data) => setTransactions(Array.isArray(data) ? data : [])).catch((error) => toast.error(error.message || 'Failed to load transactions.'));
-  useEffect(() => {
+  
+  const loadIntakesAndStudents = () => {
     Promise.all([apiFetch('/finance/intakes'), apiFetch('/finance/students')])
       .then(([intakeData, studentData]) => { setIntakes(Array.isArray(intakeData) ? intakeData : []); setStudents(Array.isArray(studentData) ? studentData : []); })
-      .catch((error) => toast.error(error.message || 'Failed to load finance records.'))
-      .finally(() => setLoading(false));
+      .catch((error) => toast.error(error.message || 'Failed to load finance records.'));
+  };
+
+  const refreshAll = () => {
+    loadTransactions();
+    loadIntakesAndStudents();
+  };
+
+  useEffect(() => {
+    refreshAll();
+    const cleanup = onFinanceRefresh(refreshAll);
+    return cleanup;
   }, [toast]);
   useEffect(() => { loadTransactions(); }, [filterKind]);
 

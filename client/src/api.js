@@ -6,6 +6,17 @@ const API_URL =
 
 export { API_URL };
 
+// Simple event emitter for cross-component refresh signals
+const refreshListeners = new Map();
+export function onFinanceRefresh(callback) {
+  const id = Symbol('refresh');
+  refreshListeners.set(id, callback);
+  return () => refreshListeners.delete(id);
+}
+export function triggerFinanceRefresh() {
+  refreshListeners.forEach((cb) => cb());
+}
+
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('dts_token');
   const headers = { 'Content-Type': 'application/json', ...options.headers };
