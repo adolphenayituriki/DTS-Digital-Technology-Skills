@@ -2322,7 +2322,9 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .image-carousel .carousel-slide img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #f8fafc;
 }
 .image-carousel .carousel-btn {
   position: absolute;
@@ -2447,7 +2449,9 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .row-carousel-item img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #f8fafc;
   transition: transform 0.5s ease;
 }
 .row-carousel-item:hover img { transform: scale(1.05); }
@@ -2465,4 +2469,71 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .image-row-carousel .row-carousel-btn { display: none; }
   .row-carousel-track { padding: 0.5rem 1rem; gap: 0.75rem; }
   .row-carousel-item { width: 240px; }
+}
+
+/* ── Graduation Layout ── */
+.graduation-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+.graduation-content {
+  padding: 1rem 0;
+}
+.graduation-content .eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.graduation-content .section-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.graduation-content .lead-text {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-light);
+  margin-bottom: 0.75rem;
+}
+.grad-stat {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: var(--radius-lg);
+  border: 1px solid #eef0f4;
+}
+.grad-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+  line-height: 1;
+}
+.grad-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 900px) {
+  .graduation-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .graduation-carousel { order: -1; }
+  .graduation-content { text-align: center; }
+  .graduation-stats { justify-content: center; }
+}
+@media (max-width: 480px) {
+  .grad-stat { min-width: 100px; padding: 0.75rem; }
+  .grad-stat-value { font-size: 1.5rem; }
 }

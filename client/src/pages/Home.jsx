@@ -280,7 +280,7 @@ export default function Home() {
             images={featuredImages}
             altPrefix="DTS Featured Moment"
             autoPlay={true}
-            interval={5000}
+            interval={3000}
             showArrows={true}
           />
         </div>
@@ -294,14 +294,52 @@ export default function Home() {
               <p>Celebrating our graduates and community partnerships</p>
             </div>
           </FadeIn>
-          <ImageCarousel
-            images={graduationImages}
-            altPrefix="DTS Graduation"
-            autoPlay={true}
-            interval={5000}
-            showArrows={true}
-            showDots={true}
-          />
+          <div className="graduation-layout">
+            <div className="graduation-content">
+              <FadeIn direction="right">
+                <span className="eyebrow">Achievement</span>
+                <h3 className="section-title" style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>DTS Graduation</h3>
+                <p className="lead-text">
+                  Each year, Digital Technology Skills celebrates the successful completion of our training programs with a graduation ceremony that recognizes the hard work and dedication of our students.
+                </p>
+                <p className="lead-text">
+                  Our graduates leave with practical digital skills, industry-recognized certificates, and the confidence to pursue careers in technology or continue their education. Since 2022, we have graduated over 200 students across Basic and Advanced levels.
+                </p>
+                <div className="graduation-stats" style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                  <div className="grad-stat">
+                    <div className="grad-stat-value">200+</div>
+                    <div className="grad-stat-label">Graduates</div>
+                  </div>
+                  <div className="grad-stat">
+                    <div className="grad-stat-value">15+</div>
+                    <div className="grad-stat-label">Communities Reached</div>
+                  </div>
+                  <div className="grad-stat">
+                    <div className="grad-stat-value">6+</div>
+                    <div className="grad-stat-label">Programs Offered</div>
+                  </div>
+                </div>
+                <p className="lead-text" style={{ marginTop: '1.5rem' }}>
+                  The graduation ceremony brings together students, trainers, families, and community leaders to celebrate digital empowerment in Rwanda's Southern Province.
+                </p>
+                <Link to="/gallery" className="btn btn-primary" style={{ marginTop: '1rem', display: 'inline-flex' }}>
+                  View Graduation Gallery <ArrowRight size={16} />
+                </Link>
+              </FadeIn>
+            </div>
+            <div className="graduation-carousel">
+              <FadeIn direction="left" delay={150}>
+                <ImageCarousel
+                  images={graduationImages}
+                  altPrefix="DTS Graduation"
+                  autoPlay={true}
+                  interval={5000}
+                  showArrows={true}
+                  showDots={true}
+                />
+              </FadeIn>
+            </div>
+          </div>
         </div>
       </section>
 
