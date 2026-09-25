@@ -110,6 +110,8 @@ const seed = async () => {
         capacity: 60,
         enrolled: 20,
         status: "open",
+        tuitionFee: 100000,
+        currency: "RWF",
       },
       {
         title: "Advanced Level · Intake 2026–2027",
@@ -123,6 +125,8 @@ const seed = async () => {
         capacity: 60,
         enrolled: 14,
         status: "open",
+        tuitionFee: 150000,
+        currency: "RWF",
       },
     ]);
     console.log(`${intakes.length} intakes created (Basic Level & Advanced Level)`);
