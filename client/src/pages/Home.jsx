@@ -4,7 +4,7 @@ import { ArrowRight, Monitor, Wifi, Zap } from "lucide-react";
 import TestimonialCarousel from "../components/TestimonialCarousel";
 import FadeIn from "../components/FadeIn";
 
-const heroImages = ["/hero-1.jpg", "/hero-3.jpg", "/hero-5.jpg", "/hero-6.jpg"];
+const heroImages = ["/hero-1.jpg", "/hero-3.jpg", "/hero-5.jpg", "/hero-6.jpg", "/Featured Images/ELITEFRAMSTUDIO(134).jpg"];
 const aboutImages = ["/activity-1.jpg", "/activity-2.jpg", "/hero-2.jpg"];
 const featuredImages = [
   "/Featured Images/ELITEFRAMSTUDIO(48).jpg",
