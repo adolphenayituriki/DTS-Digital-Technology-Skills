@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import apiFetch from '../api';
-import { Search, Users, Mail, Hourglass } from 'lucide-react';
+import { Search, Users, Mail, Hourglass, ChevronLeft, ChevronRight } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 
 const AVATAR_THEMES = [
@@ -9,6 +9,11 @@ const AVATAR_THEMES = [
   'linear-gradient(135deg, #39B24C 0%, #6bd07a 100%)',
   'linear-gradient(135deg, #f59e0b 0%, #fbc157 100%)',
   'linear-gradient(135deg, #e11d48 0%, #fb7185 100%)',
+];
+
+const teamImages = [
+  "/Teams/ELITEFRAMSTUDIO(123).jpg",
+  "/Teams/ELITEFRAMSTUDIO(124).jpg",
 ];
 
 const initials = (name = '') =>
@@ -51,6 +56,47 @@ function MemberCard({ member }) {
   );
 }
 
+function ImageCarousel({ images, altPrefix, autoPlay = true, interval = 5000, showArrows = true, showDots = true }) {
+  const [active, setActive] = useState(0);
+  const [hovering, setHovering] = useState(false);
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    const timer = setInterval(() => {
+      if (!hovering) setActive((c) => (c + 1) % images.length);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [autoPlay, interval, hovering, images.length]);
+
+  const goPrev = useCallback(() => setActive((c) => (c - 1 + images.length) % images.length), [images.length]);
+  const goNext = useCallback(() => setActive((c) => (c + 1) % images.length), [images.length]);
+
+  return (
+    <div className="image-carousel" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
+      <div className="carousel-track">
+        {images.map((src, i) => (
+          <div key={src} className={`carousel-slide ${i === active ? "active" : ""}`}>
+            <img src={src} alt={`${altPrefix} ${i + 1}`} loading="lazy" />
+          </div>
+        ))}
+      </div>
+      {showArrows && images.length > 1 && (
+        <>
+          <button className="carousel-btn prev" onClick={goPrev} aria-label="Previous"><ChevronLeft size={20} /></button>
+          <button className="carousel-btn next" onClick={goNext} aria-label="Next"><ChevronRight size={20} /></button>
+        </>
+      )}
+      {showDots && images.length > 1 && (
+        <div className="carousel-dots">
+          {images.map((_, i) => (
+            <button key={i} className={`carousel-dot ${i === active ? "active" : ""}`} onClick={() => setActive(i)} aria-label={`Go to slide ${i + 1}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Team() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +125,25 @@ export default function Team() {
         <div className="container">
           <h1>Our Team</h1>
           <p>The dedicated students driving DTS forward</p>
+        </div>
+      </section>
+
+      <section className="section wm-section section-alt">
+        <div className="container">
+          <FadeIn>
+            <div className="section-header">
+              <h2>DTS Team in Action</h2>
+              <p>Moments from our team activities and community work</p>
+            </div>
+          </FadeIn>
+          <ImageCarousel
+            images={teamImages}
+            altPrefix="DTS Team"
+            autoPlay={true}
+            interval={5000}
+            showArrows={true}
+            showDots={true}
+          />
         </div>
       </section>
 

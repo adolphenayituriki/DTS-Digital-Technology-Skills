@@ -28,7 +28,34 @@ const seed = async () => {
     });
     console.log("Admin user created");
 
-    const members = await Member.insertMany([]);
+    const members = await Member.insertMany([
+      {
+        name: "Adolphe Nayituriki",
+        role: "President",
+        bio: "Leading DTS since its founding in 2022. Passionate about digital literacy and youth empowerment in Rwanda.",
+        email: "www.nayituriki.com@gmail.com",
+        photo: "/Teams/ELITEFRAMSTUDIO(123).jpg",
+        isLeadership: true,
+        order: 1,
+      },
+      {
+        name: "Elizabeth Kamugisha",
+        role: "Vice President",
+        bio: "Oversees training programs and student engagement. Dedicated to bridging the digital divide in rural communities.",
+        email: "elizabethkamugisha105@gmail.com",
+        photo: "/Teams/ELITEFRAMSTUDIO(124).jpg",
+        isLeadership: true,
+        order: 2,
+      },
+      {
+        name: "Bernard Ndagiijimana",
+        role: "Training Coordinator",
+        bio: "Coordinates curriculum delivery and trainer assignments. Ensures quality hands-on learning experiences.",
+        email: "ndagijimanabernard11@gmail.com",
+        isLeadership: false,
+        order: 3,
+      },
+    ]);
     console.log(`${members.length} members created`);
 
     const posts = await Post.create([]);
