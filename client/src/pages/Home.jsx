@@ -6,6 +6,23 @@ import FadeIn from "../components/FadeIn";
 
 const heroImages = ["/hero-1.jpg", "/hero-3.jpg", "/hero-5.jpg", "/hero-6.jpg"];
 const aboutImages = ["/activity-1.jpg", "/activity-2.jpg", "/hero-2.jpg"];
+const featuredImages = [
+  "/Featured Images/ELITEFRAMSTUDIO(48).jpg",
+  "/Featured Images/ELITEFRAMSTUDIO(73).jpg",
+  "/Featured Images/ELITEFRAMSTUDIO(100).jpg",
+  "/Featured Images/ELITEFRAMSTUDIO(123).jpg",
+];
+const graduationImages = [
+  "/Graduation images/ELITEFRAMSTUDIO(93).jpg",
+  "/Graduation images/ELITEFRAMSTUDIO(94).jpg",
+  "/Graduation images/ELITEFRAMSTUDIO(100).jpg",
+  "/Graduation images/ELITEFRAMSTUDIO(123).jpg",
+  "/Graduation images/ELITEFRAMSTUDIO(135).jpg",
+];
+const teamImages = [
+  "/Teams/ELITEFRAMSTUDIO(123).jpg",
+  "/Teams/ELITEFRAMSTUDIO(124).jpg",
+];
 
 const programs = [
   {
@@ -167,6 +184,66 @@ export default function Home() {
                 ))}
               </div>
             </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      <section className="section wm-section section-alt">
+        <div className="container">
+          <FadeIn>
+            <div className="section-header">
+              <h2>Featured Moments</h2>
+              <p>Highlights from our training sessions and community outreach</p>
+            </div>
+          </FadeIn>
+          <div className="gallery-grid">
+            {featuredImages.map((src, i) => (
+              <FadeIn key={src} delay={(i % 4) * 100}>
+                <div className="gallery-item">
+                  <img src={src} alt={`DTS Featured Moment ${i + 1}`} loading="lazy" />
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section wm-section">
+        <div className="container">
+          <FadeIn>
+            <div className="section-header">
+              <h2>Graduation & Community Impact</h2>
+              <p>Celebrating our graduates and community partnerships</p>
+            </div>
+          </FadeIn>
+          <div className="gallery-grid">
+            {graduationImages.map((src, i) => (
+              <FadeIn key={src} delay={(i % 5) * 100}>
+                <div className="gallery-item">
+                  <img src={src} alt={`DTS Graduation ${i + 1}`} loading="lazy" />
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section wm-section section-alt">
+        <div className="container">
+          <FadeIn>
+            <div className="section-header">
+              <h2>Our Team</h2>
+              <p>The dedicated team behind DTS</p>
+            </div>
+          </FadeIn>
+          <div className="team-grid">
+            {teamImages.map((src, i) => (
+              <FadeIn key={src} delay={i * 150}>
+                <div className="team-card">
+                  <img src={src} alt={`DTS Team Member ${i + 1}`} loading="lazy" />
+                </div>
+              </FadeIn>
+            ))}
           </div>
         </div>
       </section>

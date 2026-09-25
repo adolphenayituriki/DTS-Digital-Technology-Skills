@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Receipt, Save } from 'lucide-react';
+import { Plus, Receipt, Save, Eye, FileText, Download, Mail, MoreVertical, ChevronDown, ChevronUp, X } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
 
@@ -16,6 +16,7 @@ export default function FinanceRecords() {
   const [filterKind, setFilterKind] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const loadTransactions = () => apiFetch(`/finance/transactions${filterKind ? `?kind=${filterKind}` : ''}`).then((data) => setTransactions(Array.isArray(data) ? data : [])).catch((error) => toast.error(error.message || 'Failed to load transactions.'));
   useEffect(() => {
@@ -48,8 +49,35 @@ export default function FinanceRecords() {
   const voidTransaction = async (id) => {
     try { await apiFetch(`/finance/transactions/${id}/void`, { method: 'PUT' }); toast.success('Transaction voided.'); await loadTransactions(); } catch (error) { toast.error(error.message || 'Failed to void transaction.'); }
   };
+  
+  const openTransactionDetail = (transaction) => setSelectedTransaction(transaction);
+  const closeTransactionDetail = () => setSelectedTransaction(null);
 
   if (loading) return <div className="loading"><div className="spinner" />Loading finance records...</div>;
+
+  const exportTransactionsCSV = () => {
+    const headers = ['Date', 'Type', 'Student / Category', 'Amount', 'Currency', 'Status', 'Method', 'Reference', 'Notes', 'Recorded By'];
+    const rows = transactions.map((t) => [
+      new Date(t.occurredAt).toLocaleDateString(),
+      t.kind,
+      t.studentId?.name || t.category || 'General',
+      Number(t.amount || 0).toFixed(2),
+      t.currency || 'RWF',
+      t.status,
+      t.method,
+      t.reference || '',
+      (t.notes || '').replace(/"/g, '""'),
+      t.recordedById?.name || t.recordedById?.email || '—',
+    ]);
+    const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finance-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="workspace-page">
@@ -72,13 +100,73 @@ export default function FinanceRecords() {
           <button className="btn btn-primary" type="submit" disabled={saving}><Save size={15} /> {saving ? 'Saving...' : 'Save record'}</button>
         </form>
         <div className="dash-panel finance-ledger-panel">
-          <div className="dash-panel-head"><h3>Transaction ledger</h3><select className="form-control ledger-filter" value={filterKind} onChange={(e) => setFilterKind(e.target.value)}><option value="">All types</option><option value="payment">Payments</option><option value="income">Income</option><option value="expense">Expenses</option></select></div>
-          <div className="table-scroll"><table className="admin-table compact-table"><thead><tr><th>Date</th><th>Type</th><th>Student / category</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
+          <div className="dash-panel-head"><h3>Transaction ledger</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <select className="form-control ledger-filter" value={filterKind} onChange={(e) => setFilterKind(e.target.value)}><option value="">All types</option><option value="payment">Payments</option><option value="income">Income</option><option value="expense">Expenses</option></select>
+              <button className="btn btn-outline btn-sm" onClick={exportTransactionsCSV}><FileText size={14} /> Export CSV</button>
+            </div>
+          </div>
+          <div className="table-scroll"><table className="admin-table compact-table"><thead><tr><th>Date</th><th>Type</th><th>Student / category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
             {transactions.length === 0 && <tr><td colSpan={6} className="table-empty">No transactions recorded.</td></tr>}
-            {transactions.map((transaction) => <tr key={transaction._id}><td>{new Date(transaction.occurredAt).toLocaleDateString()}</td><td><span className={`finance-kind ${transaction.kind}`}>{transaction.kind}</span></td><td><strong>{transaction.studentId?.name || transaction.category || 'General'}</strong><small className="table-subtext">{transaction.reference || transaction.notes || '—'}</small></td><td>{money(transaction.amount, transaction.currency)}</td><td><span className={`finance-status ${transaction.status === 'voided' ? 'status-neutral' : transaction.status === 'pending' ? 'status-partial' : 'status-paid'}`}>{transaction.status}</span></td><td>{transaction.status !== 'voided' && <button className="btn btn-outline btn-xs" onClick={() => voidTransaction(transaction._id)}>Void</button>}</td></tr>)}
+            {transactions.map((transaction) => <tr key={transaction._id} onClick={() => openTransactionDetail(transaction)} style={{ cursor: 'pointer' }}><td>{new Date(transaction.occurredAt).toLocaleDateString()}</td><td><span className={`finance-kind ${transaction.kind}`}>{transaction.kind}</span></td><td><strong>{transaction.studentId?.name || transaction.category || 'General'}</strong><small className="table-subtext">{transaction.reference || transaction.notes || '—'}</small></td><td>{money(transaction.amount, transaction.currency)}</td><td><span className={`finance-status ${transaction.status === 'voided' ? 'status-neutral' : transaction.status === 'pending' ? 'status-partial' : 'status-paid'}`}>{transaction.status}</span></td><td><button className="btn btn-outline btn-xs" onClick={(e) => { e.stopPropagation(); voidTransaction(transaction._id); }}>Void</button></td></tr>)}
           </tbody></table></div>
         </div>
       </div>
+
+      {selectedTransaction && (
+        <div className="dialog-overlay" onClick={closeTransactionDetail}>
+          <div className="dialog-card" style={{ maxWidth: '600px', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+            <button className="dialog-close" onClick={closeTransactionDetail}><X size={18} /></button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Transaction Details</h3>
+              <button className="btn btn-outline btn-sm" onClick={() => {
+                const headers = ['Date', 'Type', 'Student / Category', 'Amount', 'Currency', 'Status', 'Method', 'Reference', 'Notes', 'Recorded By'];
+                const rows = [[
+                  new Date(selectedTransaction.occurredAt).toLocaleDateString(),
+                  selectedTransaction.kind,
+                  selectedTransaction.studentId?.name || selectedTransaction.category || 'General',
+                  Number(selectedTransaction.amount || 0).toFixed(2),
+                  selectedTransaction.currency || 'RWF',
+                  selectedTransaction.status,
+                  selectedTransaction.method,
+                  selectedTransaction.reference || '',
+                  (selectedTransaction.notes || '').replace(/"/g, '""'),
+                  selectedTransaction.recordedById?.name || selectedTransaction.recordedById?.email || '—',
+                ]];
+                const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `transaction-${selectedTransaction._id}-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}><FileText size={14} /> Export CSV</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem', marginBottom: '1rem' }}>
+              <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</label><div>{new Date(selectedTransaction.occurredAt).toLocaleDateString()} {new Date(selectedTransaction.occurredAt).toLocaleTimeString()}</div></div>
+              <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</label><div><span className={`finance-kind ${selectedTransaction.kind}`}>{selectedTransaction.kind}</span></div></div>
+              <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</label><div><strong>{money(selectedTransaction.amount, selectedTransaction.currency)}</strong></div></div>
+              <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label><div><span className={`finance-status ${selectedTransaction.status === 'voided' ? 'status-neutral' : selectedTransaction.status === 'pending' ? 'status-partial' : 'status-paid'}`}>{selectedTransaction.status}</span></div></div>
+              <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Method</label><div>{selectedTransaction.method}</div></div>
+              <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Currency</label><div>{selectedTransaction.currency || 'RWF'}</div></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Student / Category</label><div><strong>{selectedTransaction.studentId?.name || selectedTransaction.category || 'General'}</strong>{selectedTransaction.studentId && <small className="table-subtext">{selectedTransaction.studentId.regNumber} · {selectedTransaction.studentId.email}</small>}</div></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Intake</label><div>{selectedTransaction.intakeId?.title || (selectedTransaction.intakeId?.program ? `Program: ${selectedTransaction.intakeId.program}` : 'General')}</div></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reference</label><div>{selectedTransaction.reference || '—'}</div></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes</label><div>{selectedTransaction.notes || '—'}</div></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorded By</label><div>{selectedTransaction.recordedById?.name || selectedTransaction.recordedById?.email || '—'}</div></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorded At</label><div>{new Date(selectedTransaction.createdAt).toLocaleString()}</div></div>
+            </div>
+            {selectedTransaction.studentId && selectedTransaction.kind === 'payment' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f4f8' }}>
+                <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); apiFetch(`/finance/students/${selectedTransaction.studentId._id}/send-balance`, { method: 'POST' }).then(() => toast.success('Balance statement sent to student.')).catch(() => toast.error('Failed to send email.')); }}>
+                  <Mail size={14} /> Send Balance Statement to Student
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

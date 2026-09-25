@@ -5,6 +5,7 @@ import requireRole from "../middleware/roles.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import FinanceTransaction from "../models/FinanceTransaction.js";
+import { sendStudentBalanceNotification } from "../utils/mailer.js";
 
 const router = Router();
 router.use(auth, requireRole("finance", "admin"));
@@ -234,6 +235,89 @@ router.put("/intakes/:id/fee", async (req, res) => {
     const intake = await Intake.findByIdAndUpdate(req.params.id, { tuitionFee, currency }, { new: true, runValidators: true });
     if (!intake) return res.status(404).json({ message: "Intake not found" });
     res.json(intake);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/students/:id/send-balance", async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id).select("_id name email regNumber intakeId intakeTitle program").lean();
+    if (!student) return res.status(404).json({ message: "Student not found" });
+    
+    const intake = student.intakeId ? await Intake.findById(student.intakeId).select("title program tuitionFee currency").lean() : null;
+    const expected = Number(intake?.tuitionFee || 0);
+    
+    const payments = await FinanceTransaction.find({ kind: "payment", status: "completed", studentId: student._id })
+      .select("amount")
+      .lean();
+    const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const balance = Math.max(0, expected - paid);
+    
+    await sendStudentBalanceNotification(student, {
+      expected,
+      paid,
+      balance,
+      intakeTitle: intake?.title || student.intakeTitle,
+      currency: intake?.currency || "RWF",
+    });
+    
+    res.json({ message: "Balance statement sent to student email." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/students/send-balance-bulk", async (req, res) => {
+  try {
+    const { intakeId, status, q } = req.body;
+    const filter = {};
+    if (intakeId && validId(intakeId)) filter.intakeId = intakeId;
+    if (status) filter.status = status;
+    if (q) {
+      const rx = new RegExp(escapeRegex(String(q).trim()), "i");
+      filter.$or = [{ name: rx }, { email: rx }, { regNumber: rx }];
+    }
+    
+    const students = await Student.find(filter)
+      .select("_id name email regNumber intakeId intakeTitle program")
+      .sort({ name: 1 })
+      .lean();
+    
+    if (!students.length) return res.json({ message: "No students found matching criteria.", sent: 0 });
+    
+    const intakeIds = [...new Set(students.map((s) => String(s.intakeId)).filter(Boolean))];
+    const intakes = intakeIds.length ? await Intake.find({ _id: { $in: intakeIds } }).select("_id title program tuitionFee currency").lean() : [];
+    const intakeMap = new Map(intakes.map((i) => [String(i._id), i]));
+    
+    const studentIds = students.map((s) => s._id);
+    const payments = await FinanceTransaction.find({ kind: "payment", status: "completed", studentId: { $in: studentIds } })
+      .select("studentId amount")
+      .lean();
+    const paymentMap = new Map();
+    payments.forEach((p) => {
+      const key = String(p.studentId);
+      paymentMap.set(key, (paymentMap.get(key) || 0) + Number(p.amount || 0));
+    });
+    
+    let sent = 0;
+    for (const student of students) {
+      const intake = intakeMap.get(String(student.intakeId));
+      const expected = Number(intake?.tuitionFee || 0);
+      const paid = paymentMap.get(String(student._id)) || 0;
+      const balance = Math.max(0, expected - paid);
+      
+      await sendStudentBalanceNotification(student, {
+        expected,
+        paid,
+        balance,
+        intakeTitle: intake?.title || student.intakeTitle,
+        currency: intake?.currency || "RWF",
+      });
+      sent++;
+    }
+    
+    res.json({ message: `Balance statements sent to ${sent} student(s).`, sent });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

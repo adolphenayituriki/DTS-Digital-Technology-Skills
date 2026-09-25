@@ -60,14 +60,14 @@ export default function About() {
                 <span className="icon-chip"><Rocket size={15} /> Est. 2022</span>
               </div>
             </FadeIn>
-            <FadeIn direction="left" delay={150}>
-              <div className="about-media">
-                <div className="photo-fill">
-                  <img src="/activity-2.jpg" alt="DTS Team at UR-Huye Campus" loading="lazy" />
+<FadeIn direction="left" delay={150}>
+                <div className="about-media">
+                  <div className="photo-fill">
+                    <img src="/Graduation images/ELITEFRAMSTUDIO(93).jpg" alt="DTS Team at UR-Huye Campus" loading="lazy" />
+                  </div>
+                  <div className="photo-cap">DTS Team · UR-Huye Campus</div>
                 </div>
-                <div className="photo-cap">DTS Team · UR-Huye Campus</div>
-              </div>
-            </FadeIn>
+              </FadeIn>
           </div>
         </div>
       </section>

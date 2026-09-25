@@ -429,3 +429,47 @@ export async function notifyAdminsNewTestimonial(testimonial) {
     )
   );
 }
+
+export async function sendStudentBalanceNotification(student, balanceData) {
+  const { expected, paid, balance, intakeTitle, currency = "RWF" } = balanceData;
+  const statusLabel = expected === 0 ? "No fee configured" : balance <= 0 ? "Paid in full" : paid > 0 ? "Partial payment" : "Unpaid";
+  const statusColor = expected === 0 ? "#64748b" : balance <= 0 ? "#166534" : paid > 0 ? "#c2410c" : "#991b1b";
+  const statusBg = expected === 0 ? "#f1f5f9" : balance <= 0 ? "#f0fdf4" : paid > 0 ? "#fff7ed" : "#fef2f2";
+  
+  const body = `
+    <p style="font-family:${FONT};font-size:15px;line-height:1.6;color:#1a202c;margin:0 0 14px;">Hello <strong style="color:#142851;">${escapeHtml(student.name)}</strong>,</p>
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:0;">This is a statement of your tuition balance for <strong style="color:#142851;">${escapeHtml(intakeTitle)}</strong>.</p>
+    
+    ${detailCard("Balance Summary", [
+      ["Registration Number", `<strong style="color:#142851;">${escapeHtml(student.regNumber)}</strong>`],
+      ["Intake / Level", escapeHtml(intakeTitle)],
+      ["Required Fee", `<strong style="font-size:15px;color:#142851;">${Number(expected).toLocaleString('en-RW')} ${currency}</strong>`],
+      ["Amount Paid", `<strong style="font-size:15px;color:#166534;">${Number(paid).toLocaleString('en-RW')} ${currency}</strong>`],
+      ["Outstanding Balance", `<strong style="font-size:16px;color:#${statusColor === "#991b1b" ? "991b1b" : statusColor === "#c2410c" ? "c2410c" : "166534"};">${Number(balance).toLocaleString('en-RW')} ${currency}</strong>`],
+    ])}
+    
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0;">
+      <tr>
+        <td style="background:${statusBg};border:1px solid ${statusColor};border-radius:999px;padding:10px 18px;">
+          <span style="font-family:${FONT};font-size:13px;color:${statusColor};font-weight:700;">Status: ${escapeHtml(statusLabel)}</span>
+        </td>
+      </tr>
+    </table>
+    
+    ${balance > 0 ? `
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">Please arrange payment of the outstanding balance. You can make payment through the DTS office or contact finance for payment options.</p>
+    ` : `
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">Your tuition is fully paid. Thank you for your timely payment!</p>
+    `}
+    
+    ${ctaButton("View My Profile", `${siteUrl()}/profile`)}
+    
+    <p style="font-family:${FONT};font-size:14px;line-height:1.6;color:#1a202c;margin:16px 0 0;">Best regards,<br><strong style="color:#142851;">The DTS Finance Team</strong></p>
+  `;
+  
+  return sendMail({
+    to: student.email,
+    subject: `Tuition Balance Statement - ${student.regNumber} (${intakeTitle})`,
+    html: layout({ heading: "Tuition Balance Statement", heroLabel: statusLabel, body }),
+  });
+}
