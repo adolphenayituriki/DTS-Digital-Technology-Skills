@@ -173,9 +173,10 @@ router.get("/attendance", async (req, res) => {
     const students = await getRoster(req.user, req.query);
     const studentIds = students.map((student) => student._id);
     if (!studentIds.length) return res.json([]);
+    const allowed = new Set(studentIds.map((id) => String(id)));
     const filter = { studentId: { $in: studentIds } };
     if (req.query.intakeId && validId(req.query.intakeId)) filter.intakeId = req.query.intakeId;
-    if (req.query.studentId && validId(req.query.studentId)) filter.studentId = req.query.studentId;
+    if (req.query.studentId && validId(req.query.studentId) && allowed.has(String(req.query.studentId))) filter.studentId = req.query.studentId;
     if (req.query.sessionDate) {
       const sessionDate = normalizeDate(req.query.sessionDate);
       if (!sessionDate) return res.status(400).json({ message: "Invalid session date" });
