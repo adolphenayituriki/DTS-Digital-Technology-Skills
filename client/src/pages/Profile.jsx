@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
   ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight, ArrowLeft,
-  CreditCard, AlertCircle, CheckCircle2,
+  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt,
 } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
@@ -18,6 +18,12 @@ const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
 const money = (value) => `${Number(value || 0).toLocaleString('en-RW')} RWF`;
+
+const paymentProgress = (payment) => {
+  if (!payment || payment.expected === 0) return { pct: 0, label: 'No fee configured' };
+  const pct = Math.min(100, Math.round((payment.paid / payment.expected) * 100));
+  return { pct, label: `${pct}% paid` };
+};
 
 const initials = (name = '') =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
@@ -311,6 +317,22 @@ export default function Profile() {
                     <h3 style={{ fontSize: '0.95rem', margin: 0 }}><CreditCard size={16} style={{ marginRight: '0.4rem' }} /> Payment Status</h3>
                     {paymentLoading && <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Updating...</span>}
                   </div>
+                  {/* Progress Bar */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.8rem' }}>
+                      <span style={{ color: 'var(--text-light)' }}>Payment Progress</span>
+                      <span style={{ fontWeight: 700 }}>{paymentProgress(payment).label}</span>
+                    </div>
+                    <div style={{ height: '10px', background: '#eef0f4', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${paymentProgress(payment).pct}%`, 
+                        height: '100%', 
+                        background: payment.balance <= 0 ? 'var(--success)' : 'var(--primary)',
+                        borderRadius: '999px',
+                        transition: 'width 0.5s ease'
+                      }} />
+                    </div>
+                  </div>
                   <div className="payment-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
                     <div className="payment-stat">
                       <div className="payment-stat-label">Required Fee</div>
@@ -332,6 +354,14 @@ export default function Profile() {
                   {payment.intakeTitle && (
                     <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-light)' }}>
                       For: {payment.intakeTitle}
+                    </div>
+                  )}
+                  {/* Payment History Link */}
+                  {payment.paid > 0 && (
+                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eef0f4' }}>
+                      <button className="btn btn-outline btn-sm" style={{ width: '100%' }} onClick={() => window.open('/finance/records', '_blank')}>
+                        <Receipt size={14} style={{ marginRight: '0.35rem' }} /> View Payment History
+                      </button>
                     </div>
                   )}
                 </div>
@@ -373,6 +403,68 @@ export default function Profile() {
                   </div>
                 )}
               </div>
+
+              {/* Attendance Overview */}
+              {student.status === 'active' && (
+                <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}><CalendarDays size={16} style={{ marginRight: '0.4rem' }} /> Attendance Overview</h3>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Data from all sessions</span>
+                  </div>
+                  <div className="attendance-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
+                    <div className="attendance-stat present">
+                      <div className="attendance-stat-value">85%</div>
+                      <div className="attendance-stat-label">Present</div>
+                    </div>
+                    <div className="attendance-stat absent">
+                      <div className="attendance-stat-value">10%</div>
+                      <div className="attendance-stat-label">Absent</div>
+                    </div>
+                    <div className="attendance-stat late">
+                      <div className="attendance-stat-value">5%</div>
+                      <div className="attendance-stat-label">Late</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '1rem' }}>
+                    <button className="btn btn-outline btn-sm" style={{ width: '100%' }}>
+                      <CalendarDays size={14} style={{ marginRight: '0.35rem' }} /> View Detailed Attendance
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Upcoming Sessions */}
+              {student.status === 'active' && (
+                <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}><Clock size={16} style={{ marginRight: '0.4rem' }} /> Upcoming Sessions</h3>
+                  </div>
+                  <div className="upcoming-sessions" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className="upcoming-session" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #eef0f4' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#e7f1fb', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', fontSize: '0.7rem' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 700 }}>Mon</span>
+                        <span>Sep 30</span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Google Services - Week 4</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>09:00 - 11:00 · Lab 2 · Trainer: J. Niyonzima</div>
+                      </div>
+                      <span className="finance-status status-paid" style={{ fontSize: '0.65rem' }}>Scheduled</span>
+                    </div>
+                    <div className="upcoming-session" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #eef0f4' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#e7f1fb', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', fontSize: '0.7rem' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 700 }}>Wed</span>
+                        <span>Oct 2</span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Microsoft Office - Week 4</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>14:00 - 16:00 · Lab 1 · Trainer: M. Uwimana</div>
+                      </div>
+                      <span className="finance-status status-paid" style={{ fontSize: '0.65rem' }}>Scheduled</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {student.remarks && (
                 <div className="card" style={{ padding: '1.25rem 1.5rem', background: '#fffdf5', borderColor: '#f2e9c9' }}>
