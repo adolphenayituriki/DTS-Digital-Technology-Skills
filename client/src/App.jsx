@@ -25,6 +25,19 @@ import ApplicationsAdmin from './pages/admin/ApplicationsAdmin';
 import TestimonialsAdmin from './pages/admin/TestimonialsAdmin';
 import StudentsAdmin from './pages/admin/StudentsAdmin';
 import Profile from './pages/Profile';
+import RequireRole from './RequireRole';
+import TrainerLayout from './pages/TrainerLayout';
+import TrainerDashboard from './pages/TrainerDashboard';
+import TrainerStudents from './pages/TrainerStudents';
+import TrainerAttendance from './pages/TrainerAttendance';
+import TrainerMarks from './pages/TrainerMarks';
+import FinanceLayout from './pages/FinanceLayout';
+import FinanceDashboard from './pages/FinanceDashboard';
+import FinanceStudentBalances from './pages/FinanceStudentBalances';
+import FinanceRecords from './pages/FinanceRecords';
+import FinanceFees from './pages/FinanceFees';
+import UserManagement from './pages/UserManagement';
+import TrainerAssignments from './pages/TrainerAssignments';
 
 const titles = {
   '/': 'Home',
@@ -47,6 +60,16 @@ const titles = {
   '/admin/applications': 'Applications',
   '/admin/students': 'Students',
   '/admin/testimonials': 'Testimonials',
+  '/admin/users': 'User Access',
+  '/admin/trainer-assignments': 'Trainer Assignments',
+  '/trainer': 'Trainer Dashboard',
+  '/trainer/students': 'Trainer Students',
+  '/trainer/attendance': 'Trainer Attendance',
+  '/trainer/marks': 'Trainer Marks',
+  '/finance': 'Finance Dashboard',
+  '/finance/students': 'Finance Student Balances',
+  '/finance/records': 'Finance Records',
+  '/finance/fees': 'Finance Intake Fees',
 };
 
 function TitleManager() {
@@ -67,7 +90,14 @@ export default function App() {
       <TitleManager />
       <ScrollToTop />
       <Routes>
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route
+          path="/admin"
+          element={
+            <RequireRole roles={['admin', 'editor']}>
+              <AdminLayout />
+            </RequireRole>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="messages" element={<Messages />} />
           <Route path="members" element={<MembersAdmin />} />
@@ -76,6 +106,48 @@ export default function App() {
           <Route path="applications" element={<ApplicationsAdmin />} />
           <Route path="students" element={<StudentsAdmin />} />
           <Route path="testimonials" element={<TestimonialsAdmin />} />
+          <Route
+            path="users"
+            element={
+              <RequireRole roles={['admin']}>
+                <UserManagement />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="trainer-assignments"
+            element={
+              <RequireRole roles={['admin']}>
+                <TrainerAssignments />
+              </RequireRole>
+            }
+          />
+        </Route>
+        <Route
+          path="/trainer"
+          element={
+            <RequireRole roles={['trainer', 'admin']}>
+              <TrainerLayout />
+            </RequireRole>
+          }
+        >
+          <Route index element={<TrainerDashboard />} />
+          <Route path="students" element={<TrainerStudents />} />
+          <Route path="attendance" element={<TrainerAttendance />} />
+          <Route path="marks" element={<TrainerMarks />} />
+        </Route>
+        <Route
+          path="/finance"
+          element={
+            <RequireRole roles={['finance', 'admin']}>
+              <FinanceLayout />
+            </RequireRole>
+          }
+        >
+          <Route index element={<FinanceDashboard />} />
+          <Route path="students" element={<FinanceStudentBalances />} />
+          <Route path="records" element={<FinanceRecords />} />
+          <Route path="fees" element={<FinanceFees />} />
         </Route>
         <Route
           path="*"

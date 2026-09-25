@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Testimonial from "../models/Testimonial.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 import { notifyAdminsNewTestimonial } from "../utils/mailer.js";
 
 const router = Router();
@@ -16,7 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/all", auth, async (req, res) => {
+router.get("/all", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const testimonials = await Testimonial.find().sort({ createdAt: -1 });
     res.json(testimonials);
@@ -48,11 +49,12 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id/approve", auth, async (req, res) => {
+router.put("/:id/approve", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
+    const isApproved = req.body.isApproved === undefined ? true : !!req.body.isApproved;
     const testimonial = await Testimonial.findByIdAndUpdate(
       req.params.id,
-      { isApproved: true },
+      { isApproved },
       { new: true }
     );
 
@@ -66,7 +68,7 @@ router.put("/:id/approve", auth, async (req, res) => {
   }
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const testimonial = await Testimonial.findByIdAndDelete(req.params.id);
 

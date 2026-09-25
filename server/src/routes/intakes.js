@@ -2,6 +2,7 @@ import { Router } from "express";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 
 const router = Router();
 
@@ -16,14 +17,14 @@ const withEnrollment = async (intakes) => {
 
 router.get("/", async (req, res) => {
   try {
-    const intakes = await Intake.find({ status: "open" }).sort({ deadline: 1 });
+    const intakes = await Intake.find({ status: "open" }).select("-tuitionFee -currency").sort({ deadline: 1 });
     res.json(await withEnrollment(intakes));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-router.get("/all", auth, async (req, res) => {
+router.get("/all", auth, requireRole("admin", "finance"), async (req, res) => {
   try {
     const intakes = await Intake.find().sort({ createdAt: -1 });
     res.json(await withEnrollment(intakes));
@@ -32,7 +33,7 @@ router.get("/all", auth, async (req, res) => {
   }
 });
 
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, requireRole("admin"), async (req, res) => {
   try {
     const { title, program, description, courses, startDate, endDate, deadline, capacity } = req.body;
     if (!title || !program) {
@@ -50,7 +51,7 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const intake = await Intake.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!intake) return res.status(404).json({ message: "Intake not found" });
@@ -60,7 +61,7 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const intake = await Intake.findByIdAndDelete(req.params.id);
     if (!intake) return res.status(404).json({ message: "Intake not found" });

@@ -13,7 +13,7 @@ export default function Contact() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) {
+    if (!form.name || !form.email || !form.subject || !form.message) {
       toast.error('Please fill in all required fields.');
       return;
     }
@@ -61,8 +61,8 @@ export default function Contact() {
                     <input id="phone" name="phone" className="form-control" value={form.phone} onChange={handleChange} />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="subject">Subject</label>
-                    <input id="subject" name="subject" className="form-control" value={form.subject} onChange={handleChange} />
+                    <label htmlFor="subject">Subject *</label>
+                    <input id="subject" name="subject" className="form-control" value={form.subject} onChange={handleChange} required />
                   </div>
                 </div>
                 <div className="form-group">

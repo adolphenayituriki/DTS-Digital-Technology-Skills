@@ -36,7 +36,7 @@ export default function Dashboard() {
     Promise.all([
       apiFetch('/messages').then((d) => (Array.isArray(d) ? d.length : 0)).catch(() => 0),
       apiFetch('/members').then((d) => (Array.isArray(d) ? d.length : 0)).catch(() => 0),
-      apiFetch('/posts').then((d) => (Array.isArray(d) ? d.length : 0)).catch(() => 0),
+      apiFetch('/posts/all').then((d) => (Array.isArray(d) ? d.length : 0)).catch(() => 0),
       apiFetch('/intakes/all').then((d) => (Array.isArray(d) ? d.length : 0)).catch(() => 0),
       apiFetch('/applications').then((d) => {
         if (!Array.isArray(d)) return 0;

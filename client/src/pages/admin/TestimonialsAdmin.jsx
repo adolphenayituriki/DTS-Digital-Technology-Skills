@@ -9,7 +9,7 @@ export default function TestimonialsAdmin() {
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchTestimonials = () => {
-    apiFetch('/testimonials')
+    apiFetch('/testimonials/all')
       .then((d) => setTestimonials(Array.isArray(d) ? d : []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -19,11 +19,11 @@ export default function TestimonialsAdmin() {
 
   const toggleApprove = async (id, current) => {
     try {
-      await apiFetch(`/testimonials/${id}`, {
+      await apiFetch(`/testimonials/${id}/approve`, {
         method: 'PUT',
-        body: JSON.stringify({ approved: !current }),
+        body: JSON.stringify({ isApproved: !current }),
       });
-      setTestimonials((prev) => prev.map((t) => (t._id === id ? { ...t, approved: !current } : t)));
+      setTestimonials((prev) => prev.map((t) => (t._id === id ? { ...t, isApproved: !current } : t)));
     } catch { /* ignore */ }
   };
 
@@ -65,18 +65,18 @@ export default function TestimonialsAdmin() {
                 </td>
                 <td>{'★'.repeat(t.rating || 5)}</td>
                 <td>
-                  <span style={{ fontSize: '0.8rem', color: t.approved ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
-                    {t.approved ? 'Approved' : 'Pending'}
+                  <span style={{ fontSize: '0.8rem', color: t.isApproved ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
+                    {t.isApproved ? 'Approved' : 'Pending'}
                   </span>
                 </td>
                 <td>
                   <div className="actions">
                     <button
-                      className={`btn btn-sm ${t.approved ? 'btn-outline' : 'btn-success'}`}
-                      onClick={() => toggleApprove(t._id, t.approved)}
-                      title={t.approved ? 'Unapprove' : 'Approve'}
+                      className={`btn btn-sm ${t.isApproved ? 'btn-outline' : 'btn-success'}`}
+                      onClick={() => toggleApprove(t._id, t.isApproved)}
+                      title={t.isApproved ? 'Unapprove' : 'Approve'}
                     >
-                      {t.approved ? <XCircle size={14} /> : <CheckCircle size={14} />}
+                      {t.isApproved ? <XCircle size={14} /> : <CheckCircle size={14} />}
                     </button>
                     <button className="btn btn-danger btn-sm" onClick={() => setConfirmId(t._id)} title="Delete">
                       <Trash2 size={14} />

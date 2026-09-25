@@ -4,6 +4,7 @@ import Application from "../models/Application.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 import {
   createStudentForApplication,
   studentStatusFromApplication,
@@ -101,7 +102,7 @@ router.get("/mine", auth, async (req, res) => {
   }
 });
 
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, requireRole("admin"), async (req, res) => {
   try {
     const applications = await Application.find().sort({ createdAt: -1 });
     res.json(applications);
@@ -110,7 +111,7 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const previous = await Application.findById(req.params.id);
     if (!previous) return res.status(404).json({ message: "Application not found" });
@@ -132,7 +133,7 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const application = await Application.findByIdAndDelete(req.params.id);
     if (!application) return res.status(404).json({ message: "Application not found" });

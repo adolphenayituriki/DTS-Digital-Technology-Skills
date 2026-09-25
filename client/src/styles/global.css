@@ -2097,3 +2097,57 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .student-form-grid { grid-template-columns: 1fr; }
   .profile-grid { grid-template-columns: 1fr; }
 }
+
+.workspace-page { display: flex; flex-direction: column; gap: 1.25rem; }
+.workspace-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.workspace-intro h2 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.workspace-intro p { color: var(--text-light); font-size: 0.84rem; margin-top: 0.2rem; }
+.workspace-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.workspace-header-icon, .workspace-course-chip { color: var(--primary); display: inline-flex; align-items: center; gap: 0.35rem; }
+.workspace-course-chip { background: #e7f1fb; border-radius: 999px; padding: 0.45rem 0.8rem; font-size: 0.78rem; font-weight: 700; }
+.workspace-filter { min-width: 190px; max-width: 260px; }
+.workspace-search { min-width: 220px; flex: 1; }
+.table-scroll { overflow-x: auto; border-radius: var(--radius-lg); }
+.workspace-page .table-scroll .admin-table { min-width: 760px; }
+.table-empty { text-align: center !important; color: var(--text-light); padding: 2rem 1rem !important; }
+.table-subtext { display: block; color: var(--text-light); font-size: 0.72rem; margin-top: 0.15rem; }
+.attendance-toolbar { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+.attendance-toolbar .form-control { min-width: 190px; }
+.attendance-course-label { color: var(--text-light); font-size: 0.78rem; font-weight: 600; padding: 0.55rem 0.2rem; }
+.attendance-options { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.attendance-choice { border: 1px solid #dbe3ec; background: #f8fafc; color: var(--text-light); border-radius: 6px; padding: 0.32rem 0.48rem; font-size: 0.68rem; font-weight: 700; transition: all var(--transition); }
+.attendance-choice:hover { border-color: var(--primary); color: var(--primary); }
+.attendance-choice.active.present { background: #e7f7ec; border-color: #86d79a; color: #237a34; }
+.attendance-choice.active.absent { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+.attendance-choice.active.late { background: #fff7ed; border-color: #fdba74; color: #c2410c; }
+.attendance-choice.active.excused { background: #f0f7fb; border-color: #93c5d8; color: #1464a6; }
+.mark-score-input { max-width: 100px; }
+.grade-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; height: 2rem; border-radius: 50%; background: #e7f1fb; color: var(--primary); font-weight: 800; }
+.finance-layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.finance-record-form, .assignment-form { position: sticky; top: 1rem; }
+.finance-ledger-panel { min-width: 0; }
+.ledger-filter { width: auto; min-width: 125px; padding-top: 0.42rem; padding-bottom: 0.42rem; }
+.finance-status, .finance-kind { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.22rem 0.55rem; font-size: 0.68rem; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
+.status-paid { background: #e7f7ec; color: #237a34; }
+.status-partial { background: #fff7ed; color: #c2410c; }
+.status-unpaid { background: #fef2f2; color: #b91c1c; }
+.status-neutral { background: #f1f5f9; color: #64748b; }
+.finance-kind.payment { background: #e7f1fb; color: #1464a6; }
+.finance-kind.income { background: #e7f7ec; color: #237a34; }
+.finance-kind.expense { background: #fef2f2; color: #b91c1c; }
+.text-danger { color: var(--error) !important; }
+.text-success { color: var(--success) !important; }
+.compact-table th, .compact-table td { padding: 0.65rem 0.75rem; }
+.workspace-full-button { width: 100%; justify-content: center; margin-top: 1rem; }
+@media (max-width: 1100px) {
+  .finance-layout { grid-template-columns: 1fr; }
+  .finance-record-form, .assignment-form { position: static; }
+}
+@media (max-width: 640px) {
+  .workspace-intro { align-items: stretch; }
+  .workspace-intro .btn, .workspace-intro .workspace-header-icon { align-self: flex-start; }
+  .workspace-filter, .workspace-search, .attendance-toolbar .form-control { width: 100%; max-width: none; min-width: 0; }
+  .finance-layout { gap: 0.75rem; }
+  .ledger-filter { width: 100%; }
+  .dash-panel-head { align-items: flex-start; gap: 0.5rem; flex-wrap: wrap; }
+}

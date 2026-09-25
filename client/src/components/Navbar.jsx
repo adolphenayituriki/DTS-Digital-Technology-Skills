@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import apiFetch from '../api';
+import { roleHome, roleLabel } from '../roleHome';
 
 const links = [
   { to: '/', label: 'Home' },
@@ -71,6 +72,8 @@ export default function Navbar() {
     ? members.filter((m) => (m.name || '').toLowerCase().includes(trimmed)).slice(0, 4)
     : [];
   const dropdownOpen = trimmed.length > 0;
+  const workspace = roleHome(user?.role);
+  const workspaceLabel = roleLabel(user?.role);
 
   const goTo = (to) => {
     setQ('');
@@ -111,11 +114,11 @@ export default function Navbar() {
             {isLoggedIn ? (
               <>
                 <NavLink
-                  to="/dashboard"
+                  to={workspace}
                   className={({ isActive }) => (isActive ? 'active dash-link' : 'dash-link')}
                   onClick={() => setOpen(false)}
                 >
-                  Dashboard
+                  {workspaceLabel}
                 </NavLink>
                 <button className="dash-link-logout" onClick={handleLogout}>
                   <LogOut size={15} /> Logout
@@ -142,7 +145,7 @@ export default function Navbar() {
             </Link>
             {isLoggedIn ? (
               <>
-                <Link to="/dashboard" className="admin-icon" aria-label="Dashboard" title="My Dashboard">
+                <Link to={workspace} className="admin-icon" aria-label={workspaceLabel} title={workspaceLabel}>
                   <LayoutDashboard size={16} />
                 </Link>
                 <button className="admin-icon" onClick={handleLogout} aria-label="Logout" title="Logout">

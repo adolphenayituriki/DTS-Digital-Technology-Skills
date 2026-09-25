@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Post from "../models/Post.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/all", auth, async (req, res) => {
+router.get("/all", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const posts = await Post.find()
       .populate("author", "name")
@@ -43,7 +44,7 @@ router.get("/:slug", async (req, res) => {
   }
 });
 
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const { title, content, excerpt, featuredImage, category, isPublished, steps } =
       req.body;
@@ -74,7 +75,7 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const post = await Post.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -94,7 +95,7 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const post = await Post.findByIdAndDelete(req.params.id);
 

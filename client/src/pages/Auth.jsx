@@ -6,6 +6,7 @@ import {
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
+import { roleHome } from '../roleHome';
 
 const loginFeatures = [
   'Track your applications',
@@ -69,7 +70,7 @@ export default function Auth({ mode }) {
       const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(login) });
       setSession(data.token, data.user);
       toast.success(`Welcome back, ${data.user.name || 'friend'}!`);
-      navigate(data.user.role === 'admin' || data.user.role === 'editor' ? '/admin' : '/dashboard');
+      navigate(roleHome(data.user.role));
     } catch (err) {
       toast.error(err.message || 'Login failed. Please try again.');
     } finally {

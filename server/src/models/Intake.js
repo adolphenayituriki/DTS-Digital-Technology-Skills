@@ -41,6 +41,16 @@ const intakeSchema = new mongoose.Schema({
     enum: ["open", "closed", "full"],
     default: "open",
   },
+  tuitionFee: {
+    type: Number,
+    min: 0,
+    default: 0,
+  },
+  currency: {
+    type: String,
+    enum: ["RWF", "USD", "EUR", "GBP"],
+    default: "RWF",
+  },
   createdAt: {
     type: Date,
     default: Date.now,

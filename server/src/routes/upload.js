@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +38,7 @@ const upload = multer({
 
 const router = Router();
 
-router.post("/", auth, (req, res) => {
+router.post("/", auth, requireRole("admin", "editor"), (req, res) => {
   upload.single("file")(req, res, (err) => {
     if (err) {
       return res.status(400).json({ message: err.message });

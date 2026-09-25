@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, ImagePlus, X } from 'lucide-react';
 import apiFetch, { API_URL } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
-const emptyForm = { title: '', content: '', excerpt: '', category: '', published: true, featuredImage: '' };
+const emptyForm = { title: '', content: '', excerpt: '', category: '', isPublished: true, featuredImage: '' };
 
 export default function PostsAdmin() {
   const [posts, setPosts] = useState([]);
@@ -16,7 +16,7 @@ export default function PostsAdmin() {
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchPosts = () => {
-    apiFetch('/posts')
+    apiFetch('/posts/all')
       .then((d) => setPosts(Array.isArray(d) ? d : []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -74,7 +74,7 @@ export default function PostsAdmin() {
   };
 
   const startEdit = (p) => {
-    setForm({ title: p.title, content: p.content || '', excerpt: p.excerpt || '', category: p.category || '', published: p.published !== false, featuredImage: p.featuredImage || '' });
+    setForm({ title: p.title, content: p.content || '', excerpt: p.excerpt || '', category: p.category || '', isPublished: p.isPublished !== false, featuredImage: p.featuredImage || '' });
     setEditId(p._id);
     setShowForm(true);
   };
@@ -147,8 +147,8 @@ export default function PostsAdmin() {
               <textarea name="content" className="form-control" rows={8} value={form.content} onChange={handleChange} required placeholder="Full article content (HTML supported)" />
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input type="checkbox" name="published" checked={form.published} onChange={handleChange} id="published" />
-              <label htmlFor="published" style={{ marginBottom: 0 }}>Published</label>
+               <input type="checkbox" name="isPublished" checked={form.isPublished} onChange={handleChange} id="isPublished" />
+               <label htmlFor="isPublished" style={{ marginBottom: 0 }}>Published</label>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button type="submit" className="btn btn-success btn-sm">{editId ? 'Update' : 'Create'}</button>
@@ -176,8 +176,8 @@ export default function PostsAdmin() {
                 {p.category && <span className="badge">{p.category}</span>}
               </td>
               <td>
-                <span style={{ fontSize: '0.8rem', color: p.published !== false ? 'var(--success)' : 'var(--text-light)', fontWeight: 600 }}>
-                  {p.published !== false ? 'Published' : 'Draft'}
+                <span style={{ fontSize: '0.8rem', color: p.isPublished !== false ? 'var(--success)' : 'var(--text-light)', fontWeight: 600 }}>
+                  {p.isPublished !== false ? 'Published' : 'Draft'}
                 </span>
               </td>
               <td style={{ fontSize: '0.85rem' }}>

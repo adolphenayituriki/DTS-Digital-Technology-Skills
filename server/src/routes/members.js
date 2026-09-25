@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Member from "../models/Member.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const { name, role, bio, email, photo, isLeadership, order } = req.body;
 
@@ -28,7 +29,7 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const member = await Member.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -45,7 +46,7 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const member = await Member.findByIdAndDelete(req.params.id);
 

@@ -14,6 +14,10 @@ import uploadRoutes from "./routes/upload.js";
 import intakeRoutes from "./routes/intakes.js";
 import applicationRoutes from "./routes/applications.js";
 import studentRoutes from "./routes/students.js";
+import userRoutes from "./routes/users.js";
+import trainerRoutes from "./routes/trainer.js";
+import trainerAdminRoutes from "./routes/trainerAdmin.js";
+import financeRoutes from "./routes/finance.js";
 
 dotenv.config();
 
@@ -47,6 +51,10 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/intakes", intakeRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/trainer", trainerRoutes);
+app.use("/api/trainers", trainerAdminRoutes);
+app.use("/api/finance", financeRoutes);
 
 app.get("/api/status", (req, res) => {
   res.json({

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Message from "../models/Message.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 import { notifyAdminsNewMessage } from "../utils/mailer.js";
 
 const router = Router();
@@ -21,7 +22,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const messages = await Message.find().sort({ createdAt: -1 });
     res.json(messages);
@@ -30,7 +31,7 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-router.put("/:id/read", auth, async (req, res) => {
+router.put("/:id/read", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const message = await Message.findByIdAndUpdate(
       req.params.id,
@@ -48,7 +49,7 @@ router.put("/:id/read", auth, async (req, res) => {
   }
 });
 
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
     const message = await Message.findByIdAndDelete(req.params.id);
 

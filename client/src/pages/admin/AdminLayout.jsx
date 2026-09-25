@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut, UserCog, ClipboardCheck } from 'lucide-react';
+import useAuth from '../../hooks/useAuth';
 
 const navItems = [
   { to: '/admin', icon: <LayoutDashboard size={18} />, label: 'Dashboard', end: true },
@@ -11,27 +12,17 @@ const navItems = [
   { to: '/admin/applications', icon: <ClipboardList size={18} />, label: 'Applications' },
   { to: '/admin/students', icon: <GraduationCap size={18} />, label: 'Students' },
   { to: '/admin/testimonials', icon: <Star size={18} />, label: 'Testimonials' },
+  { to: '/admin/users', icon: <UserCog size={18} />, label: 'User Access', adminOnly: true },
+  { to: '/admin/trainer-assignments', icon: <ClipboardCheck size={18} />, label: 'Trainer Assignments', adminOnly: true },
 ];
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('dts_token');
-    const userData = localStorage.getItem('dts_user');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    if (userData) {
-      try { setUser(JSON.parse(userData)); } catch { /* ignore */ }
-    }
-  }, [navigate]);
+  const { user, logout } = useAuth();
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || user?.role === 'admin');
 
   const handleLogout = () => {
-    localStorage.removeItem('dts_token');
-    localStorage.removeItem('dts_user');
+    logout();
     navigate('/login');
   };
 
@@ -47,7 +38,7 @@ export default function AdminLayout() {
         </div>
         <span className="admin-nav-title">Manage</span>
         <nav>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

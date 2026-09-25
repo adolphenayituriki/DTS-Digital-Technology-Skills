@@ -26,6 +26,14 @@ const markSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    recordedById: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    assessedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true }
 );

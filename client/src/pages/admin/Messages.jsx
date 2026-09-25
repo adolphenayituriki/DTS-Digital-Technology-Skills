@@ -19,8 +19,8 @@ export default function Messages() {
 
   const markRead = async (id) => {
     try {
-      await apiFetch(`/messages/${id}`, { method: 'PUT', body: JSON.stringify({ read: true }) });
-      setMessages((prev) => prev.map((m) => (m._id === id ? { ...m, read: true } : m)));
+      await apiFetch(`/messages/${id}/read`, { method: 'PUT' });
+      setMessages((prev) => prev.map((m) => (m._id === id ? { ...m, isRead: true } : m)));
     } catch { /* ignore */ }
   };
 
@@ -50,8 +50,8 @@ export default function Messages() {
             </tr>
           </thead>
           <tbody>
-            {messages.map((m) => (
-              <tr key={m._id} className={!m.read ? 'unread' : ''}>
+             {messages.map((m) => (
+               <tr key={m._id} className={!m.isRead ? 'unread' : ''}>
                 <td>
                   <strong>{m.name}</strong>
                   <br />
@@ -62,13 +62,13 @@ export default function Messages() {
                   {new Date(m.createdAt).toLocaleDateString()}
                 </td>
                 <td>
-                  <span style={{ fontSize: '0.8rem', color: m.read ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
-                    {m.read ? 'Read' : 'Unread'}
+                  <span style={{ fontSize: '0.8rem', color: m.isRead ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
+                     {m.isRead ? 'Read' : 'Unread'}
                   </span>
                 </td>
                 <td>
                   <div className="actions">
-                    {!m.read && (
+                     {!m.isRead && (
                       <button className="btn btn-outline btn-sm" onClick={() => markRead(m._id)} title="Mark as read">
                         <Eye size={14} />
                       </button>

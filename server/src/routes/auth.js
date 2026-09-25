@@ -11,14 +11,14 @@ const generateToken = (id) => {
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const user = await User.create({ name, email, password, role });
+    const user = await User.create({ name, email, password, role: "user" });
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -49,7 +49,7 @@ router.post("/login", async (req, res) => {
     }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
+    if (!isMatch || user.active === false) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
