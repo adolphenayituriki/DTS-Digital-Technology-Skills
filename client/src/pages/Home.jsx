@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Monitor, Wifi, Zap, ChevronLeft, ChevronRight, Users, Rocket } from "lucide-react";
 import TestimonialCarousel from "../components/TestimonialCarousel";
