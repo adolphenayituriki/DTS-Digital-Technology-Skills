@@ -432,9 +432,12 @@ export async function notifyAdminsNewTestimonial(testimonial) {
 
 export async function sendStudentBalanceNotification(student, balanceData) {
   const { expected, paid, balance, intakeTitle, currency = "RWF" } = balanceData;
-  const statusLabel = expected === 0 ? "No fee configured" : balance <= 0 ? "Paid in full" : paid > 0 ? "Partial payment" : "Unpaid";
-  const statusColor = expected === 0 ? "#64748b" : balance <= 0 ? "#166534" : paid > 0 ? "#c2410c" : "#991b1b";
-  const statusBg = expected === 0 ? "#f1f5f9" : balance <= 0 ? "#f0fdf4" : paid > 0 ? "#fff7ed" : "#fef2f2";
+  const hasFee = expected > 0;
+  const statusLabel = !hasFee ? "No fee configured" : balance <= 0 ? "Paid in full" : paid > 0 ? "Partial payment" : "Unpaid";
+  const statusColor = !hasFee ? "#64748b" : balance <= 0 ? "#166534" : paid > 0 ? "#c2410c" : "#991b1b";
+  const statusBg = !hasFee ? "#f1f5f9" : balance <= 0 ? "#f0fdf4" : paid > 0 ? "#fff7ed" : "#fef2f2";
+  const pct = hasFee ? Math.min(100, Math.round((paid / expected) * 100)) : 0;
+  const formatMoney = (v) => `${Number(v || 0).toLocaleString('en-RW')} ${currency}`;
   
   const body = `
     <p style="font-family:${FONT};font-size:15px;line-height:1.6;color:#1a202c;margin:0 0 14px;">Hello <strong style="color:#142851;">${escapeHtml(student.name)}</strong>,</p>
@@ -443,10 +446,45 @@ export async function sendStudentBalanceNotification(student, balanceData) {
     ${detailCard("Balance Summary", [
       ["Registration Number", `<strong style="color:#142851;">${escapeHtml(student.regNumber)}</strong>`],
       ["Intake / Level", escapeHtml(intakeTitle)],
-      ["Required Fee", `<strong style="font-size:15px;color:#142851;">${Number(expected).toLocaleString('en-RW')} ${currency}</strong>`],
-      ["Amount Paid", `<strong style="font-size:15px;color:#166534;">${Number(paid).toLocaleString('en-RW')} ${currency}</strong>`],
-      ["Outstanding Balance", `<strong style="font-size:16px;color:#${statusColor === "#991b1b" ? "991b1b" : statusColor === "#c2410c" ? "c2410c" : "166534"};">${Number(balance).toLocaleString('en-RW')} ${currency}</strong>`],
+      ["Required Fee", `<strong style="font-size:15px;color:#142851;">${formatMoney(expected)}</strong>`],
+      ["Amount Paid", `<strong style="font-size:15px;color:#166534;">${formatMoney(paid)}</strong>`],
+      ["Outstanding Balance", `<strong style="font-size:16px;color:${!hasFee ? "#64748b" : balance > 0 ? "#991b1b" : "#166534"};">${formatMoney(balance)}</strong>`],
     ])}
+    
+    ${hasFee ? `
+    <!-- Progress Bar -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+      <tr>
+        <td style="font-family:${FONT};font-size:12px;color:#5b6b84;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;padding-bottom:8px;">Payment Progress</td>
+      </tr>
+      <tr>
+        <td>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background:#eef0f4;border-radius:999px;height:12px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${balance <= 0 ? "#166534" : "#1a7fd4"};border-radius:999px;transition:width 0.5s ease;"></div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:6px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-family:${FONT};font-size:13px;color:#374151;font-weight:600;text-align:left;">${pct}% paid</td>
+              <td style="font-family:${FONT};font-size:13px;color:#64748b;text-align:right;">${formatMoney(paid)} of ${formatMoney(expected)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    ` : `
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#64748b;margin:14px 0 0;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #eef1f6;text-align:center;">
+      <span style="font-weight:600;">No tuition fee has been configured for this intake yet.</span><br>
+      <span style="font-size:13px;">The finance team will update the fee amount once finalized.</span>
+    </p>
+    `}
     
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0;">
       <tr>
@@ -456,10 +494,18 @@ export async function sendStudentBalanceNotification(student, balanceData) {
       </tr>
     </table>
     
-    ${balance > 0 ? `
-    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">Please arrange payment of the outstanding balance. You can make payment through the DTS office or contact finance for payment options.</p>
+    ${!hasFee ? `
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">
+      No action is required at this time. You will be notified once the tuition fee is set.
+    </p>
+    ` : balance > 0 ? `
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">
+      Please arrange payment of the outstanding balance. You can make payment through the DTS office or contact finance for payment options.
+    </p>
     ` : `
-    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">Your tuition is fully paid. Thank you for your timely payment!</p>
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">
+      Your tuition is fully paid. Thank you for your timely payment!
+    </p>
     `}
     
     ${ctaButton("View My Profile", `${siteUrl()}/profile`)}

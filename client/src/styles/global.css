@@ -64,7 +64,7 @@ input, textarea, select { font-family: inherit; }
   height: 72px; gap: 1rem; width: 100%;
 }
 .navbar-brand { display: flex; align-items: center; gap: 0.8rem; line-height: 1.15; }
-.navbar-logo { height: 50px; width: auto; }
+.navbar-logo { height: 44px; width: 44px; border-radius: 50%; object-fit: cover; }
 .navbar-title { display: flex; flex-direction: column; }
 .navbar-title b {
   font-size: 1.35rem; line-height: 1; font-weight: 900; letter-spacing: 0.02em;
@@ -75,8 +75,8 @@ input, textarea, select { font-family: inherit; }
   font-size: 0.6rem; font-weight: 600; color: var(--text-light);
   text-transform: uppercase; letter-spacing: 0.13em; margin-top: 0.2rem;
 }
-.footer-logo { height: 52px; width: auto; margin-bottom: 1.25rem; }
-.login-logo { height: 52px; width: auto; margin-bottom: 0.75rem; }
+.footer-logo { height: 48px; width: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 1.25rem; }
+.login-logo { height: 48px; width: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 0.75rem; }
 .login-brand { display: flex; flex-direction: column; align-items: center; }
 .navbar-links { display: flex; align-items: center; gap: 0.15rem; }
 .navbar-links > a {
@@ -835,7 +835,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   padding: 0.35rem 0.7rem 1rem; margin-bottom: 0.75rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
-.admin-brand-logo { height: 34px; width: auto; }
+.admin-brand-logo { height: 36px; width: 36px; border-radius: 50%; object-fit: cover; }
 .admin-brand span { display: flex; flex-direction: column; line-height: 1.1; }
 .admin-brand b { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
 .admin-brand small { font-size: 0.68rem; color: #94a3b8; font-weight: 500; }
@@ -2535,4 +2535,108 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 @media (max-width: 480px) {
   .grad-stat { min-width: 100px; padding: 0.75rem; }
   .grad-stat-value { font-size: 1.5rem; }
+}
+
+/* ── Student Profile Compact ── */
+.profile-head {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 1.2rem;
+}
+.profile-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.2rem; flex-shrink: 0;
+}
+.profile-head h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.2rem; }
+.profile-reg { font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 0.3rem; }
+.app-status-badge {
+  font-size: 0.68rem; font-weight: 700; padding: 0.3rem 0.7rem;
+  border-radius: 999px; white-space: nowrap; margin-left: auto;
+}
+.profile-status-msg {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  padding: 0.7rem 0.9rem; border-radius: var(--radius-md);
+  font-size: 0.8rem; line-height: 1.5; margin: 0.75rem 0;
+}
+.profile-status-msg > svg { flex-shrink: 0; margin-top: 0.1rem; }
+.profile-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem 1rem; font-size: 0.82rem;
+}
+.profile-field { display: flex; flex-direction: column; gap: 0.15rem; }
+.profile-field span { font-size: 0.68rem; color: var(--text-light); font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
+.profile-field b { font-weight: 600; color: var(--text); }
+.app-detail-label { font-size: 0.68rem; color: var(--text-light); font-weight: 600; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem; }
+.intake-course-chip {
+  display: inline-block; font-size: 0.68rem; font-weight: 600;
+  padding: 0.25rem 0.6rem; border-radius: 999px;
+  background: #e7f1fb; color: var(--primary); margin: 0.2rem 0.3rem 0.2rem 0;
+}
+
+/* Compact cards */
+.profile-card { padding: 0.9rem 1.1rem; margin-top: 0.75rem; }
+.profile-card h3 { font-size: 0.85rem; font-weight: 700; margin: 0 0 0.65rem; display: flex; align-items: center; gap: 0.4rem; }
+.profile-card h3 svg { color: var(--primary); }
+
+/* Payment section */
+.payment-progress { margin-bottom: 0.85rem; }
+.payment-progress-head { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.3rem; }
+.payment-progress-head span:last-child { font-weight: 700; }
+.payment-progress-bar { height: 8px; background: #eef0f4; border-radius: 999px; overflow: hidden; }
+.payment-progress-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+
+.payment-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; }
+.payment-stat { background: #f8fafc; border: 1px solid #eef0f4; border-radius: var(--radius-md); padding: 0.6rem 0.7rem; text-align: center; }
+.payment-stat-label { font-size: 0.65rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.payment-stat-value { font-size: 1rem; font-weight: 800; color: var(--text); margin-top: 0.15rem; }
+.payment-status-badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 700; padding: 0.35rem 0.7rem; border-radius: 999px; margin-top: 0.6rem; }
+
+/* Marks table */
+.profile-marks { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.profile-marks th, .profile-marks td { padding: 0.55rem 0.65rem; text-align: left; border-bottom: 1px solid #f1f5f9; }
+.profile-marks th { font-size: 0.62rem; color: var(--text-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #fafbfc; }
+.profile-marks td { font-weight: 500; }
+.profile-marks tr:last-child td { border-bottom: none; }
+
+/* Attendance */
+.attendance-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.attendance-stat { text-align: center; padding: 0.7rem 0.5rem; border-radius: var(--radius-md); }
+.attendance-stat.present { background: #f0fdf4; }
+.attendance-stat.absent { background: #fef2f2; }
+.attendance-stat.late { background: #fff7ed; }
+.attendance-stat-value { font-size: 1.25rem; font-weight: 800; line-height: 1; }
+.attendance-stat.present .attendance-stat-value { color: #166534; }
+.attendance-stat.absent .attendance-stat-value { color: #991b1b; }
+.attendance-stat.late .attendance-stat-value { color: #c2410c; }
+.attendance-stat-label { font-size: 0.65rem; color: var(--text-light); font-weight: 600; margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* Upcoming sessions */
+.upcoming-session { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem; background: #f8fafc; border: 1px solid #eef0f4; border-radius: var(--radius-md); }
+.upcoming-date { width: 40px; height: 40px; border-radius: var(--radius-md); background: #e7f1fb; color: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
+.upcoming-date .day { font-size: 0.9rem; font-weight: 800; }
+.upcoming-info { flex: 1; min-width: 0; }
+.upcoming-title { font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upcoming-meta { font-size: 0.68rem; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upcoming-status { font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+
+/* Profile safe note */
+.profile-safe { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.7rem 0.9rem; background: #f8fafc; border: 1px solid #eef0f4; border-radius: var(--radius-md); margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-light); }
+.profile-safe svg { flex-shrink: 0; margin-top: 0.1rem; color: var(--success); }
+
+/* Section compact */
+.section-compact { padding: 1.25rem 0; }
+.page-header-compact { padding: 1.5rem 0 0.75rem; }
+.page-header-compact h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+.page-header-compact p { color: var(--text-light); font-size: 0.85rem; }
+
+@media (max-width: 640px) {
+  .profile-head { padding: 0.85rem 1rem; gap: 0.75rem; }
+  .profile-avatar { width: 48px; height: 48px; font-size: 1rem; }
+  .profile-head h3 { font-size: 1rem; }
+  .app-status-badge { font-size: 0.62rem; padding: 0.25rem 0.55rem; }
+  .profile-grid { grid-template-columns: 1fr; }
+  .payment-summary { grid-template-columns: 1fr; }
+  .attendance-summary { grid-template-columns: 1fr; gap: 0.4rem; }
+  .upcoming-session { padding: 0.5rem; gap: 0.5rem; }
 }
