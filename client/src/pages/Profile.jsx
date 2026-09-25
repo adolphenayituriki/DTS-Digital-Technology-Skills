@@ -66,13 +66,9 @@ export default function Profile() {
   useEffect(() => {
     if (!student) return;
     setPaymentLoading(true);
-    apiFetch(`/finance/students?q=${encodeURIComponent(student.regNumber)}`)
+    apiFetch('/finance/student/me')
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPayment(data[0]);
-        } else {
-          setPayment(null);
-        }
+        setPayment(data);
       })
       .catch(() => setPayment(null))
       .finally(() => setPaymentLoading(false));

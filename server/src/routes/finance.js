@@ -133,6 +133,34 @@ router.get("/students", async (req, res) => {
   }
 });
 
+router.get("/student/me", auth, async (req, res) => {
+  try {
+    const student = await Student.findOne({ userId: req.user._id }).select("_id name email regNumber intakeId intakeTitle program").lean();
+    if (!student) return res.status(404).json({ message: "Student profile not found" });
+    
+    const intake = student.intakeId ? await Intake.findById(student.intakeId).select("title program tuitionFee currency").lean() : null;
+    const expected = Number(intake?.tuitionFee || 0);
+    
+    const payments = await FinanceTransaction.find({ kind: "payment", status: "completed", studentId: student._id })
+      .select("amount currency occurredAt")
+      .lean();
+    const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    
+    res.json({
+      ...student,
+      intakeTitle: intake?.title || student.intakeTitle,
+      intakeProgram: intake?.program || student.program,
+      currency: intake?.currency || "RWF",
+      expected,
+      paid,
+      balance: Math.max(0, expected - paid),
+      paymentStatus: expected === 0 ? "not_configured" : paid >= expected ? "paid" : paid > 0 ? "partial" : "unpaid",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/transactions", async (req, res) => {
   try {
     const filter = {};
