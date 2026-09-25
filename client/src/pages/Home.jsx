@@ -179,51 +179,31 @@ export default function Home() {
         <div className="container">
           <div className="about-intro">
             <FadeIn direction="right">
-              <h2
-                style={{
-                  fontWeight: 800,
-                  marginBottom: "1rem",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                About Digital Technology Skills
-              </h2>
-              <p
-                style={{
-                  color: "var(--text-light)",
-                  marginBottom: "1rem",
-                  lineHeight: 1.8,
-                }}
-              >
-                Established in September 2022 at UR-Huye Campus, DTS is a
-                student-led association dedicated to promoting digital
-                technology learning. We empower members with practical computer
-                skills, encourage innovation, and solve real-life problems using
-                technology.
+              <span className="eyebrow">About the association</span>
+              <h2 className="section-title">What is DTS?</h2>
+              <p className="lead-text">
+                Digital Technology Skills is a student-led association established in September 2022 at
+                UR-Huye Campus. We promote digital learning, empower members with practical computer skills,
+                encourage innovation, and focus on solving real-life problems with technology.
               </p>
-              <p
-                style={{
-                  color: "var(--text-light)",
-                  marginBottom: "1.5rem",
-                  lineHeight: 1.8,
-                }}
-              >
-                With over 200 students trained and certified, we provide both
-                foundational and advanced technology training that prepares
-                students for the digital economy.
+              <p className="lead-text">
+                We support both new and continuing students. Especially those who don't yet have digital
+                skills. Through accessible, hands-on training.
               </p>
-              <Link to="/about" className="btn btn-primary">
-                Learn More <ArrowRight size={16} />
-              </Link>
+              <div className="ms-icon-row">
+                <span className="icon-chip"><Users size={15} /> Student-led</span>
+                <span className="icon-chip"><Rocket size={15} /> Est. 2022</span>
+              </div>
             </FadeIn>
             <FadeIn direction="left" delay={150}>
-              <div className="about-slider">
-                {aboutImages.map((src, i) => (
-                  <div key={src} className={`about-slide ${i === aboutIdx ? "active" : ""}`}>
-                    <img src={src} alt="DTS Training Session" loading="lazy" />
-                  </div>
-                ))}
-              </div>
+              <ImageCarousel
+                images={aboutImages}
+                altPrefix="DTS Training Session"
+                autoPlay={true}
+                interval={5000}
+                showArrows={false}
+                showDots={true}
+              />
             </FadeIn>
           </div>
         </div>
@@ -237,15 +217,14 @@ export default function Home() {
               <p>Highlights from our training sessions and community outreach</p>
             </div>
           </FadeIn>
-          <div className="gallery-grid">
-            {featuredImages.map((src, i) => (
-              <FadeIn key={src} delay={(i % 4) * 100}>
-                <div className="gallery-item">
-                  <img src={src} alt={`DTS Featured Moment ${i + 1}`} loading="lazy" />
-                </div>
-              </FadeIn>
-            ))}
-          </div>
+          <ImageCarousel
+            images={featuredImages}
+            altPrefix="DTS Featured Moment"
+            autoPlay={true}
+            interval={5000}
+            showArrows={true}
+            showDots={true}
+          />
         </div>
       </section>
 
@@ -257,29 +236,9 @@ export default function Home() {
               <p>Celebrating our graduates and community partnerships</p>
             </div>
           </FadeIn>
-          <div className="gallery-grid">
-            {graduationImages.map((src, i) => (
-              <FadeIn key={src} delay={(i % 5) * 100}>
-                <div className="gallery-item">
-                  <img src={src} alt={`DTS Graduation ${i + 1}`} loading="lazy" />
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section wm-section section-alt">
-        <div className="container">
-          <FadeIn>
-            <div className="section-header">
-              <h2>Our Team</h2>
-              <p>The dedicated team behind DTS</p>
-            </div>
-          </FadeIn>
           <ImageCarousel
-            images={teamImages}
-            altPrefix="DTS Team Member"
+            images={graduationImages}
+            altPrefix="DTS Graduation"
             autoPlay={true}
             interval={5000}
             showArrows={true}

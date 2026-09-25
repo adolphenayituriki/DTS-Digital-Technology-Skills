@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
   ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight, ArrowLeft,
+  CreditCard, AlertCircle, CheckCircle2,
 } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
@@ -16,12 +17,16 @@ const STATUS_META = {
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
+const money = (value) => `${Number(value || 0).toLocaleString('en-RW')} RWF`;
+
 const initials = (name = '') =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 
 export default function Profile() {
   const { isLoggedIn, ready } = useAuth();
   const [student, setStudent] = useState(null);
+  const [payment, setPayment] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [authing, setAuthing] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +62,21 @@ export default function Profile() {
       })
       .catch(() => setShowForm(true));
   }, [ready, isLoggedIn]);
+
+  useEffect(() => {
+    if (!student) return;
+    setPaymentLoading(true);
+    apiFetch(`/finance/students?q=${encodeURIComponent(student.regNumber)}`)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPayment(data[0]);
+        } else {
+          setPayment(null);
+        }
+      })
+      .catch(() => setPayment(null))
+      .finally(() => setPaymentLoading(false));
+  }, [student]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -288,6 +308,38 @@ export default function Profile() {
                   </div>
                 )}
               </div>
+
+              {payment && (
+                <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}><CreditCard size={16} style={{ marginRight: '0.4rem' }} /> Payment Status</h3>
+                    {paymentLoading && <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Updating...</span>}
+                  </div>
+                  <div className="payment-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                    <div className="payment-stat">
+                      <div className="payment-stat-label">Required Fee</div>
+                      <div className="payment-stat-value">{money(payment.expected)}</div>
+                    </div>
+                    <div className="payment-stat">
+                      <div className="payment-stat-label">Amount Paid</div>
+                      <div className="payment-stat-value" style={{ color: 'var(--success)' }}>{money(payment.paid)}</div>
+                    </div>
+                    <div className="payment-stat">
+                      <div className="payment-stat-label">Outstanding Balance</div>
+                      <div className="payment-stat-value" style={{ color: payment.balance > 0 ? 'var(--error)' : 'var(--success)' }}>{money(payment.balance)}</div>
+                    </div>
+                  </div>
+                  <div className="payment-status-badge" style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', background: payment.balance <= 0 ? '#f0fdf4' : payment.paid > 0 ? '#fff7ed' : '#fef2f2', color: payment.balance <= 0 ? '#166534' : payment.paid > 0 ? '#c2410c' : '#991b1b' }}>
+                    {payment.balance <= 0 ? <CheckCircle2 size={14} /> : payment.paid > 0 ? <AlertCircle size={14} /> : <AlertCircle size={14} />}
+                    {payment.balance <= 0 ? 'Paid in Full' : payment.paid > 0 ? 'Partial Payment' : 'Unpaid'}
+                  </div>
+                  {payment.intakeTitle && (
+                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-light)' }}>
+                      For: {payment.intakeTitle}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
                 <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem' }}>Results & Marks</h3>
