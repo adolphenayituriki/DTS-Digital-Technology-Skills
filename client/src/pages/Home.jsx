@@ -217,14 +217,15 @@ export default function Home() {
               <p>Highlights from our training sessions and community outreach</p>
             </div>
           </FadeIn>
-          <ImageCarousel
-            images={featuredImages}
-            altPrefix="DTS Featured Moment"
-            autoPlay={true}
-            interval={5000}
-            showArrows={true}
-            showDots={true}
-          />
+          <div className="gallery-grid">
+            {featuredImages.map((src, i) => (
+              <FadeIn key={src} delay={(i % 3) * 100}>
+                <div className="gallery-item">
+                  <img src={src} alt={`DTS Featured Moment ${i + 1}`} loading="lazy" />
+                </div>
+              </FadeIn>
+            ))}
+          </div>
         </div>
       </section>
 
