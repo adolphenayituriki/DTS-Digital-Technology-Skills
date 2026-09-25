@@ -65,6 +65,59 @@ function ImageCarousel({ images, altPrefix, autoPlay = true, interval = 5000, sh
   );
 }
 
+function ImageRowCarousel({ images, altPrefix, autoPlay = true, interval = 5000, showArrows = true }) {
+  const [scrollX, setScrollX] = useState(0);
+  const [hovering, setHovering] = useState(false);
+  const containerRef = useRef(null);
+
+  const scrollStep = 300;
+
+  const scrollLeft = useCallback(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+    }
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: scrollStep, behavior: 'smooth' });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!autoPlay || !containerRef.current) return;
+    const timer = setInterval(() => {
+      if (!hovering && containerRef.current) {
+        const { scrollLeft: current, scrollWidth, clientWidth } = containerRef.current;
+        if (current + clientWidth >= scrollWidth - 10) {
+          containerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          containerRef.current.scrollBy({ left: scrollStep, behavior: 'smooth' });
+        }
+      }
+    }, interval);
+    return () => clearInterval(timer);
+  }, [autoPlay, interval, hovering, scrollStep]);
+
+  return (
+    <div className="image-row-carousel" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
+      {showArrows && (
+        <>
+          <button className="row-carousel-btn prev" onClick={scrollLeft} aria-label="Previous"><ChevronLeft size={22} /></button>
+          <button className="row-carousel-btn next" onClick={scrollRight} aria-label="Next"><ChevronRight size={22} /></button>
+        </>
+      )}
+      <div ref={containerRef} className="row-carousel-track">
+        {images.map((src, i) => (
+          <div key={src} className="row-carousel-item">
+            <img src={src} alt={`${altPrefix} ${i + 1}`} loading="lazy" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const programs = [
   {
     title: "Google Services",
@@ -217,15 +270,13 @@ export default function Home() {
               <p>Highlights from our training sessions and community outreach</p>
             </div>
           </FadeIn>
-          <div className="gallery-grid">
-            {featuredImages.map((src, i) => (
-              <FadeIn key={src} delay={(i % 3) * 100}>
-                <div className="gallery-item">
-                  <img src={src} alt={`DTS Featured Moment ${i + 1}`} loading="lazy" />
-                </div>
-              </FadeIn>
-            ))}
-          </div>
+          <ImageRowCarousel
+            images={featuredImages}
+            altPrefix="DTS Featured Moment"
+            autoPlay={true}
+            interval={5000}
+            showArrows={true}
+          />
         </div>
       </section>
 
