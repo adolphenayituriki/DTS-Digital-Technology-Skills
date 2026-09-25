@@ -11,6 +11,12 @@ const featuredImages = [
   "/Featured Images/ELITEFRAMSTUDIO(73).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(100).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(123).jpg",
+  "/Featured Images/ELITEFRAMSTUDIO(133) (1).jpg",
+  "/Featured Images/ELITEFRAMSTUDIO(134).jpg",
+  "/Featured Images/ELITEFRAMSTUDIO(135).jpg",
+  "/Featured Images/WhatsApp Image 2026-09-25 at 16.41.13.jpeg",
+  "/Featured Images/WhatsApp Image 2026-09-25 at 16.48.45.jpeg",
+  "/Featured Images/WhatsApp Image 2026-09-b25 at 16.41.13.jpeg",
 ];
 const graduationImages = [
   "/Graduation images/ELITEFRAMSTUDIO(93).jpg",
