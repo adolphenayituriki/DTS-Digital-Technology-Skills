@@ -170,40 +170,41 @@ export default function FinanceStudentBalances() {
       {/* Quick Payment Modal */}
       {paymentModal && (
         <div className="dialog-overlay" onClick={closePaymentModal}>
-          <div className="dialog-card" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-card" style={{ maxWidth: '380px' }} onClick={(e) => e.stopPropagation()}>
             <button className="dialog-close" onClick={closePaymentModal}><X size={18} /></button>
-            <h3 style={{ marginBottom: '1rem' }}>Record Payment</h3>
-            <div style={{ marginBottom: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #eef0f4' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Student</div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{paymentModal.student.name}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{paymentModal.student.regNumber} · {paymentModal.student.intakeTitle}</div>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>
+                {paymentModal.student.name}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                {paymentModal.student.regNumber} · {paymentModal.student.intakeTitle}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.2rem' }}>
+                Balance: <strong style={{ color: 'var(--error)' }}>{money(paymentModal.student.balance)}</strong>
+              </div>
             </div>
-            <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <div className="form-group">
                 <label>Amount (RWF)</label>
-                <input className="form-control" type="number" min="1" step="0.01" value={paymentModal.amount} onChange={(e) => setPaymentModal({ ...paymentModal, amount: e.target.value })} required />
+                <input className="form-control" type="number" min="1" step="0.01" value={paymentModal.amount} onChange={(e) => setPaymentModal({ ...paymentModal, amount: e.target.value })} required autoFocus />
               </div>
               <div className="form-group">
-                <label>Payment Method</label>
+                <label>Method</label>
                 <select className="form-control" value={paymentModal.method} onChange={(e) => setPaymentModal({ ...paymentModal, method: e.target.value })}>
                   <option value="cash">Cash</option>
                   <option value="mobile_money">Mobile Money</option>
-                  <option value="bank">Bank Transfer</option>
+                  <option value="bank">Bank</option>
                   <option value="other">Other</option>
                 </select>
               </div>
               <div className="form-group">
                 <label>Reference (optional)</label>
-                <input className="form-control" value={paymentModal.reference} onChange={(e) => setPaymentModal({ ...paymentModal, reference: e.target.value })} placeholder="Receipt #, transaction ID" />
+                <input className="form-control" value={paymentModal.reference} onChange={(e) => setPaymentModal({ ...paymentModal, reference: e.target.value })} placeholder="Receipt #" />
               </div>
-              <div className="form-group">
-                <label>Notes (optional)</label>
-                <textarea className="form-control" rows="2" value={paymentModal.notes} onChange={(e) => setPaymentModal({ ...paymentModal, notes: e.target.value })} placeholder="Additional details" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" onClick={closePaymentModal} disabled={submitting}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? <Loader2 size={14} className="spinner" /> : <Save size={14} />} {submitting ? 'Saving...' : 'Record Payment'}
+              <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', marginTop: '0.3rem' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closePaymentModal} disabled={submitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
+                  {submitting ? <Loader2 size={13} className="spinner" /> : <Save size={13} />} {submitting ? 'Saving...' : 'Record'}
                 </button>
               </div>
             </form>
