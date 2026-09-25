@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Monitor, Wifi, Zap } from "lucide-react";
+import { ArrowRight, Monitor, Wifi, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import TestimonialCarousel from "../components/TestimonialCarousel";
 import FadeIn from "../components/FadeIn";
 
@@ -23,6 +23,47 @@ const teamImages = [
   "/Teams/ELITEFRAMSTUDIO(123).jpg",
   "/Teams/ELITEFRAMSTUDIO(124).jpg",
 ];
+
+function ImageCarousel({ images, altPrefix, autoPlay = true, interval = 5000, showArrows = true, showDots = true }) {
+  const [active, setActive] = useState(0);
+  const [hovering, setHovering] = useState(false);
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    const timer = setInterval(() => {
+      if (!hovering) setActive((c) => (c + 1) % images.length);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [autoPlay, interval, hovering, images.length]);
+
+  const goPrev = useCallback(() => setActive((c) => (c - 1 + images.length) % images.length), [images.length]);
+  const goNext = useCallback(() => setActive((c) => (c + 1) % images.length), [images.length]);
+
+  return (
+    <div className="image-carousel" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
+      <div className="carousel-track">
+        {images.map((src, i) => (
+          <div key={src} className={`carousel-slide ${i === active ? "active" : ""}`}>
+            <img src={src} alt={`${altPrefix} ${i + 1}`} loading="lazy" />
+          </div>
+        ))}
+      </div>
+      {showArrows && images.length > 1 && (
+        <>
+          <button className="carousel-btn prev" onClick={goPrev} aria-label="Previous"><ChevronLeft size={20} /></button>
+          <button className="carousel-btn next" onClick={goNext} aria-label="Next"><ChevronRight size={20} /></button>
+        </>
+      )}
+      {showDots && images.length > 1 && (
+        <div className="carousel-dots">
+          {images.map((_, i) => (
+            <button key={i} className={`carousel-dot ${i === active ? "active" : ""}`} onClick={() => setActive(i)} aria-label={`Go to slide ${i + 1}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const programs = [
   {
@@ -236,15 +277,14 @@ export default function Home() {
               <p>The dedicated team behind DTS</p>
             </div>
           </FadeIn>
-          <div className="team-grid">
-            {teamImages.map((src, i) => (
-              <FadeIn key={src} delay={i * 150}>
-                <div className="team-card">
-                  <img src={src} alt={`DTS Team Member ${i + 1}`} loading="lazy" />
-                </div>
-              </FadeIn>
-            ))}
-          </div>
+          <ImageCarousel
+            images={teamImages}
+            altPrefix="DTS Team Member"
+            autoPlay={true}
+            interval={5000}
+            showArrows={true}
+            showDots={true}
+          />
         </div>
       </section>
 
