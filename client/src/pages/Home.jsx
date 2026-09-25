@@ -9,7 +9,6 @@ const aboutImages = ["/activity-1.jpg", "/activity-2.jpg", "/hero-2.jpg"];
 const featuredImages = [
   "/Featured Images/ELITEFRAMSTUDIO(48).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(73).jpg",
-  "/Featured Images/ELITEFRAMSTUDIO(100).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(133) (1).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(134).jpg",
   { src: "/Featured Images/ELITEFRAMSTUDIO(135).jpg", objectPosition: "center top" },
