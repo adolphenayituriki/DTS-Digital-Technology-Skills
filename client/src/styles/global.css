@@ -2449,9 +2449,8 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .row-carousel-item img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
-  background: #f8fafc;
   transition: transform 0.5s ease;
 }
 .row-carousel-item:hover img { transform: scale(1.05); }
