@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Wallet, Download, Mail, FileText } from 'lucide-react';
+import { Search, Wallet, Download, Mail, FileText, X, Save, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
@@ -20,6 +20,8 @@ export default function FinanceStudentBalances() {
   const [students, setStudents] = useState([]);
   const [filters, setFilters] = useState({ intakeId: '', status: '', q: '' });
   const [loading, setLoading] = useState(true);
+  const [paymentModal, setPaymentModal] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Check if we came from a student selection (pre-fill for payment)
   const prefillStudentId = searchParams.get('studentId');
@@ -43,6 +45,57 @@ export default function FinanceStudentBalances() {
 
   const handleRowClick = (student) => {
     navigate('/finance/records', { state: { prefillStudentId: student._id } });
+  };
+
+  const openPaymentModal = (student) => {
+    setPaymentModal({
+      student,
+      amount: student.balance > 0 ? Number(student.balance).toFixed(2) : '',
+      method: 'cash',
+      reference: '',
+      notes: '',
+    });
+  };
+
+  const closePaymentModal = () => setPaymentModal(null);
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!paymentModal) return;
+    const amount = Number(paymentModal.amount);
+    if (!amount || amount <= 0) {
+      toast.error('Enter a valid amount greater than zero.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await apiFetch('/finance/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          kind: 'payment',
+          amount,
+          studentId: paymentModal.student._id,
+          intakeId: paymentModal.student.intakeId,
+          category: 'Training fee',
+          method: paymentModal.method,
+          status: 'completed',
+          occurredAt: new Date().toISOString().slice(0, 10),
+          reference: paymentModal.reference,
+          notes: paymentModal.notes,
+        }),
+      });
+      toast.success(`Payment of ${money(amount)} recorded for ${paymentModal.student.name}.`);
+      closePaymentModal();
+      // Refresh student balances
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+      const data = await apiFetch(`/finance/students?${params.toString()}`);
+      setStudents(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error(error.message || 'Failed to record payment.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const sendBalanceEmail = async (student) => {
@@ -111,8 +164,52 @@ export default function FinanceStudentBalances() {
       </div>
       {loading ? <div className="loading"><div className="spinner" />Loading balances...</div> : <div className="table-scroll"><table className="admin-table"><thead><tr><th>Student</th><th>Intake / level</th><th>Required</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>
         {students.length === 0 && <tr><td colSpan={7} className="table-empty">No student balances found.</td></tr>}
-        {students.map((student) => { const meta = statusMeta[student.paymentStatus] || statusMeta.not_configured; return <tr key={student._id} onClick={() => handleRowClick(student)} style={{ cursor: 'pointer' }}><td><strong>{student.name}</strong><small className="table-subtext">{student.regNumber} · {student.email}</small></td><td>{student.intakeTitle}<small className="table-subtext">{student.intakeProgram}</small></td><td>{money(student.expected)}</td><td>{money(student.paid)}</td><td className={student.balance > 0 ? 'text-danger' : 'text-success'}>{money(student.balance)}</td><td><span className={`finance-status ${meta.className}`}>{meta.label}</span></td><td><div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}><button className="btn btn-outline btn-xs" onClick={(e) => { e.stopPropagation(); sendBalanceEmail(student); }} title="Send balance statement"><Mail size={13} /></button><button className="btn btn-primary btn-xs" onClick={(e) => { e.stopPropagation(); handleRowClick(student); }} title="Record payment"><FileText size={13} /> Pay</button></div></td></tr>; })}
+        {students.map((student) => { const meta = statusMeta[student.paymentStatus] || statusMeta.not_configured; return <tr key={student._id} style={{ cursor: 'pointer' }}><td><strong>{student.name}</strong><small className="table-subtext">{student.regNumber} · {student.email}</small></td><td>{student.intakeTitle}<small className="table-subtext">{student.intakeProgram}</small></td><td>{money(student.expected)}</td><td>{money(student.paid)}</td><td className={student.balance > 0 ? 'text-danger' : 'text-success'}>{money(student.balance)}</td><td><span className={`finance-status ${meta.className}`}>{meta.label}</span></td><td><div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}><button className="btn btn-outline btn-xs" onClick={(e) => { e.stopPropagation(); sendBalanceEmail(student); }} title="Send balance statement"><Mail size={13} /></button><button className="btn btn-primary btn-xs" onClick={(e) => { e.stopPropagation(); openPaymentModal(student); }} title="Record payment"><FileText size={13} /> Pay</button></div></td></tr>; })}
       </tbody></table></div>}
+
+      {/* Quick Payment Modal */}
+      {paymentModal && (
+        <div className="dialog-overlay" onClick={closePaymentModal}>
+          <div className="dialog-card" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+            <button className="dialog-close" onClick={closePaymentModal}><X size={18} /></button>
+            <h3 style={{ marginBottom: '1rem' }}>Record Payment</h3>
+            <div style={{ marginBottom: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #eef0f4' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Student</div>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{paymentModal.student.name}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{paymentModal.student.regNumber} · {paymentModal.student.intakeTitle}</div>
+            </div>
+            <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="form-group">
+                <label>Amount (RWF)</label>
+                <input className="form-control" type="number" min="1" step="0.01" value={paymentModal.amount} onChange={(e) => setPaymentModal({ ...paymentModal, amount: e.target.value })} required />
+              </div>
+              <div className="form-group">
+                <label>Payment Method</label>
+                <select className="form-control" value={paymentModal.method} onChange={(e) => setPaymentModal({ ...paymentModal, method: e.target.value })}>
+                  <option value="cash">Cash</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="bank">Bank Transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Reference (optional)</label>
+                <input className="form-control" value={paymentModal.reference} onChange={(e) => setPaymentModal({ ...paymentModal, reference: e.target.value })} placeholder="Receipt #, transaction ID" />
+              </div>
+              <div className="form-group">
+                <label>Notes (optional)</label>
+                <textarea className="form-control" rows="2" value={paymentModal.notes} onChange={(e) => setPaymentModal({ ...paymentModal, notes: e.target.value })} placeholder="Additional details" />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button type="button" className="btn btn-outline" onClick={closePaymentModal} disabled={submitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? <Loader2 size={14} className="spinner" /> : <Save size={14} />} {submitting ? 'Saving...' : 'Record Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
