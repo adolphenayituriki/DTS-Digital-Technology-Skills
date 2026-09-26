@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
   ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight, ArrowLeft,
-  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt,
+  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt, Award, Download,
 } from 'lucide-react';
 import apiFetch, { setStudentSession, clearStudentSession, getStudentSession } from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
+import AchievementCardModal from '../components/AchievementCard';
 
 const STATUS_META = {
   applicant: { label: 'Application Pending Review', color: 'var(--primary)', bg: '#e8f6fd' },
@@ -45,8 +46,12 @@ const BADGE_STYLES = {
   neutral: { background: '#f1f5f9', color: '#475569' },
 };
 
-const initials = (name = '') =>
-  name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+// A single initial from the first word. Two initials produced "NA" for
+// surname-first records such as "NAYITURIKI Adolphe", which reads as "N/A".
+const initials = (name = '') => {
+  const first = String(name).trim().split(/\s+/).filter(Boolean)[0];
+  return first ? first[0].toUpperCase() : '?';
+};
 
 export default function Profile() {
   const { isLoggedIn, ready } = useAuth();
@@ -64,6 +69,12 @@ export default function Profile() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotOk, setForgotOk] = useState(false);
+  const [cardMark, setCardMark] = useState(null);
+
+  // Only courses staff explicitly ticked as completed earn a card.
+  const completedMarks = Array.isArray(student?.marks)
+    ? student.marks.filter((m) => m.completed)
+    : [];
 
   useEffect(() => {
     if (!ready) return;
@@ -85,6 +96,20 @@ export default function Profile() {
         }
       })
       .catch(() => setShowForm(true));
+  }, [ready, isLoggedIn]);
+
+  // Re-read the record whenever a session exists. PIN sign-in caches the
+  // student locally, so without this a course marked complete by staff would
+  // not show up (and the achievement card would stay hidden) until the student
+  // signed in again. The cache is only a fallback for when the request fails.
+  useEffect(() => {
+    if (!ready) return;
+    if (!isLoggedIn && !getStudentSession()) return;
+    let active = true;
+    apiFetch('/students/mine/profile')
+      .then((fresh) => { if (active && fresh) setStudent(fresh); })
+      .catch(() => { /* keep the cached copy */ });
+    return () => { active = false; };
   }, [ready, isLoggedIn]);
 
   useEffect(() => {
@@ -166,6 +191,57 @@ export default function Profile() {
   };
 
   const meta = student ? STATUS_META[student.status] || STATUS_META.applicant : null;
+
+  // At-a-glance figures for the overview. Each tile is only rendered when the
+  // underlying data actually exists, so the summary never shows a fake zero.
+  const totalMarks = Array.isArray(student?.marks) ? student.marks.length : 0;
+  const paymentStat = payment ? paymentBadge(payment) : null;
+  const summaryTiles = [
+    totalMarks > 0 && {
+      key: 'courses',
+      icon: <BookOpen size={16} />,
+      label: 'Courses',
+      value: `${completedMarks.length}/${totalMarks}`,
+      note: completedMarks.length === totalMarks ? 'all completed' : 'completed',
+    },
+    payment && {
+      key: 'payment',
+      icon: <CreditCard size={16} />,
+      label: 'Fees',
+      value: money(payment.balance, payment.currency || 'RWF'),
+      note: paymentStat?.label,
+      tone: Number(payment.balance || 0) > 0 ? 'warn' : 'ok',
+    },
+    attendance && attendance.total > 0 && {
+      key: 'attendance',
+      icon: <CalendarDays size={16} />,
+      label: 'Attendance',
+      value: `${attendance.rate}%`,
+      note: `${attendance.present}/${attendance.total} sessions`,
+      tone: attendance.rate >= 75 ? 'ok' : 'warn',
+    },
+    student?.campus && {
+      key: 'campus',
+      icon: <MapPin size={16} />,
+      label: 'Campus',
+      value: student.campus,
+      note: student.program || null,
+    },
+  ].filter(Boolean);
+
+  // One clear line explaining what is happening, instead of the same status
+  // being shown twice in a badge and a banner.
+  const statusMessage = {
+    active: `Congratulations! You are enrolled as a DTS student in ${student?.intakeTitle}.`,
+    applicant: 'Your application is under review by the DTS admissions team. You will be notified of the outcome by email.',
+    rejected: `Your application for ${student?.intakeTitle} was not selected. We encourage you to apply again for a future intake.`,
+  }[student?.status];
+
+  const StatusIcon = {
+    active: <ShieldCheck size={18} />,
+    applicant: <ClipboardList size={18} />,
+    rejected: <FileText size={18} />,
+  }[student?.status] || null;
 
   const signOut = () => {
     clearStudentSession();
@@ -301,30 +377,33 @@ export default function Profile() {
                   <div className="profile-reg">
                     <IdCard size={14} /> {student.regNumber}
                   </div>
+                  {statusMessage && (
+                    <p className={`profile-head-status is-${student.status}`}>
+                      {StatusIcon}
+                      <span>{statusMessage}</span>
+                    </p>
+                  )}
                 </div>
                 <span className="app-status-badge" style={{ color: meta.color, background: meta.bg, alignSelf: 'flex-start' }}>
                   {meta.label}
                 </span>
               </div>
 
-              {student.status === 'active' && (
-                <div className="alert alert-success profile-status-msg">
-                  <ShieldCheck size={18} />
-                  <span>Congratulations! You are enrolled as a DTS student in <strong>{student.intakeTitle}</strong>.</span>
+              {summaryTiles.length > 0 && (
+                <div className="profile-summary">
+                  {summaryTiles.map((t) => (
+                    <div key={t.key} className={`profile-summary-tile${t.tone ? ` is-${t.tone}` : ''}`}>
+                      <div className="profile-summary-label">{t.icon}{t.label}</div>
+                      <div className="profile-summary-value">{t.value}</div>
+                      {t.note && <div className="profile-summary-note">{t.note}</div>}
+                    </div>
+                  ))}
                 </div>
               )}
-              {student.status === 'applicant' && (
-                <div className="alert alert-info profile-status-msg">
-                  <ClipboardList size={18} />
-                  <span>Your application is under review by the DTS admissions team. You will be notified of the outcome by email.</span>
-                </div>
-              )}
-              {student.status === 'rejected' && (
-                <div className="alert alert-error profile-status-msg">
-                  <FileText size={18} />
-                  <span>Your application for {student.intakeTitle} was not selected. We encourage you to apply again for a future intake.</span>
-                </div>
-              )}
+
+              <div className="profile-section-label">
+                <GraduationCap size={15} /> Enrollment
+              </div>
 
               <div className="card profile-card">
                 <h3 className="profile-card-title">Intake Details</h3>
@@ -346,6 +425,10 @@ export default function Profile() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="profile-section-label">
+                <CreditCard size={15} /> Fees
               </div>
 
               {payment && (() => {
@@ -416,6 +499,10 @@ export default function Profile() {
                 </div>
               )}
 
+              <div className="profile-section-label">
+                <Award size={15} /> Results
+              </div>
+
               <div className="card profile-card">
                 <h3 className="profile-card-title">Results &amp; Marks</h3>
                 {Array.isArray(student.marks) && student.marks.length > 0 ? (
@@ -451,6 +538,49 @@ export default function Profile() {
                     </p>
                   </div>
                 )}
+              </div>
+
+              {/* Achievement cards - one per course staff have marked complete */}
+              {completedMarks.length > 0 && (
+                <div className="card profile-card">
+                  <div className="profile-card-head">
+                    <h3 className="profile-card-title"><Award size={15} /> Your Achievements</h3>
+                    <span className="profile-hint">
+                      {completedMarks.length} course{completedMarks.length === 1 ? '' : 's'} completed
+                    </span>
+                  </div>
+                  <p className="profile-hint" style={{ marginTop: 0, marginBottom: '0.8rem' }}>
+                    Download a keepsake card for each course you have finished. This is a
+                    celebratory card, not a formal certificate.
+                  </p>
+                  <div className="profile-achievements">
+                    {completedMarks.map((m) => (
+                      <div key={m._id} className="profile-achievement">
+                        <div className="profile-achievement-icon"><Award size={18} /></div>
+                        <div className="profile-achievement-body">
+                          <b>{m.course}</b>
+                          <span className="muted">
+                            {m.score != null ? `${m.score}%` : null}
+                            {m.score != null && m.grade ? ' · ' : ''}
+                            {m.grade || null}
+                            {m.completedAt ? ` · ${fmtDate(m.completedAt)}` : ''}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => setCardMark(m)}
+                        >
+                          <Download size={14} /> Card
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="profile-section-label">
+                <CalendarDays size={15} /> Attendance
               </div>
 
               {/* Attendance Overview - real figures from the Attendance collection */}
@@ -536,7 +666,7 @@ export default function Profile() {
 
               <div className="profile-safe">
                 <ShieldCheck size={16} />
-                <span>Keep your Registration Number and PIN safe. You will use them to access your profile. DTS staff will never ask for your PIN.</span>
+                <span>Keep your Registration Number and PIN safe — you need them to sign in. DTS staff will never ask for your PIN.</span>
               </div>
 
               {!isLoggedIn && student && (
@@ -560,6 +690,15 @@ export default function Profile() {
           )}
         </div>
       </section>
+
+      {cardMark && (
+        <AchievementCardModal
+          student={student}
+          mark={cardMark}
+          intakeTitle={student?.intakeTitle}
+          onClose={() => setCardMark(null)}
+        />
+      )}
     </>
   );
 }

@@ -79,7 +79,7 @@ function TitleManager() {
       .sort((a, b) => b.length - a.length)
       .find((p) => pathname === p || pathname.startsWith(p + '/'));
     const page = pathname.startsWith('/news/') ? 'News' : (base ? titles[base] : 'DTS');
-    document.title = `${page} | Digital Technology Skills | Association`;
+    document.title = `${page} | Digital Technology Skills | Company`;
   }, [pathname]);
   return null;
 }

@@ -3,14 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Save } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
-
-const gradeForScore = (score) => {
-  if (score >= 90) return 'A';
-  if (score >= 80) return 'B';
-  if (score >= 70) return 'C';
-  if (score >= 60) return 'D';
-  return 'F';
-};
+import { gradeForScore } from '../utils/grade';
 
 export default function TrainerMarks() {
   const toast = useToast();

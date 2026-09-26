@@ -22,6 +22,16 @@ const markSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // A course counts as completed once staff tick this. It drives the
+    // downloadable achievement card, so it is tracked per course rather than
+    // per student: finishing one course does not mean finishing the intake.
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+    completedAt: {
+      type: Date,
+    },
     recordedBy: {
       type: String,
       trim: true,

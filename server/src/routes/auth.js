@@ -2,10 +2,9 @@ import { Router } from "express";
 import User from "../models/User.js";
 import auth from "../middleware/auth.js";
 import { signUserToken } from "../utils/token.js";
+import { emailProblem as checkEmail, normalizeEmail } from "../utils/email.js";
 
 const router = Router();
-
-const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
 router.post("/register", async (req, res) => {
   try {
@@ -14,6 +13,11 @@ router.post("/register", async (req, res) => {
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    const emailError = checkEmail(email);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
     }
 
     const existing = await User.findOne({ email });

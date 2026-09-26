@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   Search, Eye, X, KeyRound, BookOpen, FileText, RefreshCcw, Check, Trash2, GraduationCap, PlusCircle,
 } from 'lucide-react';
 import apiFetch from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
+import { gradeForScore } from '../../utils/grade';
 
 const STATUS_META = {
   applicant: { label: 'Applicant', color: 'var(--primary)', bg: '#e8f6fd' },
@@ -12,16 +13,10 @@ const STATUS_META = {
   rejected: { label: 'Rejected', color: 'var(--error)', bg: '#fef2f2' },
 };
 
-const autoGrade = (score) => {
-  if (score >= 90) return 'A';
-  if (score >= 80) return 'B';
-  if (score >= 70) return 'C';
-  if (score >= 60) return 'D';
-  return 'F';
-};
-
-const initials = (name = '') =>
+  const initials = (name = '') =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+
+const emptyMarkDraft = { course: '', score: '', grade: '', remarks: '', completed: false };
 
 export default function StudentsAdmin() {
   const toast = useToast();
@@ -33,7 +28,7 @@ export default function StudentsAdmin() {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState(null);
   const [draft, setDraft] = useState(null);
-  const [markDraft, setMarkDraft] = useState({ course: '', score: '', grade: '', remarks: '' });
+  const [markDraft, setMarkDraft] = useState(emptyMarkDraft);
   const [editMarkId, setEditMarkId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -66,7 +61,7 @@ export default function StudentsAdmin() {
       motivation: selected.motivation || '',
       remarks: selected.remarks || '',
     });
-    setMarkDraft({ course: '', score: '', grade: '', remarks: '' });
+    setMarkDraft(emptyMarkDraft);
     setEditMarkId(null);
     setPinResult(null);
   }, [selected]);
@@ -147,12 +142,13 @@ export default function StudentsAdmin() {
         body: JSON.stringify({
           course: markDraft.course,
           score,
-          grade: markDraft.grade || autoGrade(score),
+          grade: markDraft.grade || gradeForScore(score),
           remarks: markDraft.remarks,
+          completed: markDraft.completed,
         }),
       });
       updateLocal(updated);
-      setMarkDraft({ course: '', score: '', grade: '', remarks: '' });
+      setMarkDraft(emptyMarkDraft);
       toast.success('Mark recorded.');
     } catch (err) {
       toast.error(err.message || 'Failed to record mark.');
@@ -172,13 +168,14 @@ export default function StudentsAdmin() {
         body: JSON.stringify({
           course: markDraft.course,
           score,
-          grade: markDraft.grade || autoGrade(score),
+          grade: markDraft.grade || gradeForScore(score),
           remarks: markDraft.remarks,
+          completed: markDraft.completed,
         }),
       });
       updateLocal(updated);
       setEditMarkId(null);
-      setMarkDraft({ course: '', score: '', grade: '', remarks: '' });
+      setMarkDraft(emptyMarkDraft);
       toast.success('Mark updated.');
     } catch (err) {
       toast.error(err.message || 'Failed to update mark.');
@@ -198,7 +195,7 @@ export default function StudentsAdmin() {
 
   const startEditMark = (m) => {
     setEditMarkId(m._id);
-    setMarkDraft({ course: m.course, score: String(m.score), grade: m.grade || '', remarks: m.remarks || '' });
+    setMarkDraft({ course: m.course, score: String(m.score), grade: m.grade || '', remarks: m.remarks || '', completed: Boolean(m.completed) });
   };
 
   const query = q.trim().toLowerCase();
@@ -384,7 +381,7 @@ export default function StudentsAdmin() {
                 {pinResult && (
                   <div className="alert alert-info student-pin-result">
                     <strong>New PIN:</strong> <code>{pinResult.pin}</code>
-                    <span style={{ fontSize: '0.8rem' }}> — also emailed to {selected.email}. Share it securely with the student.</span>
+                    <span style={{ fontSize: '0.8rem' }}> â€” also emailed to {selected.email}. Share it securely with the student.</span>
                   </div>
                 )}
               </div>
@@ -423,6 +420,7 @@ export default function StudentsAdmin() {
                         <th>Score</th>
                         <th>Grade</th>
                         <th>Remarks</th>
+                        <th>Card</th>
                         <th style={{ width: 90 }}></th>
                       </tr>
                     </thead>
@@ -431,8 +429,20 @@ export default function StudentsAdmin() {
                         <tr key={m._id}>
                           <td>{m.course}</td>
                           <td>{m.score}%</td>
-                          <td>{m.grade || '—'}</td>
-                          <td>{m.remarks || '—'}</td>
+                          <td>{m.grade || 'â€”'}</td>
+                          <td>{m.remarks || 'â€”'}</td>
+                          <td>
+                            {m.completed ? (
+                              <span
+                                title={m.completedAt ? `Completed ${new Date(m.completedAt).toLocaleDateString()}` : 'Completed'}
+                                style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.8rem' }}
+                              >
+                                Ready
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}>â€”</span>
+                            )}
+                          </td>
                           <td>
                             <div className="actions">
                               <button className="btn btn-outline btn-xs" onClick={() => startEditMark(m)} title="Edit">
@@ -474,7 +484,7 @@ export default function StudentsAdmin() {
                         min="0"
                         max="100"
                         value={markDraft.score}
-                        onChange={(e) => setMarkDraft({ ...markDraft, score: e.target.value, grade: autoGrade(Number(e.target.value) || 0) })}
+                        onChange={(e) => setMarkDraft({ ...markDraft, score: e.target.value, grade: e.target.value === '' ? '' : (gradeForScore(Number(e.target.value)) || '') })}
                       />
                     </div>
                     <div className="form-group">
@@ -486,12 +496,30 @@ export default function StudentsAdmin() {
                       <input className="form-control" value={markDraft.remarks} onChange={(e) => setMarkDraft({ ...markDraft, remarks: e.target.value })} />
                     </div>
                   </div>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginTop: '0.35rem',
+                      fontSize: '0.85rem',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={markDraft.completed}
+                      onChange={(e) => setMarkDraft({ ...markDraft, completed: e.target.checked })}
+                    />
+                    Course completed â€” unlocks the student's downloadable achievement card
+                  </label>
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
                     <button type="submit" className="btn btn-outline btn-sm">
                       <PlusCircle size={14} /> {editMarkId ? 'Save Mark' : 'Add Mark'}
                     </button>
                     {editMarkId && (
-                      <button type="button" className="btn btn-outline btn-sm" onClick={() => { setEditMarkId(null); setMarkDraft({ course: '', score: '', grade: '', remarks: '' }); }}>
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => { setEditMarkId(null); setMarkDraft(emptyMarkDraft); }}>
                         <X size={14} /> Cancel Edit
                       </button>
                     )}

@@ -188,7 +188,9 @@ export default function Navbar() {
       <div className="container">
         <div className="navbar-top">
           <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
-            <img src="/Logo.png" alt="DTS Logo" className="navbar-logo" />
+            <span className="navbar-logo-wrap">
+              <img src="/Logo.png" alt="DTS Logo" className="navbar-logo" />
+            </span>
             <span className="navbar-title">
               <b>DTS</b>
               <small>Digital Technology Skills</small>
@@ -204,7 +206,9 @@ export default function Navbar() {
                 search field stay reachable no matter how short the viewport is. */}
             <div className="navbar-panel-head">
               <span className="navbar-panel-brand">
-                <img src="/Logo.png" alt="" className="navbar-panel-logo" />
+                <span className="navbar-panel-logo-wrap">
+                  <img src="/Logo.png" alt="" className="navbar-panel-logo" />
+                </span>
                 <span>
                   <b>DTS</b>
                   <small>Digital Technology Skills</small>

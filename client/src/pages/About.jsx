@@ -44,10 +44,10 @@ export default function About() {
         <div className="container">
           <div className="about-intro">
             <FadeIn direction="right">
-              <span className="eyebrow">About the association</span>
+              <span className="eyebrow">About the company</span>
               <h2 className="section-title">What is DTS?</h2>
               <p className="lead-text">
-                Digital Technology Skills is a student-led association established in September 2022 at
+                Digital Technology Skills is a student-led company established in September 2022 at
                 UR-Huye Campus. We promote digital learning, empower members with practical computer skills,
                 encourage innovation, and focus on solving real-life problems with technology.
               </p>

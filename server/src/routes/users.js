@@ -2,6 +2,7 @@ import { Router } from "express";
 import User from "../models/User.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
+import { emailProblem as checkEmail, normalizeEmail } from "../utils/email.js";
 
 const router = Router();
 const roles = ["admin", "editor", "trainer", "finance", "user"];
@@ -43,7 +44,11 @@ router.post("/", async (req, res) => {
     if (!roles.includes(role)) {
       return res.status(400).json({ message: "Invalid user role" });
     }
-    const normalizedEmail = String(email).trim().toLowerCase();
+    const emailError = checkEmail(email);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
+    }
+    const normalizedEmail = normalizeEmail(email);
     if (await User.exists({ email: normalizedEmail })) {
       return res.status(409).json({ message: "User already exists" });
     }
@@ -66,10 +71,11 @@ router.put("/:id", async (req, res) => {
     }
     if (req.body.name !== undefined) user.name = String(req.body.name).trim();
     if (req.body.email !== undefined) {
-      const email = String(req.body.email).trim().toLowerCase();
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return res.status(400).json({ message: "A valid email is required" });
+      const emailError = checkEmail(req.body.email);
+      if (emailError) {
+        return res.status(400).json({ message: emailError });
       }
+      const email = normalizeEmail(req.body.email);
       const duplicate = await User.findOne({ email, _id: { $ne: user._id } });
       if (duplicate) return res.status(409).json({ message: "User already exists" });
       user.email = email;

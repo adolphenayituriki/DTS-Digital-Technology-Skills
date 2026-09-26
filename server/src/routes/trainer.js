@@ -7,6 +7,7 @@ import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import TrainerAssignment from "../models/TrainerAssignment.js";
 import Attendance from "../models/Attendance.js";
+import { gradeForScore } from "../utils/grade.js";
 
 const router = Router();
 router.use(auth, requireRole("trainer", "admin"));
@@ -22,15 +23,7 @@ const normalizeDate = (value) => {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 };
 
-const gradeForScore = (score) => {
-  if (score >= 90) return "A";
-  if (score >= 80) return "B";
-  if (score >= 70) return "C";
-  if (score >= 60) return "D";
-  return "F";
-};
-
-const publicStudent = (student) => {
+  const publicStudent = (student) => {
   const data = student.toObject ? student.toObject() : { ...student };
   delete data.pinHash;
   return data;
@@ -242,7 +235,7 @@ const markPayload = (body, user) => {
   if (!course || !Number.isFinite(score) || score < 0 || score > 100) {
     return { error: "A course and a score between 0 and 100 are required" };
   }
-  return {
+  const payload = {
     course,
     score,
     grade: gradeForScore(score),
@@ -251,6 +244,14 @@ const markPayload = (body, user) => {
     recordedById: user._id,
     assessedAt: new Date(),
   };
+  // Only sent when the trainer actually specifies it. The PUT handler does
+  // `mark.set(payload)`, so always including this would silently clear an
+  // existing `completed` flag every time a score was edited.
+  if (body.completed !== undefined) {
+    payload.completed = body.completed === true;
+    payload.completedAt = payload.completed ? new Date() : undefined;
+  }
+  return payload;
 };
 
 router.post("/students/:id/marks", async (req, res) => {

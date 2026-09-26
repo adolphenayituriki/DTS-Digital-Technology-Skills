@@ -67,6 +67,14 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} Digital Technology Skills (DTS). All rights reserved.</p>
+          <img
+            src="/ur%20logo.jpg"
+            alt="UR-Huye Campus"
+            className="footer-ur-logo"
+            width="240"
+            height="210"
+            loading="lazy"
+          />
         </div>
       </div>
     </footer>

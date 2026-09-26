@@ -13,6 +13,7 @@ import {
   sendApplicationStatusChange,
 } from "../utils/mailer.js";
 import { signStudentToken } from "../utils/token.js";
+import { normalizeEmail } from "../utils/email.js";
 
 const router = Router();
 
@@ -90,7 +91,7 @@ router.post("/login", async (req, res) => {
 router.post("/forgot-pin", async (req, res) => {
   try {
     const regNumber = String(req.body.regNumber || "").trim().toUpperCase();
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = normalizeEmail(req.body.email);
     if (!regNumber || !email) {
       return res.status(400).json({ message: "Registration number and email are required" });
     }
@@ -98,7 +99,11 @@ router.post("/forgot-pin", async (req, res) => {
       message: "If your registration number and email match, a new PIN has been sent to your email.",
     };
     const student = await Student.findOne({ regNumber: new RegExp(`^${regNumber}$`, "i") });
-    if (!student || String(student.email || "").toLowerCase() !== email) {
+    // Deliberately not running the strict validator here. This is a lookup, not
+    // a registration, and records created before the stricter rule may still
+    // hold a malformed address that the applicant cannot retype. Normalising
+    // both sides is enough to make the comparison reliable.
+    if (!student || normalizeEmail(student.email) !== email) {
       return res.json(generic);
     }
     const { student: updated, pin } = await resetStudentPin(student);
@@ -175,6 +180,31 @@ router.get("/mine/attendance", studentSession, async (req, res) => {
         note: r.note || "",
       })),
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Fresh copy of the signed-in student's own record.
+//
+// PIN sign-in caches the student in localStorage, so once staff record a mark
+// or tick a course complete the cached copy is stale and the profile would keep
+// showing the old data until the student signed in again. This re-reads the
+// record each time so marks, payment-linked state and the achievement card
+// update without a re-login.
+router.get("/mine/profile", studentSession, async (req, res) => {
+  try {
+    let student = req.student;
+
+    if (!student && req.user) {
+      student = await Student.findOne({ userId: req.user._id });
+    }
+
+    if (!student) {
+      return res.status(404).json({ message: "No student record is linked to this session" });
+    }
+
+    res.json(publicStudent(student));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -260,13 +290,16 @@ router.post("/:id/marks", async (req, res) => {
       return res.status(400).json({ message: "Score must be a number between 0 and 100" });
     }
 
-    student.marks.push({
+    const mark = {
       course,
       score,
       grade: req.body.grade ? String(req.body.grade).trim() : undefined,
       remarks: req.body.remarks ? String(req.body.remarks).trim() : undefined,
+      completed: req.body.completed === true,
       recordedBy: req.user?.name || req.user?.email || undefined,
-    });
+    };
+    if (mark.completed) mark.completedAt = new Date();
+    student.marks.push(mark);
     await student.save();
     res.status(201).json(publicStudent(student));
   } catch (error) {
@@ -292,6 +325,12 @@ router.put("/:id/marks/:markId", async (req, res) => {
     }
     if (req.body.grade !== undefined) mark.grade = String(req.body.grade).trim();
     if (req.body.remarks !== undefined) mark.remarks = String(req.body.remarks).trim();
+    if (req.body.completed !== undefined) {
+      mark.completed = req.body.completed === true;
+      // Stamp or clear the date alongside the flag so the two can never
+      // disagree, which would otherwise produce a card with no date on it.
+      mark.completedAt = mark.completed ? mark.completedAt || new Date() : undefined;
+    }
     await student.save();
     res.json(publicStudent(student));
   } catch (error) {

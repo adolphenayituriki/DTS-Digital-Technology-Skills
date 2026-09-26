@@ -11,17 +11,17 @@ const featuredImages = [
   "/Featured Images/ELITEFRAMSTUDIO(73).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(133) (1).jpg",
   "/Featured Images/ELITEFRAMSTUDIO(134).jpg",
-  { src: "/Featured Images/ELITEFRAMSTUDIO(135).jpg", objectPosition: "center -15%" },
-  { src: "/Featured Images/WhatsApp Image 2026-09-25 at 16.41.13.jpeg", objectPosition: "center bottom" },
+  "/Featured Images/ELITEFRAMSTUDIO(135).jpg",
+  "/Featured Images/WhatsApp Image 2026-09-25 at 16.41.13.jpeg",
   "/Featured Images/WhatsApp Image 2026-09-25 at 16.48.45.jpeg",
   "/Featured Images/WhatsApp Image 2026-09-b25 at 16.41.13.jpeg",
 ];
 const graduationImages = [
+  "/Graduation images/ELITEFRAMSTUDIO(135).jpg",
   "/Graduation images/ELITEFRAMSTUDIO(93).jpg",
   "/Graduation images/ELITEFRAMSTUDIO(94).jpg",
   "/Graduation images/ELITEFRAMSTUDIO(100).jpg",
   "/Graduation images/ELITEFRAMSTUDIO(123).jpg",
-  "/Graduation images/ELITEFRAMSTUDIO(135).jpg",
 ];
 const teamImages = [
   "/Teams/ELITEFRAMSTUDIO(123).jpg",
@@ -46,11 +46,23 @@ function ImageCarousel({ images, altPrefix, autoPlay = true, interval = 5000, sh
   return (
     <div className="image-carousel" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
       <div className="carousel-track">
-        {images.map((src, i) => (
-          <div key={src} className={`carousel-slide ${i === active ? "active" : ""}`}>
-            <img src={src} alt={`${altPrefix} ${i + 1}`} loading="lazy" />
-          </div>
-        ))}
+        {images.map((entry, i) => {
+          // Entries may be a plain path string, or `{ src, objectPosition }`
+          // for photos that need per-image framing. Without this branch the
+          // object was passed straight to `src`, producing a broken image.
+          const { src, objectPosition } =
+            typeof entry === "string" ? { src: entry, objectPosition: undefined } : entry || {};
+          return (
+            <div key={src} className={`carousel-slide ${i === active ? "active" : ""}`}>
+              <img
+                src={src}
+                alt={`${altPrefix} ${i + 1}`}
+                loading="lazy"
+                style={objectPosition ? { objectPosition } : undefined}
+              />
+            </div>
+          );
+        })}
       </div>
       {showArrows && images.length > 1 && (
         <>
@@ -115,9 +127,18 @@ function ImageRowCarousel({ images, altPrefix, autoPlay = true, interval = 5000,
         {images.map((item, i) => {
           const src = typeof item === 'string' ? item : item.src;
           const objectPosition = typeof item === 'object' && item.objectPosition ? item.objectPosition : 'center';
+          // Per-image `objectFit`. Defaults to the stylesheet's `cover`; set
+          // `contain` to show a photo whole, with letterbox bars, when cropping
+          // would hide the subject.
+          const objectFit = typeof item === 'object' && item.objectFit ? item.objectFit : 'cover';
           return (
             <div key={src} className="row-carousel-item">
-              <img src={src} alt={`${altPrefix} ${i + 1}`} loading="lazy" style={{ objectPosition }} />
+              <img
+                src={src}
+                alt={`${altPrefix} ${i + 1}`}
+                loading="lazy"
+                style={{ objectPosition, objectFit }}
+              />
             </div>
           );
         })}
@@ -240,10 +261,10 @@ export default function Home() {
         <div className="container">
           <div className="about-intro">
             <FadeIn direction="right">
-              <span className="eyebrow">About the association</span>
+              <span className="eyebrow">About the company</span>
               <h2 className="section-title">What is DTS?</h2>
               <p className="lead-text">
-                Digital Technology Skills is a student-led association established in September 2022 at
+                Digital Technology Skills is a student-led company established in September 2022 at
                 UR-Huye Campus. We promote digital learning, empower members with practical computer skills,
                 encourage innovation, and focus on solving real-life problems with technology.
               </p>

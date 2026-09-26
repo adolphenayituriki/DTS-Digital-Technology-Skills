@@ -14,6 +14,7 @@ import {
   sendApplicationStatusChange,
   notifyAdminsNewApplication,
 } from "../utils/mailer.js";
+import { emailProblem as checkEmail, normalizeEmail } from "../utils/email.js";
 
 const router = Router();
 
@@ -30,15 +31,19 @@ const extractUser = (req) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { intakeId, email, phone, campus, motivation, preferredCourses } = req.body;
+    const { intakeId, email: rawEmail, phone, campus, motivation, preferredCourses } = req.body;
     const name = (req.body.name || "").trim();
     const program = (req.body.program || "").trim();
-    if (!intakeId || !name || !email) {
+    if (!intakeId || !name || !rawEmail) {
       return res.status(400).json({ message: "Intake, name, and email are required" });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Please provide a valid email address" });
+    const emailError = checkEmail(rawEmail);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
     }
+    // Stored and compared in normalised form, otherwise "Name@Gmail.com" and
+    // "name@gmail.com " would each be treated as a different applicant.
+    const email = normalizeEmail(rawEmail);
     const intake = await Intake.findById(intakeId);
     if (!intake) return res.status(404).json({ message: "Intake not found" });
     if (intake.status === "closed") {

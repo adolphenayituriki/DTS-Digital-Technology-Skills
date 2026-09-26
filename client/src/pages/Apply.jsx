@@ -5,6 +5,7 @@ import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
+import { emailProblem, normalizeEmail } from '../utils/email';
 
 const STEPS = ['Personal Info', 'Contact', 'Course', 'Review'];
 
@@ -102,9 +103,17 @@ export default function Apply() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Only nag once the field has something in it, otherwise the empty form opens
+  // with an error already showing.
+  const emailHint = form.email.trim() ? emailProblem(form.email) : '';
+
   const nextStep = () => {
     if (step === 1 && (!form.name.trim() || !form.email.trim())) {
       toast.error('Please fill in your name and email.');
+      return;
+    }
+    if (step === 1 && emailHint) {
+      toast.error(emailHint, { title: 'Check your email address' });
       return;
     }
     if (step === 3 && form.preferred.length === 0) {
@@ -130,6 +139,11 @@ export default function Apply() {
       toast.error('Please fill in your name and email.');
       return;
     }
+    const emailError = emailProblem(form.email);
+    if (emailError) {
+      toast.error(emailError, { title: 'Check your email address' });
+      return;
+    }
     setSending(true);
     try {
       await apiFetch('/applications', {
@@ -137,7 +151,7 @@ export default function Apply() {
         body: JSON.stringify({
           intakeId: selected._id,
           name: form.name,
-          email: form.email,
+          email: normalizeEmail(form.email),
           phone: form.phone,
           campus: form.campus,
           motivation: form.motivation,
@@ -339,7 +353,20 @@ export default function Apply() {
                           </div>
                           <div className="form-group">
                             <label>Email *</label>
-                            <input name="email" type="email" className="form-control" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
+                            <input
+                              name="email"
+                              type="email"
+                              className={`form-control${emailHint ? ' is-invalid' : ''}`}
+                              value={form.email}
+                              onChange={handleChange}
+                              placeholder="you@example.com"
+                              aria-invalid={Boolean(emailHint)}
+                              aria-describedby="apply-email-hint"
+                              required
+                            />
+                            {emailHint && (
+                              <small id="apply-email-hint" className="form-error-hint">{emailHint}</small>
+                            )}
                           </div>
                         </div>
                       </div>
