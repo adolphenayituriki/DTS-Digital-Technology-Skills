@@ -5,10 +5,10 @@ import apiFetch from '../api';
 import { useToast } from '../components/Toast';
 
 const cards = [
-  { key: 'studentCount', label: 'Assigned Students', icon: <Users size={21} />, tone: 'sky' },
-  { key: 'assignmentCount', label: 'Active Assignments', icon: <GraduationCap size={21} />, tone: 'violet' },
-  { key: 'attendanceRate', label: 'Attendance Rate', icon: <Percent size={21} />, tone: 'green', suffix: '%' },
-  { key: 'marksRecorded', label: 'Marks Recorded', icon: <ClipboardCheck size={21} />, tone: 'amber' },
+  { key: 'studentCount', label: 'Assigned Students', icon: <Users size={17} />, tone: 'sky' },
+  { key: 'assignmentCount', label: 'Active Assignments', icon: <GraduationCap size={17} />, tone: 'violet' },
+  { key: 'attendanceRate', label: 'Attendance Rate', icon: <Percent size={17} />, tone: 'green', suffix: '%', meter: true },
+  { key: 'marksRecorded', label: 'Marks Recorded', icon: <ClipboardCheck size={17} />, tone: 'amber' },
 ];
 
 export default function TrainerDashboard() {
@@ -36,15 +36,23 @@ export default function TrainerDashboard() {
         <Link to="/trainer/attendance" className="btn btn-primary">Take attendance <ArrowUpRight size={15} /></Link>
       </div>
       <div className="admin-dash-grid">
-        {cards.map((card) => (
-          <div key={card.key} className={`stat-card tone-${card.tone}`}>
-            <div className="stat-top">
-              <div className="stat-value">{data[card.key] ?? 0}{card.suffix || ''}</div>
-              <div className="stat-chip">{card.icon}</div>
+        {cards.map((card) => {
+          const value = data[card.key] ?? 0;
+          return (
+            <div key={card.key} className={`stat-card tone-${card.tone}`}>
+              <div className="stat-top">
+                <div className="stat-value">{value}{card.suffix || ''}</div>
+                <div className="stat-chip">{card.icon}</div>
+              </div>
+              <div className="stat-label">{card.label}</div>
+              {card.meter && (
+                <div className="stat-meter" title={`${value}% attendance rate`}>
+                  <i style={{ width: `${Math.min(100, Math.max(0, Number(value) || 0))}%` }} />
+                </div>
+              )}
             </div>
-            <div className="stat-label">{card.label}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="dash-row">
         <div className="dash-panel">

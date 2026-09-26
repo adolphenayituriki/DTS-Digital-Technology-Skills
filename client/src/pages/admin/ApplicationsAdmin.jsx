@@ -33,13 +33,14 @@ export default function ApplicationsAdmin() {
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchApplications = () => {
+    setLoading(true);
     apiFetch('/applications')
       .then((d) => setApplications(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load applications.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchApplications(); }, []);
+  useEffect(() => { fetchApplications(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   useEffect(() => {
     if (!selected) return;
@@ -64,7 +65,7 @@ export default function ApplicationsAdmin() {
       await apiFetch(`/applications/${id}`, { method: 'DELETE' });
       setApplications((prev) => prev.filter((a) => a._id !== id));
       setSelected(null);
-      toast.success('Application deleted.');
+      toast.success('Application deleted.', { celebrate: false });
     } catch (err) {
       toast.error(err.message || 'Failed to delete application.');
     }
@@ -114,7 +115,7 @@ export default function ApplicationsAdmin() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Applications');
     XLSX.writeFile(wb, `DTS_Applications_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success(`Exported ${filtered.length} application${filtered.length === 1 ? '' : 's'} to Excel.`);
+    toast.success(`Exported ${filtered.length} application${filtered.length === 1 ? '' : 's'} to Excel.`, { silent: true });
   };
 
   const renderDetailValue = (value) => (value === null || value === undefined || value === '' ? '—' : value);

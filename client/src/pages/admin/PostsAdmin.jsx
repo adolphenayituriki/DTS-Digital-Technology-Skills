@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, ImagePlus, X } from 'lucide-react';
-import apiFetch, { API_URL } from '../../api';
+import apiFetch, { API_URL, TOKEN_KEY, getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useToast } from '../../components/Toast';
 
 const emptyForm = { title: '', content: '', excerpt: '', category: '', isPublished: true, featuredImage: '' };
 
 export default function PostsAdmin() {
+  const toast = useToast();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
@@ -16,13 +18,14 @@ export default function PostsAdmin() {
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchPosts = () => {
+    setLoading(true);
     apiFetch('/posts/all')
       .then((d) => setPosts(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load posts.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { fetchPosts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -35,7 +38,7 @@ export default function PostsAdmin() {
     setUploading(true);
     setError('');
     try {
-      const token = localStorage.getItem('dts_token');
+      const token = localStorage.getItem(TOKEN_KEY);
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch(`${API_URL}/upload`, {
@@ -43,12 +46,20 @@ export default function PostsAdmin() {
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        let msg = `Upload failed (${res.status})`;
+        try {
+          const parsed = JSON.parse(await res.text());
+          if (parsed?.message) msg = parsed.message;
+        } catch { /* keep default */ }
+        throw new Error(msg);
+      }
       const data = await res.json();
-      const origin = API_URL.replace(/\/api\/?$/, '');
-      setForm((f) => ({ ...f, featuredImage: origin + data.url }));
+      setForm((f) => ({ ...f, featuredImage: getApiOrigin() + data.url }));
+      toast.success('Image uploaded.');
     } catch (err) {
       setError(err.message || 'Image upload failed.');
+      toast.error(err.message || 'Image upload failed.');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -68,8 +79,10 @@ export default function PostsAdmin() {
       setEditId(null);
       setShowForm(false);
       fetchPosts();
+      toast.success(editId ? 'Post updated.' : 'Post created.');
     } catch (err) {
       setError(err.message || 'Failed to save post.');
+      toast.error(err.message || 'Failed to save post.');
     }
   };
 
@@ -83,7 +96,10 @@ export default function PostsAdmin() {
     try {
       await apiFetch(`/posts/${id}`, { method: 'DELETE' });
       setPosts((prev) => prev.filter((p) => p._id !== id));
-    } catch { /* ignore */ }
+      toast.success('Post deleted.', { celebrate: false });
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete post.');
+    }
   };
 
   if (loading) return <div className="loading"><div className="spinner" />Loading posts...</div>;
@@ -158,6 +174,7 @@ export default function PostsAdmin() {
         </div>
       )}
 
+      <div className="admin-table-scroll">
       <table className="admin-table">
         <thead>
           <tr>
@@ -193,6 +210,7 @@ export default function PostsAdmin() {
           ))}
         </tbody>
       </table>
+      </div>
 
       <ConfirmDialog
         open={!!confirmId}

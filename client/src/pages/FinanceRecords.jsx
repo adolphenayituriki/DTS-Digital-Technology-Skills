@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Receipt, Save, Eye, FileText, Download, Mail, MoreVertical, ChevronDown, ChevronUp, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Plus, Receipt, Save, FileText, Mail, X } from 'lucide-react';
 import apiFetch, { onFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
 
@@ -9,6 +10,7 @@ const emptyForm = { kind: 'payment', amount: '', studentId: '', intakeId: '', ca
 
 export default function FinanceRecords() {
   const toast = useToast();
+  const location = useLocation();
   const [intakes, setIntakes] = useState([]);
   const [students, setStudents] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -18,24 +20,53 @@ export default function FinanceRecords() {
   const [saving, setSaving] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  const loadTransactions = () => apiFetch(`/finance/transactions${filterKind ? `?kind=${filterKind}` : ''}`).then((data) => setTransactions(Array.isArray(data) ? data : [])).catch((error) => toast.error(error.message || 'Failed to load transactions.'));
-  
+  // Arrives when a student is picked from the balances page.
+  const prefillStudentId = location.state?.prefillStudentId || '';
+  const prefillApplied = useRef(false);
+
+  useEffect(() => {
+    if (!prefillStudentId || prefillApplied.current) return;
+    prefillApplied.current = true;
+    setForm((current) => {
+      const student = students.find((item) => item._id === prefillStudentId);
+      if (!student) return current;
+      return {
+        ...current,
+        kind: 'payment',
+        studentId: prefillStudentId,
+        intakeId: student.intakeId || current.intakeId,
+      };
+    });
+  }, [prefillStudentId, students]);
+
+  const loadTransactions = () =>
+    apiFetch(`/finance/transactions${filterKind ? `?kind=${filterKind}` : ''}`)
+      .then((data) => setTransactions(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        setTransactions([]);
+        toast.error(error.message || 'Failed to load transactions.');
+      });
+
   const loadIntakesAndStudents = () => {
-    Promise.all([apiFetch('/finance/intakes'), apiFetch('/finance/students')])
-      .then(([intakeData, studentData]) => { setIntakes(Array.isArray(intakeData) ? intakeData : []); setStudents(Array.isArray(studentData) ? studentData : []); })
+    return Promise.all([apiFetch('/finance/intakes'), apiFetch('/finance/students')])
+      .then(([intakeData, studentData]) => {
+        setIntakes(Array.isArray(intakeData) ? intakeData : []);
+        setStudents(Array.isArray(studentData) ? studentData : []);
+      })
       .catch((error) => toast.error(error.message || 'Failed to load finance records.'));
   };
 
   const refreshAll = () => {
-    loadTransactions();
-    loadIntakesAndStudents();
+    setLoading(true);
+    Promise.all([loadTransactions(), loadIntakesAndStudents()]).finally(() => setLoading(false));
   };
 
   useEffect(() => {
     refreshAll();
     const cleanup = onFinanceRefresh(refreshAll);
     return cleanup;
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => { loadTransactions(); }, [filterKind]);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -58,7 +89,7 @@ export default function FinanceRecords() {
     } finally { setSaving(false); }
   };
   const voidTransaction = async (id) => {
-    try { await apiFetch(`/finance/transactions/${id}/void`, { method: 'PUT' }); toast.success('Transaction voided.'); await loadTransactions(); } catch (error) { toast.error(error.message || 'Failed to void transaction.'); }
+    try { await apiFetch(`/finance/transactions/${id}/void`, { method: 'PUT' }); toast.success('Transaction voided.', { celebrate: false }); await loadTransactions(); } catch (error) { toast.error(error.message || 'Failed to void transaction.'); }
   };
   
   const openTransactionDetail = (transaction) => setSelectedTransaction(transaction);

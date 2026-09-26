@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap, IdCard, KeyRound, Mail,
 } from 'lucide-react';
-import apiFetch from '../api';
+import apiFetch, { setStudentSession, clearStudentSession } from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
 import { roleHome } from '../roleHome';
@@ -88,7 +88,7 @@ export default function Auth({ mode }) {
     try {
       const data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ ...signup, role: 'user' }) });
       setSession(data.token, data.user);
-      toast.success('Account created! Welcome to DTS 🎉');
+      toast.success('Account created! Welcome to DTS 🎉', { grand: true });
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.message || 'Sign up failed. Please try again.');
@@ -102,6 +102,7 @@ export default function Auth({ mode }) {
     setStuError('');
     if (!stuForm.regNumber.trim() || !stuForm.pin.trim()) {
       setStuError('Enter your registration number and PIN.');
+      toast.error('Enter your registration number and PIN.');
       return;
     }
     setStuAuthing(true);
@@ -110,10 +111,12 @@ export default function Auth({ mode }) {
         method: 'POST',
         body: JSON.stringify({ regNumber: stuForm.regNumber, pin: stuForm.pin }),
       });
-      sessionStorage.setItem('dts_student', JSON.stringify(result));
+      setStudentSession(result);
+      toast.success(`Signed in as ${result.name}.`);
       navigate('/profile');
     } catch (err) {
       setStuError(err.message || 'Failed to sign in with these credentials.');
+      toast.error(err.message || 'Failed to sign in with these credentials.');
     } finally {
       setStuAuthing(false);
     }
@@ -125,6 +128,7 @@ export default function Auth({ mode }) {
     if (!stuForgot.regNumber.trim() || !stuForgot.email.trim()) {
       setStuForgotOk(false);
       setStuForgotMsg('Enter your registration number and email.');
+      toast.error('Enter your registration number and email.');
       return;
     }
     setStuForgotLoading(true);
@@ -135,9 +139,11 @@ export default function Auth({ mode }) {
       });
       setStuForgotOk(true);
       setStuForgotMsg(res.message || 'A new PIN has been sent if the details match.');
+      toast.success('If those details match, a new PIN is on its way to your email.');
     } catch (err) {
       setStuForgotOk(false);
       setStuForgotMsg(err.message || 'Something went wrong. Please try again.');
+      toast.error(err.message || 'Something went wrong. Please try again.');
     } finally {
       setStuForgotLoading(false);
     }

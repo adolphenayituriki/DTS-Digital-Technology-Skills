@@ -42,7 +42,9 @@ router.post("/", async (req, res) => {
       content,
       rating,
     });
-    notifyAdminsNewTestimonial(testimonial);
+    notifyAdminsNewTestimonial(testimonial).catch((e) =>
+      console.error("[mailer] new-testimonial notification failed:", e.message)
+    );
     res.status(201).json(testimonial);
   } catch (error) {
     res.status(500).json({ message: error.message });

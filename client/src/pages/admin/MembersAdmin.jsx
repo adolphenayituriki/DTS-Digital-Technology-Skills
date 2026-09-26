@@ -17,13 +17,14 @@ export default function MembersAdmin() {
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchMembers = () => {
+    setLoading(true);
     apiFetch('/members')
       .then((d) => setMembers(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load members.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchMembers(); }, []);
+  useEffect(() => { fetchMembers(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -57,7 +58,7 @@ export default function MembersAdmin() {
     try {
       await apiFetch(`/members/${id}`, { method: 'DELETE' });
       setMembers((prev) => prev.filter((m) => m._id !== id));
-      toast.success('Member deleted.');
+      toast.success('Member deleted.', { celebrate: false });
     } catch { /* ignore */ }
   };
 
@@ -105,6 +106,7 @@ export default function MembersAdmin() {
         </div>
       )}
 
+      <div className="admin-table-scroll">
       <table className="admin-table">
         <thead>
           <tr>
@@ -130,6 +132,7 @@ export default function MembersAdmin() {
           ))}
         </tbody>
       </table>
+      </div>
 
       <ConfirmDialog
         open={!!confirmId}

@@ -1,10 +1,10 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import Application from "../models/Application.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
+import { verifyToken } from "../utils/token.js";
 import {
   createStudentForApplication,
   studentStatusFromApplication,
@@ -21,8 +21,8 @@ const extractUser = (req) => {
   const header = req.headers.authorization || "";
   if (!header.startsWith("Bearer ")) return null;
   try {
-    const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET);
-    return decoded.id || null;
+    const decoded = verifyToken(header.slice(7));
+    return decoded.kind === "student" ? null : decoded.id || null;
   } catch {
     return null;
   }

@@ -2,20 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import apiFetch from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useToast } from '../../components/Toast';
 
 export default function TestimonialsAdmin() {
+  const toast = useToast();
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchTestimonials = () => {
+    setLoading(true);
     apiFetch('/testimonials/all')
       .then((d) => setTestimonials(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load testimonials.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchTestimonials(); }, []);
+  useEffect(() => { fetchTestimonials(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const toggleApprove = async (id, current) => {
     try {
@@ -24,14 +27,20 @@ export default function TestimonialsAdmin() {
         body: JSON.stringify({ isApproved: !current }),
       });
       setTestimonials((prev) => prev.map((t) => (t._id === id ? { ...t, isApproved: !current } : t)));
-    } catch { /* ignore */ }
+      toast.success(!current ? 'Testimonial approved.' : 'Testimonial approval removed.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update testimonial.');
+    }
   };
 
   const deleteTestimonial = async (id) => {
     try {
       await apiFetch(`/testimonials/${id}`, { method: 'DELETE' });
       setTestimonials((prev) => prev.filter((t) => t._id !== id));
-    } catch { /* ignore */ }
+      toast.success('Testimonial deleted.', { celebrate: false });
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete testimonial.');
+    }
   };
 
   if (loading) return <div className="loading"><div className="spinner" />Loading testimonials...</div>;
@@ -42,6 +51,7 @@ export default function TestimonialsAdmin() {
       {testimonials.length === 0 ? (
         <p style={{ color: 'var(--text-light)' }}>No testimonials yet.</p>
       ) : (
+        <div className="admin-table-scroll">
         <table className="admin-table">
           <thead>
             <tr>
@@ -87,6 +97,7 @@ export default function TestimonialsAdmin() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <ConfirmDialog

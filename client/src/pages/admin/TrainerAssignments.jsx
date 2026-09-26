@@ -55,7 +55,7 @@ export default function TrainerAssignments() {
     if (!confirm('Remove this assignment?')) return;
     try {
       await apiFetch(`/admin/trainer-assignments/${id}`, { method: 'DELETE' });
-      toast.success('Assignment removed.');
+      toast.success('Assignment removed.', { celebrate: false });
       const updated = await apiFetch('/admin/trainer-assignments');
       setAssignments(Array.isArray(updated) ? updated : []);
     } catch (err) { toast.error(err.message || 'Failed to delete.'); }

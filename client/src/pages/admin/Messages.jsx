@@ -2,33 +2,41 @@ import React, { useEffect, useState } from 'react';
 import { Eye, Trash2 } from 'lucide-react';
 import apiFetch from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useToast } from '../../components/Toast';
 
 export default function Messages() {
+  const toast = useToast();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState(null);
 
   const fetchMessages = () => {
+    setLoading(true);
     apiFetch('/messages')
       .then((d) => setMessages(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load messages.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchMessages(); }, []);
+  useEffect(() => { fetchMessages(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const markRead = async (id) => {
     try {
       await apiFetch(`/messages/${id}/read`, { method: 'PUT' });
       setMessages((prev) => prev.map((m) => (m._id === id ? { ...m, isRead: true } : m)));
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast.error(err.message || 'Failed to mark message as read.');
+    }
   };
 
   const deleteMessage = async (id) => {
     try {
       await apiFetch(`/messages/${id}`, { method: 'DELETE' });
       setMessages((prev) => prev.filter((m) => m._id !== id));
-    } catch { /* ignore */ }
+      toast.success('Message deleted.', { celebrate: false });
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete message.');
+    }
   };
 
   if (loading) return <div className="loading"><div className="spinner" />Loading messages...</div>;
@@ -39,6 +47,7 @@ export default function Messages() {
       {messages.length === 0 ? (
         <p style={{ color: 'var(--text-light)' }}>No messages yet.</p>
       ) : (
+        <div className="admin-table-scroll">
         <table className="admin-table">
           <thead>
             <tr>
@@ -82,6 +91,7 @@ export default function Messages() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <ConfirmDialog

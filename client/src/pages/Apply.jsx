@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2 } from 'lucide-react';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info } from 'lucide-react';
 import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
@@ -12,11 +12,13 @@ const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short',
 
 export default function Apply() {
   const [searchParams] = useSearchParams();
+  const { intakeId } = useParams();
   const { user, isLoggedIn } = useAuth();
   const toast = useToast();
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [linkNotice, setLinkNotice] = useState('');
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -35,6 +37,10 @@ export default function Apply() {
       .finally(() => setLoading(false));
   }, []);
 
+  const isDeadlinePassed = (intake) => intake.deadline && new Date(intake.deadline) < new Date();
+  const isFull = (intake) => intake.status === 'full' || intake.enrolled >= intake.capacity;
+  const canApply = (intake) => intake.status === 'open' && !isDeadlinePassed(intake) && !isFull(intake);
+
   const openForm = (intake) => {
     const fromParam = searchParams.get('program');
     const courses = Array.isArray(intake.courses) ? intake.courses : [];
@@ -46,9 +52,53 @@ export default function Apply() {
     setStep(1);
   };
 
-  const isDeadlinePassed = (intake) => intake.deadline && new Date(intake.deadline) < new Date();
-  const isFull = (intake) => intake.status === 'full' || intake.enrolled >= intake.capacity;
-  const canApply = (intake) => intake.status === 'open' && !isDeadlinePassed(intake) && !isFull(intake);
+  // A shared /apply/:intakeId link should land the visitor straight on that
+  // intake's form instead of making them hunt for the right card.
+  useEffect(() => {
+    if (!intakeId || loading || selected) return;
+    const match = intakes.find((i) => i._id === intakeId);
+    if (!match) {
+      setLinkNotice('This application link is no longer available. Please choose from the current intakes below.');
+      return;
+    }
+    if (canApply(match)) {
+      openForm(match);
+    } else {
+      setLinkNotice(
+        isFull(match)
+          ? `${match.title} is currently at full capacity. Please choose another intake below.`
+          : `Applications for ${match.title} have closed. Please choose another intake below.`
+      );
+    }
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [intakeId, loading, intakes]);
+
+  const intakeShareUrl = (intake) => `${window.location.origin}/apply/${intake._id}`;
+
+  const shareIntake = async (intake, event) => {
+    event?.stopPropagation?.();
+    const url = intakeShareUrl(intake);
+    const shareData = {
+      title: `${intake.title} - DTS`,
+      text: intake.description || `Apply for ${intake.title} at DTS.`,
+      url,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        // A cancelled share sheet is not an error worth reporting.
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Application link copied to your clipboard.');
+    } catch {
+      toast.error('Could not copy the link. Please copy it from the address bar.');
+    }
+  };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -95,7 +145,7 @@ export default function Apply() {
           program: form.preferred.join(', '),
         }),
       });
-      toast.success('Application submitted!', { title: 'Check your email for your DTS Reg Number and PIN 🎉', duration: 6000 });
+      toast.success('Application submitted!', { title: 'Check your email for your DTS Reg Number and PIN 🎉', duration: 6000, grand: true });
       setForm((f) => ({
         name: isLoggedIn ? user.name : '',
         email: isLoggedIn ? user.email : '',
@@ -135,6 +185,14 @@ export default function Apply() {
             </div>
           )}
 
+          {linkNotice && (
+            <div className="alert alert-info intake-link-notice">
+              <Info size={18} />
+              <span>{linkNotice}</span>
+              <Link to="/apply" className="btn btn-outline btn-xs">All intakes</Link>
+            </div>
+          )}
+
           <div className="intake-grid">
             {!selected && intakes.map((intake) => {
               const deadlinePassed = isDeadlinePassed(intake);
@@ -158,11 +216,21 @@ export default function Apply() {
                         </span>
                         {intakePeriod && <span className="intake-period">{intakePeriod}</span>}
                       </div>
-                      <span className={`intake-status ${open ? '' : 'danger'}`}>
-                        <span className="intake-status-dot" />
-                        {statusText}
-                      </span>
-                    </div>
+                        <span className={`intake-status ${open ? '' : 'danger'}`}>
+                          <span className="intake-status-dot" />
+                          {statusText}
+                        </span>
+                        <button
+                          type="button"
+                          className="intake-share"
+                          onClick={(e) => shareIntake(intake, e)}
+                          aria-label={`Share application link for ${intake.title}`}
+                          title="Share this application link"
+                        >
+                          <Share2 size={15} />
+                          <span className="intake-share-text">Share</span>
+                        </button>
+                      </div>
                     <div className="intake-card-body">
                       {intake.description && <p className="intake-desc">{intake.description}</p>}
                       {Array.isArray(intake.courses) && intake.courses.length > 0 && (
@@ -232,9 +300,14 @@ export default function Apply() {
                         {selected.program} level — Deadline {fmtDate(selected.deadline)} · {selected.enrolled || 0}/{selected.capacity || '—'} enrolled
                       </p>
                     </div>
-                    <button type="button" className="btn btn-outline btn-xs" onClick={() => { setSelected(null); setStep(1); }}>
-                      <ArrowLeft size={13} /> Change level
-                    </button>
+                    <div className="apply-form-tools">
+                      <button type="button" className="btn btn-outline btn-xs" onClick={(e) => shareIntake(selected, e)}>
+                        <Share2 size={13} /> Share this link
+                      </button>
+                      <button type="button" className="btn btn-outline btn-xs" onClick={() => { setSelected(null); setStep(1); setLinkNotice(''); }}>
+                        <ArrowLeft size={13} /> Change level
+                      </button>
+                    </div>
                   </div>
                   {!isLoggedIn && (
                     <div className="alert alert-info" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

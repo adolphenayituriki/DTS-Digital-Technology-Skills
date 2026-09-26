@@ -41,9 +41,10 @@ export default function StudentsAdmin() {
   const [pinResult, setPinResult] = useState(null);
 
   const fetchStudents = () => {
+    setLoading(true);
     apiFetch('/students')
       .then((d) => setStudents(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load students.'))
       .finally(() => setLoading(false));
   };
 
@@ -51,7 +52,8 @@ export default function StudentsAdmin() {
     fetchStudents();
     apiFetch('/intakes/all')
       .then((d) => setIntakes(Array.isArray(d) ? d : []))
-      .catch(() => {});
+      .catch((err) => toast.error(err.message || 'Failed to load intakes.'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -124,7 +126,7 @@ export default function StudentsAdmin() {
     try {
       const res = await apiFetch(`/students/${selected._id}/reset-pin`, { method: 'POST' });
       setPinResult(res);
-      toast.success('New PIN generated and emailed to the student.');
+      toast.success('New PIN generated and emailed to the student.', { grand: true });
     } catch (err) {
       toast.error(err.message || 'Failed to reset PIN.');
     } finally {
@@ -188,7 +190,7 @@ export default function StudentsAdmin() {
       const updated = await apiFetch(`/students/${selected._id}/marks/${deleteMarkId}`, { method: 'DELETE' });
       updateLocal(updated);
       setDeleteMarkId(null);
-      toast.success('Mark removed.');
+      toast.success('Mark removed.', { celebrate: false });
     } catch (err) {
       toast.error(err.message || 'Failed to delete mark.');
     }

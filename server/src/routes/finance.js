@@ -2,12 +2,54 @@ import { Router } from "express";
 import mongoose from "mongoose";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
+import studentSession from "../middleware/studentSession.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import FinanceTransaction from "../models/FinanceTransaction.js";
 import { sendStudentBalanceNotification } from "../utils/mailer.js";
 
 const router = Router();
+
+// Registered BEFORE the finance/admin role guard below, because a signed-in
+// student must be able to read their own balance. Accepts either a
+// student-scoped token or a staff/user token.
+router.get("/student/me", studentSession, async (req, res) => {
+  try {
+    const query = req.student
+      ? { _id: req.student._id }
+      : { userId: req.user._id };
+
+    const student = await Student.findOne(query)
+      .select("_id name email regNumber intakeId intakeTitle program")
+      .lean();
+    if (!student) return res.status(404).json({ message: "Student profile not found" });
+
+    const intake = student.intakeId ? await Intake.findById(student.intakeId).select("title program tuitionFee currency").lean() : null;
+    const expected = Number(intake?.tuitionFee || 0);
+
+    const payments = await FinanceTransaction.find({ kind: "payment", status: "completed", studentId: student._id })
+      .select("amount currency occurredAt")
+      .lean();
+    const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    res.json({
+      ...student,
+      intakeTitle: intake?.title || student.intakeTitle,
+      intakeProgram: intake?.program || student.program,
+      currency: intake?.currency || "RWF",
+      expected,
+      paid,
+      balance: Math.max(0, expected - paid),
+      paymentStatus: expected === 0 ? "not_configured" : paid >= expected ? "paid" : paid > 0 ? "partial" : "unpaid",
+      payments: payments
+        .map((p) => ({ amount: Number(p.amount || 0), currency: p.currency || "RWF", occurredAt: p.occurredAt }))
+        .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.use(auth, requireRole("finance", "admin"));
 
 const validId = (value) => mongoose.isValidObjectId(value);
@@ -133,34 +175,6 @@ router.get("/students", async (req, res) => {
   }
 });
 
-router.get("/student/me", auth, async (req, res) => {
-  try {
-    const student = await Student.findOne({ userId: req.user._id }).select("_id name email regNumber intakeId intakeTitle program").lean();
-    if (!student) return res.status(404).json({ message: "Student profile not found" });
-    
-    const intake = student.intakeId ? await Intake.findById(student.intakeId).select("title program tuitionFee currency").lean() : null;
-    const expected = Number(intake?.tuitionFee || 0);
-    
-    const payments = await FinanceTransaction.find({ kind: "payment", status: "completed", studentId: student._id })
-      .select("amount currency occurredAt")
-      .lean();
-    const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    
-    res.json({
-      ...student,
-      intakeTitle: intake?.title || student.intakeTitle,
-      intakeProgram: intake?.program || student.program,
-      currency: intake?.currency || "RWF",
-      expected,
-      paid,
-      balance: Math.max(0, expected - paid),
-      paymentStatus: expected === 0 ? "not_configured" : paid >= expected ? "paid" : paid > 0 ? "partial" : "unpaid",
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 router.get("/transactions", async (req, res) => {
   try {
     const filter = {};
@@ -214,10 +228,19 @@ router.post("/transactions", async (req, res) => {
       student = await Student.findById(studentId).select("intakeId intakeTitle");
     }
     if (kind === "payment" && !student) return res.status(400).json({ message: "A student is required for a payment" });
-    const intakeId = student?.intakeId || (validId(rawIntakeId) ? rawIntakeId : undefined);
     if (rawIntakeId && !validId(rawIntakeId)) return res.status(400).json({ message: "Invalid intake" });
-    const intake = intakeId ? await Intake.findById(intakeId).select("currency tuitionFee") : null;
-    if (intakeId && !intake) return res.status(404).json({ message: "Intake not found" });
+
+    // A student's own intakeId can dangle if the intake row was later deleted or
+    // renamed. That must NOT block recording a payment: the payment is real money
+    // received, so fall back to the intake title already stored on the student.
+    // Only a caller-supplied intakeId that cannot be found is a genuine 404.
+    const studentIntakeId = student?.intakeId || null;
+    const studentIntake = studentIntakeId ? await Intake.findById(studentIntakeId).select("currency tuitionFee") : null;
+    const requestedIntake = validId(rawIntakeId) ? await Intake.findById(rawIntakeId).select("currency tuitionFee") : null;
+    if (rawIntakeId && !requestedIntake) return res.status(404).json({ message: "Intake not found" });
+
+    const intake = requestedIntake || studentIntake;
+    const intakeId = requestedIntake ? requestedIntake._id : studentIntake?._id || undefined;
     const currency = rawCurrency || intake?.currency || "RWF";
     if (!currencyValues.has(currency)) return res.status(400).json({ message: "Invalid currency" });
     const date = occurredAt ? new Date(occurredAt) : new Date();
@@ -329,23 +352,35 @@ router.post("/students/send-balance-bulk", async (req, res) => {
     });
     
     let sent = 0;
+    let failed = 0;
     for (const student of students) {
       const intake = intakeMap.get(String(student.intakeId));
       const expected = Number(intake?.tuitionFee || 0);
       const paid = paymentMap.get(String(student._id)) || 0;
       const balance = Math.max(0, expected - paid);
-      
-      await sendStudentBalanceNotification(student, {
-        expected,
-        paid,
-        balance,
-        intakeTitle: intake?.title || student.intakeTitle,
-        currency: intake?.currency || "RWF",
-      });
-      sent++;
+
+      try {
+        await sendStudentBalanceNotification(student, {
+          expected,
+          paid,
+          balance,
+          intakeTitle: intake?.title || student.intakeTitle,
+          currency: intake?.currency || "RWF",
+        });
+        sent++;
+      } catch (e) {
+        failed++;
+        console.error(`[mailer] balance email failed for ${student.regNumber}:`, e.message);
+      }
     }
-    
-    res.json({ message: `Balance statements sent to ${sent} student(s).`, sent });
+
+    res.json({
+      message: failed
+        ? `Balance statements sent to ${sent} student(s); ${failed} failed.`
+        : `Balance statements sent to ${sent} student(s).`,
+      sent,
+      failed,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

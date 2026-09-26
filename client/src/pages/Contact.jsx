@@ -20,7 +20,7 @@ export default function Contact() {
     setSending(true);
     try {
       await apiFetch('/messages', { method: 'POST', body: JSON.stringify(form) });
-      toast.success('Message sent! We will get back to you soon.');
+      toast.success('Message sent! We will get back to you soon.', { grand: true });
       setForm({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch {
       toast.error('Failed to send message. Please try again later.');

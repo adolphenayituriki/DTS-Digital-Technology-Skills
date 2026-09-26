@@ -1,6 +1,6 @@
-import React from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut, UserCog, ClipboardCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut, UserCog, ClipboardCheck, Menu, X } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 
 const navItems = [
@@ -18,8 +18,27 @@ const navItems = [
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || user?.role === 'admin');
+  const activeItem = visibleNavItems.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)));
+
+  // Navigating away should always leave the drawer closed behind you.
+  useEffect(() => { setNavOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!navOpen) return undefined;
+    const onKey = (event) => { if (event.key === 'Escape') setNavOpen(false); };
+    window.addEventListener('keydown', onKey);
+    // Stop the page behind the drawer from scrolling on touch devices.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [navOpen]);
 
   const handleLogout = () => {
     logout();
@@ -28,7 +47,11 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-layout">
-      <aside className="admin-sidebar">
+      {navOpen && <div className="admin-sidebar-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
+      <aside className={`admin-sidebar${navOpen ? ' open' : ''}`} id="admin-nav">
+        <button type="button" className="admin-sidebar-close" onClick={() => setNavOpen(false)} aria-label="Close menu">
+          <X size={18} />
+        </button>
         <div className="admin-brand">
           <img src="/Logo.png" alt="DTS Logo" className="admin-brand-logo" />
           <span>
@@ -56,9 +79,22 @@ export default function AdminLayout() {
         </button>
       </aside>
       <main className="admin-main">
+        <div className="admin-mobile-bar">
+          <button
+            type="button"
+            className="admin-menu-btn"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={navOpen}
+            aria-controls="admin-nav"
+          >
+            <Menu size={20} />
+          </button>
+          <span className="admin-mobile-title">{activeItem?.label || 'Admin Panel'}</span>
+        </div>
         <div className="admin-header">
           <div>
-            <h1>Dashboard</h1>
+            <h1>{activeItem?.label || 'Dashboard'}</h1>
             <p className="admin-breadcrumb">DTS Administration</p>
           </div>
           {user && (

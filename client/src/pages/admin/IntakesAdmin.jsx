@@ -19,13 +19,14 @@ export default function IntakesAdmin() {
   const [newCourse, setNewCourse] = useState('');
 
   const fetchIntakes = () => {
+    setLoading(true);
     apiFetch('/intakes/all')
       .then((d) => setIntakes(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => toast.error(err.message || 'Failed to load intakes.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchIntakes(); }, []);
+  useEffect(() => { fetchIntakes(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -107,7 +108,7 @@ export default function IntakesAdmin() {
     try {
       await apiFetch(`/intakes/${id}`, { method: 'DELETE' });
       setIntakes((prev) => prev.filter((i) => i._id !== id));
-      toast.success('Intake deleted.');
+      toast.success('Intake deleted.', { celebrate: false });
     } catch { /* ignore */ }
   };
 
@@ -206,6 +207,7 @@ export default function IntakesAdmin() {
         </div>
       )}
 
+      <div className="admin-table-scroll">
       <table className="admin-table">
         <thead>
 <tr>
@@ -254,6 +256,7 @@ export default function IntakesAdmin() {
           ))}
         </tbody>
       </table>
+      </div>
 
       {courseIntake && (
         <div className="dialog-overlay" onClick={() => setCourseIntake(null)}>

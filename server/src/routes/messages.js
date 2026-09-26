@@ -15,7 +15,9 @@ router.post("/", async (req, res) => {
     }
 
     const newMessage = await Message.create({ name, email, phone, subject, message });
-    notifyAdminsNewMessage(newMessage);
+    notifyAdminsNewMessage(newMessage).catch((e) =>
+      console.error("[mailer] new-message notification failed:", e.message)
+    );
     res.status(201).json(newMessage);
   } catch (error) {
     res.status(500).json({ message: error.message });

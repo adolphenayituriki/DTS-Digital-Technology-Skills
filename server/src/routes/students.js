@@ -1,7 +1,9 @@
 import { Router } from "express";
 import Student from "../models/Student.js";
 import Application from "../models/Application.js";
+import Attendance from "../models/Attendance.js";
 import auth from "../middleware/auth.js";
+import studentSession from "../middleware/studentSession.js";
 import {
   resetStudentPin,
   applicationStatusFromStudent,
@@ -10,6 +12,7 @@ import {
   sendStudentCredentials,
   sendApplicationStatusChange,
 } from "../utils/mailer.js";
+import { signStudentToken } from "../utils/token.js";
 
 const router = Router();
 
@@ -28,6 +31,32 @@ const publicStudent = (student) => {
   return data;
 };
 
+const rateLimit = new Map();
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+const RATE_MAX_ATTEMPTS = 10;
+
+const checkRateLimit = (key) => {
+  const now = Date.now();
+  const entry = rateLimit.get(key);
+  if (!entry || now - entry.start > RATE_WINDOW_MS) {
+    rateLimit.set(key, { start: now, count: 1 });
+    return { allowed: true, retryAfter: 0 };
+  }
+  entry.count += 1;
+  if (entry.count > RATE_MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil((RATE_WINDOW_MS - (now - entry.start)) / 1000);
+    return { allowed: false, retryAfter };
+  }
+  return { allowed: true, retryAfter: 0 };
+};
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimit.entries()) {
+    if (now - entry.start > RATE_WINDOW_MS) rateLimit.delete(key);
+  }
+}, RATE_WINDOW_MS).unref();
+
 router.post("/login", async (req, res) => {
   try {
     const regNumber = String(req.body.regNumber || "").trim().toUpperCase();
@@ -35,6 +64,15 @@ router.post("/login", async (req, res) => {
     if (!regNumber || !pin) {
       return res.status(400).json({ message: "Registration number and PIN are required" });
     }
+
+    const limit = checkRateLimit(`${req.ip}:${regNumber}`);
+    if (!limit.allowed) {
+      res.set("Retry-After", String(limit.retryAfter));
+      return res.status(429).json({
+        message: "Too many sign-in attempts. Please wait a few minutes and try again.",
+      });
+    }
+
     const student = await Student.findOne({ regNumber: new RegExp(`^${regNumber}$`, "i") }).select("+pinHash");
     if (!student) {
       return res.status(404).json({ message: "No student found with that registration number" });
@@ -43,7 +81,7 @@ router.post("/login", async (req, res) => {
     if (!ok) {
       return res.status(401).json({ message: "Incorrect PIN" });
     }
-    res.json(publicStudent(student));
+    res.json({ ...publicStudent(student), token: signStudentToken(student._id) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -80,6 +118,63 @@ router.get("/mine", auth, async (req, res) => {
       .select(PUBLIC_FIELDS)
       .sort({ createdAt: -1 });
     res.json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Real attendance rollup for the signed-in student. The profile page used to
+// render hardcoded percentages, which meant students were shown figures that
+// did not exist in the database.
+router.get("/mine/attendance", studentSession, async (req, res) => {
+  try {
+    // A PIN sign-in resolves to `req.student`; a staff account reaching a
+    // student's profile has to look the record up by its linked user.
+    const student = req.student
+      || (req.user && await Student.findOne({ userId: req.user._id }).select("_id").lean());
+
+    if (!student) {
+      return res.json({ total: 0, present: 0, absent: 0, late: 0, rate: 0, records: [] });
+    }
+
+    const studentId = student._id;
+
+    const [rollup, records] = await Promise.all([
+      Attendance.aggregate([
+        { $match: { studentId } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      Attendance.find({ studentId })
+        .sort({ sessionDate: -1, createdAt: -1 })
+        .limit(20)
+        .select("sessionDate status course note")
+        .lean(),
+    ]);
+
+    const tally = rollup.reduce((acc, row) => {
+      acc[row._id] = row.count;
+      return acc;
+    }, {});
+
+    const present = tally.present || 0;
+    const absent = tally.absent || 0;
+    const late = tally.late || 0;
+    const total = present + absent + late;
+
+    res.json({
+      total,
+      present,
+      absent,
+      late,
+      rate: total > 0 ? Math.round(((present + late) / total) * 100) : 0,
+      records: records.map((r) => ({
+        id: String(r._id),
+        sessionDate: r.sessionDate,
+        status: r.status,
+        course: r.course || "",
+        note: r.note || "",
+      })),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -141,7 +236,9 @@ router.put("/:id", async (req, res) => {
       if (application) {
         application.status = applicationStatusFromStudent(student.status);
         await application.save();
-        sendApplicationStatusChange(application, student);
+        sendApplicationStatusChange(application, student).catch((e) =>
+          console.error("[mailer] status-change email failed:", e.message)
+        );
       }
     }
 
@@ -207,7 +304,10 @@ router.delete("/:id/marks/:markId", async (req, res) => {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
 
-    student.marks.id(req.params.markId).deleteOne();
+    const mark = student.marks.id(req.params.markId);
+    if (!mark) return res.status(404).json({ message: "Mark not found" });
+
+    mark.deleteOne();
     await student.save();
     res.json(publicStudent(student));
   } catch (error) {
@@ -222,7 +322,9 @@ router.post("/:id/reset-pin", async (req, res) => {
 
     const { student: updated, pin } = await resetStudentPin(student);
     await updated.save();
-    sendStudentCredentials(updated, { pin });
+    sendStudentCredentials(updated, { pin }).catch((e) =>
+      console.error("[mailer] reset-pin email failed:", e.message)
+    );
 
     res.json({
       message: "New PIN generated and emailed to the student",

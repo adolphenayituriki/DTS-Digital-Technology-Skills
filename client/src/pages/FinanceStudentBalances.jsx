@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Wallet, Download, Mail, FileText, X, Save, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Search, Wallet, Mail, FileText, X, Save, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiFetch, { onFinanceRefresh, triggerFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
@@ -23,11 +23,15 @@ export default function FinanceStudentBalances() {
   const [paymentModal, setPaymentModal] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Check if we came from a student selection (pre-fill for payment)
+  // Check if we came from a student selection (pre-fill for payment).
+  // Must run in an effect, not during render, or it loops.
   const prefillStudentId = searchParams.get('studentId');
-  if (prefillStudentId) {
+  const prefillHandled = useRef(false);
+  useEffect(() => {
+    if (!prefillStudentId || prefillHandled.current) return;
+    prefillHandled.current = true;
     navigate('/finance/records', { replace: true, state: { prefillStudentId } });
-  }
+  }, [prefillStudentId, navigate]);
 
   const loadData = () => {
     setLoading(true);
@@ -40,14 +44,17 @@ export default function FinanceStudentBalances() {
   };
 
   useEffect(() => {
-    apiFetch('/finance/intakes').then((data) => setIntakes(Array.isArray(data) ? data : [])).catch(() => {});
-  }, []);
+    apiFetch('/finance/intakes')
+      .then((data) => setIntakes(Array.isArray(data) ? data : []))
+      .catch((error) => toast.error(error.message || 'Failed to load intakes.'));
+  }, [toast]);
 
   useEffect(() => {
     loadData();
     const cleanup = onFinanceRefresh(loadData);
     return cleanup;
-  }, [filters, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const handleRowClick = (student) => {
     navigate('/finance/records', { state: { prefillStudentId: student._id } });
@@ -94,7 +101,7 @@ export default function FinanceStudentBalances() {
           notes: paymentModal.notes,
         }),
       });
-      toast.success(`Payment of ${money(amount)} recorded for ${paymentModal.student.name}.`);
+      toast.success(`Payment of ${money(amount)} recorded for ${paymentModal.student.name}.`, { grand: true });
       closePaymentModal();
       triggerFinanceRefresh();
     } catch (error) {

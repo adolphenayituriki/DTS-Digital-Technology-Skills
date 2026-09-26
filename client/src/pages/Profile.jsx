@@ -5,8 +5,9 @@ import {
   ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight, ArrowLeft,
   CreditCard, AlertCircle, CheckCircle2, Clock, Receipt,
 } from 'lucide-react';
-import apiFetch from '../api';
+import apiFetch, { setStudentSession, clearStudentSession, getStudentSession } from '../api';
 import useAuth from '../hooks/useAuth';
+import { useToast } from '../components/Toast';
 
 const STATUS_META = {
   applicant: { label: 'Application Pending Review', color: 'var(--primary)', bg: '#e8f6fd' },
@@ -17,12 +18,31 @@ const STATUS_META = {
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-const money = (value) => `${Number(value || 0).toLocaleString('en-RW')} RWF`;
+const money = (value, currency = 'RWF') =>
+  `${Number(value || 0).toLocaleString('en-RW')} ${currency || 'RWF'}`;
 
 const paymentProgress = (payment) => {
-  if (!payment || payment.expected === 0) return { pct: 0, label: 'No fee configured' };
-  const pct = Math.min(100, Math.round((payment.paid / payment.expected) * 100));
+  if (!payment || Number(payment.expected || 0) === 0) return { pct: 0, label: 'No fee configured' };
+  const pct = Math.min(100, Math.round((Number(payment.paid || 0) / Number(payment.expected)) * 100));
   return { pct, label: `${pct}% paid` };
+};
+
+// A zero expected fee must never read as "Paid in Full".
+const paymentBadge = (payment) => {
+  const expected = Number(payment?.expected || 0);
+  const paid = Number(payment?.paid || 0);
+  const balance = Number(payment?.balance || 0);
+  if (expected === 0) return { label: 'No Fee Configured', tone: 'neutral', icon: <Clock size={14} /> };
+  if (balance <= 0) return { label: 'Paid in Full', tone: 'paid', icon: <CheckCircle2 size={14} /> };
+  if (paid > 0) return { label: 'Partial Payment', tone: 'partial', icon: <AlertCircle size={14} /> };
+  return { label: 'Unpaid', tone: 'unpaid', icon: <AlertCircle size={14} /> };
+};
+
+const BADGE_STYLES = {
+  paid: { background: '#f0fdf4', color: '#166534' },
+  partial: { background: '#fff7ed', color: '#c2410c' },
+  unpaid: { background: '#fef2f2', color: '#991b1b' },
+  neutral: { background: '#f1f5f9', color: '#475569' },
 };
 
 const initials = (name = '') =>
@@ -30,8 +50,10 @@ const initials = (name = '') =>
 
 export default function Profile() {
   const { isLoggedIn, ready } = useAuth();
+  const toast = useToast();
   const [student, setStudent] = useState(null);
   const [payment, setPayment] = useState(null);
+  const [attendance, setAttendance] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [authing, setAuthing] = useState(false);
@@ -46,14 +68,10 @@ export default function Profile() {
   useEffect(() => {
     if (!ready) return;
     if (!isLoggedIn) {
-      const saved = sessionStorage.getItem('dts_student');
+      const saved = getStudentSession();
       if (saved) {
-        try {
-          setStudent(JSON.parse(saved));
-          return;
-        } catch (err) {
-          sessionStorage.removeItem('dts_student');
-        }
+        setStudent(saved);
+        return;
       }
       setShowForm(true);
       return;
@@ -76,8 +94,22 @@ export default function Profile() {
       .then((data) => {
         setPayment(data);
       })
-      .catch(() => setPayment(null))
+      .catch((err) => {
+        setPayment(null);
+        if (err.status !== 404) {
+          toast.error(err.message || 'Could not load your payment summary.');
+        }
+      })
       .finally(() => setPaymentLoading(false));
+  }, [student, toast]);
+
+  useEffect(() => {
+    if (!student) return undefined;
+    let active = true;
+    apiFetch('/students/mine/attendance')
+      .then((data) => { if (active) setAttendance(data); })
+      .catch(() => { if (active) setAttendance(null); });
+    return () => { active = false; };
   }, [student]);
 
   const handleSubmit = async (e) => {
@@ -85,6 +117,7 @@ export default function Profile() {
     setError('');
     if (!form.regNumber.trim() || !form.pin.trim()) {
       setError('Enter your registration number and PIN.');
+      toast.error('Enter your registration number and PIN.');
       return;
     }
     setAuthing(true);
@@ -93,11 +126,13 @@ export default function Profile() {
         method: 'POST',
         body: JSON.stringify({ regNumber: form.regNumber, pin: form.pin }),
       });
-      sessionStorage.setItem('dts_student', JSON.stringify(result));
-      setStudent(result);
+      setStudentSession(result);
+      setStudent(getStudentSession());
       setShowForm(false);
+      toast.success(`Welcome back, ${result.name}.`);
     } catch (err) {
       setError(err.message || 'Failed to sign in with these credentials.');
+      toast.error(err.message || 'Failed to sign in with these credentials.');
     } finally {
       setAuthing(false);
     }
@@ -109,6 +144,7 @@ export default function Profile() {
     if (!forgot.regNumber.trim() || !forgot.email.trim()) {
       setForgotOk(false);
       setForgotMsg('Enter your registration number and email.');
+      toast.error('Enter your registration number and email.');
       return;
     }
     setForgotLoading(true);
@@ -119,9 +155,11 @@ export default function Profile() {
       });
       setForgotOk(true);
       setForgotMsg(res.message || 'A new PIN has been sent if the details match.');
+      toast.success('If those details match, a new PIN is on its way to your email.');
     } catch (err) {
       setForgotOk(false);
       setForgotMsg(err.message || 'Something went wrong. Please try again.');
+      toast.error(err.message || 'Something went wrong. Please try again.');
     } finally {
       setForgotLoading(false);
     }
@@ -130,8 +168,9 @@ export default function Profile() {
   const meta = student ? STATUS_META[student.status] || STATUS_META.applicant : null;
 
   const signOut = () => {
-    sessionStorage.removeItem('dts_student');
+    clearStudentSession();
     setStudent(null);
+    setPayment(null);
     setShowForm(true);
     setForm({ regNumber: '', pin: '' });
   };
@@ -146,19 +185,19 @@ export default function Profile() {
       </section>
 
       <section className="section section-compact">
-        <div className="container" style={{ maxWidth: 780 }}>
+        <div className="container profile-shell">
           {!student && showForm && (
-            <div className="card" style={{ padding: '2rem', maxWidth: 480, margin: '0 auto' }}>
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div className="card profile-auth">
+              <div className="profile-auth-head">
                 <div className="profile-key-icon"><KeyRound size={22} /></div>
-                <h3 style={{ margin: '0.75rem 0 0.25rem' }}>Sign in to your DTS Profile</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', margin: 0 }}>
+                <h3>Sign in to your DTS Profile</h3>
+                <p>
                   Enter the Registration Number and PIN you received by email.
                 </p>
               </div>
               {showForgot ? (
                 <form onSubmit={handleForgotPin}>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-light)', lineHeight: '1.45', margin: '0 0 1rem' }}>
+                  <p className="profile-note-text">
                     Forgot your PIN? Enter the Registration Number and the email you applied with — we'll email you a new PIN.
                   </p>
                   <div className="form-group">
@@ -190,13 +229,12 @@ export default function Profile() {
                   {forgotMsg && (
                     <div className={forgotOk ? 'alert alert-info' : 'alert alert-error'}>{forgotMsg}</div>
                   )}
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={forgotLoading}>
+                  <button type="submit" className="btn btn-primary profile-block-btn" disabled={forgotLoading}>
                     {forgotLoading ? 'Sending...' : 'Send New PIN'}
                   </button>
                   <button
                     type="button"
-                    className="auth-btn-link"
-                    style={{ marginTop: '0.6rem' }}
+                    className="auth-btn-link profile-forgot"
                     onClick={() => { setShowForgot(false); setForgotMsg(''); }}
                   >
                     <ArrowLeft size={13} /> Back to sign in
@@ -233,20 +271,19 @@ export default function Profile() {
                       </div>
                     </div>
                     {error && <div className="alert alert-error">{error}</div>}
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={authing}>
+                    <button type="submit" className="btn btn-primary profile-block-btn" disabled={authing}>
                       {authing ? 'Verifying...' : 'View My Profile'}
                     </button>
                     <button
                       type="button"
-                      className="auth-forgot-link"
-                      style={{ marginTop: '0.5rem' }}
+                      className="auth-forgot-link profile-forgot"
                       onClick={() => { setShowForgot(true); setError(''); }}
                     >
                       Forgot your PIN?
                     </button>
                   </form>
                   {isLoggedIn && (
-                    <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '1rem', marginBottom: 0 }}>
+                    <p className="profile-note-text is-centered">
                       No student record linked to your account? Use the credentials from your application email.
                     </p>
                   )}
@@ -259,8 +296,8 @@ export default function Profile() {
             <>
               <div className="card profile-head">
                 <div className="profile-avatar">{initials(student.name)}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ margin: 0 }}>{student.name}</h3>
+                <div className="profile-head-body">
+                  <h3>{student.name}</h3>
                   <div className="profile-reg">
                     <IdCard size={14} /> {student.regNumber}
                   </div>
@@ -289,8 +326,8 @@ export default function Profile() {
                 </div>
               )}
 
-              <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem' }}>Intake Details</h3>
+              <div className="card profile-card">
+                <h3 className="profile-card-title">Intake Details</h3>
                 <div className="profile-grid">
                   <div className="profile-field"><span><GraduationCap size={14} /> Intake</span><b>{student.intakeTitle}</b></div>
                   {student.program && <div className="profile-field"><span><BookOpen size={14} /> Level</span><b>{student.program}</b></div>}
@@ -300,8 +337,8 @@ export default function Profile() {
                   <div className="profile-field"><span><CalendarDays size={14} /> Registered</span><b>{fmtDate(student.createdAt)}</b></div>
                 </div>
                 {Array.isArray(student.preferredCourses) && student.preferredCourses.length > 0 && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <div className="app-detail-label" style={{ marginBottom: '0.5rem' }}><BookOpen size={15} /> Courses</div>
+                  <div className="profile-section">
+                    <div className="app-detail-label" style={{ marginBottom: '0.4rem' }}><BookOpen size={15} /> Courses</div>
                     <div className="app-detail-courses">
                       {student.preferredCourses.map((c) => (
                         <span key={c} className="intake-course-chip">{c}</span>
@@ -311,64 +348,76 @@ export default function Profile() {
                 )}
               </div>
 
-              {payment && (
-                <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}><CreditCard size={16} style={{ marginRight: '0.4rem' }} /> Payment Status</h3>
-                    {paymentLoading && <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Updating...</span>}
+              {payment && (() => {
+                const currency = payment.currency || 'RWF';
+                const badge = paymentBadge(payment);
+                const hasFee = Number(payment.expected || 0) > 0;
+                return (
+                <div className="card profile-card">
+                  <div className="profile-card-head">
+                    <h3 className="profile-card-title"><CreditCard size={15} /> Payment Status</h3>
+                    {paymentLoading && <span className="profile-hint">Updating...</span>}
                   </div>
-                  {/* Progress Bar */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.8rem' }}>
-                      <span style={{ color: 'var(--text-light)' }}>Payment Progress</span>
-                      <span style={{ fontWeight: 700 }}>{paymentProgress(payment).label}</span>
+                  {hasFee && (
+                    <div style={{ marginBottom: '0.7rem' }}>
+                      <div className="profile-meter-row">
+                        <span className="muted">Payment Progress</span>
+                        <b>{paymentProgress(payment).label}</b>
+                      </div>
+                      <div className={`profile-meter${Number(payment.balance || 0) <= 0 ? ' is-paid' : ''}`}>
+                        <i style={{ width: `${paymentProgress(payment).pct}%` }} />
+                      </div>
                     </div>
-                    <div style={{ height: '10px', background: '#eef0f4', borderRadius: '999px', overflow: 'hidden' }}>
-                      <div style={{ 
-                        width: `${paymentProgress(payment).pct}%`, 
-                        height: '100%', 
-                        background: payment.balance <= 0 ? 'var(--success)' : 'var(--primary)',
-                        borderRadius: '999px',
-                        transition: 'width 0.5s ease'
-                      }} />
-                    </div>
-                  </div>
-                  <div className="payment-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                  )}
+                  <div className="payment-summary">
                     <div className="payment-stat">
                       <div className="payment-stat-label">Required Fee</div>
-                      <div className="payment-stat-value">{money(payment.expected)}</div>
+                      <div className="payment-stat-value">{money(payment.expected, currency)}</div>
                     </div>
                     <div className="payment-stat">
                       <div className="payment-stat-label">Amount Paid</div>
-                      <div className="payment-stat-value" style={{ color: 'var(--success)' }}>{money(payment.paid)}</div>
+                      <div className="payment-stat-value" style={{ color: 'var(--success)' }}>{money(payment.paid, currency)}</div>
                     </div>
                     <div className="payment-stat">
                       <div className="payment-stat-label">Outstanding Balance</div>
-                      <div className="payment-stat-value" style={{ color: payment.balance > 0 ? 'var(--error)' : 'var(--success)' }}>{money(payment.balance)}</div>
+                      <div className="payment-stat-value" style={{ color: Number(payment.balance || 0) > 0 ? 'var(--error)' : 'var(--success)' }}>{money(payment.balance, currency)}</div>
                     </div>
                   </div>
-                  <div className="payment-status-badge" style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', background: payment.balance <= 0 ? '#f0fdf4' : payment.paid > 0 ? '#fff7ed' : '#fef2f2', color: payment.balance <= 0 ? '#166534' : payment.paid > 0 ? '#c2410c' : '#991b1b' }}>
-                    {payment.balance <= 0 ? <CheckCircle2 size={14} /> : payment.paid > 0 ? <AlertCircle size={14} /> : <AlertCircle size={14} />}
-                    {payment.balance <= 0 ? 'Paid in Full' : payment.paid > 0 ? 'Partial Payment' : 'Unpaid'}
+                  <div
+                    className="payment-status-badge"
+                    style={{ marginTop: '0.6rem', ...BADGE_STYLES[badge.tone] }}
+                  >
+                    {badge.icon}
+                    {badge.label}
                   </div>
                   {payment.intakeTitle && (
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-light)' }}>
+                    <div className="profile-sub">
                       For: {payment.intakeTitle}
                     </div>
                   )}
-                  {/* Payment History Link */}
-                  {payment.paid > 0 && (
-                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eef0f4' }}>
-                      <button className="btn btn-outline btn-sm" style={{ width: '100%' }} onClick={() => window.open('/finance/records', '_blank')}>
-                        <Receipt size={14} style={{ marginRight: '0.35rem' }} /> View Payment History
-                      </button>
+                  {Array.isArray(payment.payments) && payment.payments.length > 0 && (
+                    <div className="profile-history">
+                      <div className="app-detail-label" style={{ marginBottom: '0.4rem' }}><Receipt size={15} /> Payment History</div>
+                      {payment.payments.map((p, i) => (
+                        <div key={`${p.occurredAt}-${i}`} className="profile-history-row">
+                          <span className="muted">{fmtDate(p.occurredAt)}</span>
+                          <b>{money(p.amount, p.currency || currency)}</b>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
+                );
+              })()}
+
+              {paymentLoading && !payment && (
+                <div className="card profile-card">
+                  <div className="loading"><div className="spinner" />Loading payment status...</div>
+                </div>
               )}
 
-              <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem' }}>Results & Marks</h3>
+              <div className="card profile-card">
+                <h3 className="profile-card-title">Results &amp; Marks</h3>
                 {Array.isArray(student.marks) && student.marks.length > 0 ? (
                   <div className="profile-marks-wrap">
                   <table className="profile-marks">
@@ -393,9 +442,9 @@ export default function Profile() {
                   </table>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-light)' }}>
-                    <ClipboardList size={30} style={{ opacity: 0.35, marginBottom: '0.5rem' }} />
-                    <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                  <div className="profile-empty">
+                    <ClipboardList size={28} style={{ opacity: 0.35 }} />
+                    <p>
                       {student.status === 'active'
                         ? 'No marks recorded yet. Your results will appear here once assessments are complete.'
                         : 'Marks will be shown here once your application is accepted and training begins.'}
@@ -404,72 +453,84 @@ export default function Profile() {
                 )}
               </div>
 
-              {/* Attendance Overview */}
+              {/* Attendance Overview - real figures from the Attendance collection */}
               {student.status === 'active' && (
-                <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}><CalendarDays size={16} style={{ marginRight: '0.4rem' }} /> Attendance Overview</h3>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Data from all sessions</span>
+                <div className="card profile-card">
+                  <div className="profile-card-head">
+                    <h3 className="profile-card-title"><CalendarDays size={15} /> Attendance Overview</h3>
+                    <span className="profile-hint">
+                      {attendance && attendance.total > 0 ? `${attendance.total} sessions recorded` : 'No sessions yet'}
+                    </span>
                   </div>
-                  <div className="attendance-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
-                    <div className="attendance-stat present">
-                      <div className="attendance-stat-value">85%</div>
-                      <div className="attendance-stat-label">Present</div>
+                  {!attendance || attendance.total === 0 ? (
+                    <div className="profile-empty">
+                      <CalendarDays size={28} style={{ opacity: 0.35 }} />
+                      <p>Your trainer has not recorded any attendance sessions yet.</p>
                     </div>
-                    <div className="attendance-stat absent">
-                      <div className="attendance-stat-value">10%</div>
-                      <div className="attendance-stat-label">Absent</div>
-                    </div>
-                    <div className="attendance-stat late">
-                      <div className="attendance-stat-value">5%</div>
-                      <div className="attendance-stat-label">Late</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: '1rem' }}>
-                    <button className="btn btn-outline btn-sm" style={{ width: '100%' }}>
-                      <CalendarDays size={14} style={{ marginRight: '0.35rem' }} /> View Detailed Attendance
-                    </button>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="attendance-summary">
+                        <div className="attendance-stat present">
+                          <div className="attendance-stat-value">{attendance.present}</div>
+                          <div className="attendance-stat-label">Present</div>
+                        </div>
+                        <div className="attendance-stat absent">
+                          <div className="attendance-stat-value">{attendance.absent}</div>
+                          <div className="attendance-stat-label">Absent</div>
+                        </div>
+                        <div className="attendance-stat late">
+                          <div className="attendance-stat-value">{attendance.late}</div>
+                          <div className="attendance-stat-label">Late</div>
+                        </div>
+                      </div>
+                      <div className="profile-section">
+                        <div className="profile-meter-row">
+                          <span className="muted">Attendance rate</span>
+                          <b>{attendance.rate}%</b>
+                        </div>
+                        <div className={`profile-meter${attendance.rate >= 75 ? ' is-paid' : ''}`}>
+                          <i style={{ width: `${Math.min(100, Math.max(0, attendance.rate))}%` }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
-              {/* Upcoming Sessions */}
-              {student.status === 'active' && (
-                <div className="card" style={{ padding: '1.05rem 1.2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}><Clock size={16} style={{ marginRight: '0.4rem' }} /> Upcoming Sessions</h3>
+              {/* Recent attendance - replaces the previously hardcoded
+                  "upcoming sessions" panel, which had no data source. */}
+              {student.status === 'active' && attendance && attendance.records.length > 0 && (
+                <div className="card profile-card">
+                  <div className="profile-card-head">
+                    <h3 className="profile-card-title"><Clock size={15} /> Recent Sessions</h3>
+                    <span className="profile-hint">Latest {attendance.records.length}</span>
                   </div>
-                  <div className="upcoming-sessions" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div className="upcoming-session" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #eef0f4' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#e7f1fb', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', fontSize: '0.7rem' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 700 }}>Mon</span>
-                        <span>Sep 30</span>
+                  <div className="upcoming-sessions">
+                    {attendance.records.map((r) => (
+                      <div key={r.id} className="upcoming-session">
+                        <div className="upcoming-day">
+                          <span>{fmtDate(r.sessionDate).slice(0, 3)}</span>
+                          <span className="profile-hint">{new Date(r.sessionDate).getDate()}</span>
+                        </div>
+                        <div className="upcoming-session-body">
+                          <div className="upcoming-session-title">{r.course || 'Session'}</div>
+                          <div className="upcoming-session-meta">
+                            {fmtDate(r.sessionDate)}{r.note ? ` · ${r.note}` : ''}
+                          </div>
+                        </div>
+                        <span className={`finance-status status-${r.status === 'present' ? 'paid' : r.status === 'absent' ? 'unpaid' : 'pending'}`}>
+                          {r.status}
+                        </span>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Google Services - Week 4</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>09:00 - 11:00 · Lab 2 · Trainer: J. Niyonzima</div>
-                      </div>
-                      <span className="finance-status status-paid" style={{ fontSize: '0.65rem' }}>Scheduled</span>
-                    </div>
-                    <div className="upcoming-session" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #eef0f4' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#e7f1fb', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', fontSize: '0.7rem' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 700 }}>Wed</span>
-                        <span>Oct 2</span>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Microsoft Office - Week 4</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>14:00 - 16:00 · Lab 1 · Trainer: M. Uwimana</div>
-                      </div>
-                      <span className="finance-status status-paid" style={{ fontSize: '0.65rem' }}>Scheduled</span>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}
 
               {student.remarks && (
-                <div className="card" style={{ padding: '1.25rem 1.5rem', background: '#fffdf5', borderColor: '#f2e9c9' }}>
-                  <div className="app-detail-label" style={{ marginBottom: '0.5rem' }}><FileText size={15} /> Note from DTS</div>
-                  <p style={{ margin: 0, fontSize: '0.92rem', lineHeight: 1.6 }}>{student.remarks}</p>
+                <div className="card profile-card profile-note">
+                  <div className="app-detail-label" style={{ marginBottom: '0.4rem' }}><FileText size={15} /> Note from DTS</div>
+                  <p>{student.remarks}</p>
                 </div>
               )}
 
@@ -479,14 +540,14 @@ export default function Profile() {
               </div>
 
               {!isLoggedIn && student && (
-                <div style={{ textAlign: 'center', marginTop: '0.9rem' }}>
+                <div className="profile-center">
                   <button type="button" className="btn btn-outline btn-sm" onClick={signOut}>
                     Sign Out
                   </button>
                 </div>
               )}
 
-              <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+              <div className="profile-center is-spaced">
                 <Link to="/apply" className="btn btn-outline btn-sm">
                   Apply for Another Intake <ArrowRight size={14} />
                 </Link>

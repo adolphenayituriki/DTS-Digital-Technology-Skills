@@ -1,17 +1,20 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import auth from "../middleware/auth.js";
+import { signUserToken } from "../utils/token.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dts-dev-secret-change-in-production-2026";
+const router = Router();
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, JWT_SECRET, { expiresIn: "7d" });
-};
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -19,7 +22,7 @@ router.post("/register", async (req, res) => {
     }
 
     const user = await User.create({ name, email, password, role: "user" });
-    const token = generateToken(user._id);
+    const token = signUserToken(user._id);
 
     res.status(201).json({
       token,
@@ -37,7 +40,8 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
@@ -53,7 +57,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = generateToken(user._id);
+    const token = signUserToken(user._id);
 
     res.json({
       token,
@@ -77,6 +81,33 @@ router.get("/me", auth, async (req, res) => {
       email: req.user.email,
       role: req.user.role,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/password", auth, async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new password are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

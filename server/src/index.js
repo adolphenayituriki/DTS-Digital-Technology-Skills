@@ -1,7 +1,11 @@
+// Must be the FIRST import: ES module imports are hoisted and evaluated before
+// any statement in this file, so a plain `dotenv.config()` call further down
+// would run too late for every module that reads process.env at load time.
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import fs from "fs";
+import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
@@ -18,8 +22,7 @@ import userRoutes from "./routes/users.js";
 import trainerRoutes from "./routes/trainer.js";
 import trainerAdminRoutes from "./routes/trainerAdmin.js";
 import financeRoutes from "./routes/finance.js";
-
-dotenv.config();
+import statsRoutes from "./routes/stats.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,13 +58,16 @@ app.use("/api/users", userRoutes);
 app.use("/api/trainer", trainerRoutes);
 app.use("/api/trainers", trainerAdminRoutes);
 app.use("/api/finance", financeRoutes);
+app.use("/api/stats", statsRoutes);
 
-app.get("/api/status", (req, res) => {
+app.get("/api/status", async (req, res) => {
+  const dbStates = ["disconnected", "connected", "connecting", "disconnecting"];
+  const dbState = dbStates[mongoose.connection.readyState] || "unknown";
   res.json({
-    ok: true,
+    ok: dbState === "connected",
     service: "dts-api",
     version: "student-registry-v2",
-    hasStudents: true,
+    db: dbState,
     time: new Date().toISOString(),
   });
 });

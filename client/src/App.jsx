@@ -165,6 +165,8 @@ export default function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/gallery" element={<Gallery />} />
                   <Route path="/apply" element={<Apply />} />
+        {/* Shareable per-intake application link, e.g. /apply/<intakeId> */}
+        <Route path="/apply/:intakeId" element={<Apply />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/login" element={<Auth mode="login" />} />
                   <Route path="/signup" element={<Auth mode="signup" />} />

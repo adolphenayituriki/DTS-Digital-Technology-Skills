@@ -9,6 +9,10 @@ client/dist/
 .env.local
 server/.env
 
+# User-uploaded media (application documents, avatars, post images).
+# These are real user data and must never enter the repository.
+server/uploads/
+
 # Logs
 *.log
 npm-debug.log*

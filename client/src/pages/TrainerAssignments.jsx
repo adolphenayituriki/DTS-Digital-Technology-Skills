@@ -19,7 +19,7 @@ export default function TrainerAssignments() {
     try { await apiFetch('/trainers/assignments', { method: 'POST', body: JSON.stringify(form) }); toast.success('Trainer assignment created.'); setForm({ trainerId: '', intakeId: '', course: '' }); await load(); } catch (error) { toast.error(error.message || 'Failed to create assignment.'); }
   };
   const remove = async (id) => {
-    try { await apiFetch(`/trainers/assignments/${id}`, { method: 'DELETE' }); toast.success('Assignment removed.'); await load(); } catch (error) { toast.error(error.message || 'Failed to remove assignment.'); }
+    try { await apiFetch(`/trainers/assignments/${id}`, { method: 'DELETE' }); toast.success('Assignment removed.', { celebrate: false }); await load(); } catch (error) { toast.error(error.message || 'Failed to remove assignment.'); }
   };
   if (loading) return <div className="loading"><div className="spinner" />Loading assignments...</div>;
   const selectedIntake = intakes.find((intake) => intake._id === form.intakeId);
