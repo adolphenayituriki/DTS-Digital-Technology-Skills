@@ -1,5 +1,4 @@
 import React, { useRef, useState, useCallback, forwardRef, useEffect } from "react";
-import { toPng } from "html-to-image";
 
 const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 800;
@@ -284,6 +283,7 @@ export default function AchievementCardModal({ student, mark, intakeTitle, onClo
     setBusy(true);
     setError("");
     try {
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(cardRef.current, {
         width: CARD_WIDTH,
         height: CARD_HEIGHT,

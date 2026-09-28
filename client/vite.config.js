@@ -4,6 +4,18 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep the framework in its own long-lived chunk so a content-only
+        // deploy (pages, copy, images) does not invalidate React's cache.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          icons: ['lucide-react'],
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

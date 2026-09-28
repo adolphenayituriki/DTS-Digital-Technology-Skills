@@ -3,6 +3,14 @@ import apiFetch from './api';
 
 export const AuthContext = createContext(null);
 
+const readToken = () => {
+  try {
+    return localStorage.getItem('dts_token');
+  } catch {
+    return null;
+  }
+};
+
 const readUser = () => {
   try {
     const raw = localStorage.getItem('dts_user');
@@ -15,11 +23,15 @@ const readUser = () => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readUser);
-  const [ready, setReady] = useState(false);
+  // With a token already in storage the cached profile is good enough to render
+  // immediately, so a hard refresh on a dashboard does not sit behind the
+  // round-trip to /auth/me (which can be slow when the API is cold). The
+  // revalidation below still runs and clears the session if the token is dead.
+  const [ready, setReady] = useState(() => !!readToken());
 
   useEffect(() => {
     let cancelled = false;
-    const token = localStorage.getItem('dts_token');
+    const token = readToken();
     if (!token) {
       localStorage.removeItem('dts_user');
       setUser(null);

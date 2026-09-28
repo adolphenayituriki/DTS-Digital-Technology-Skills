@@ -1,43 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
-import Home from './pages/Home';
-import About from './pages/About';
-import Programs from './pages/Programs';
-import Team from './pages/Team';
-import News from './pages/News';
-import NewsDetail from './pages/NewsDetail';
-import Contact from './pages/Contact';
-import Gallery from './pages/Gallery';
-import NotFound from './pages/NotFound';
-import Apply from './pages/Apply';
-import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/Dashboard';
-import Messages from './pages/admin/Messages';
-import MembersAdmin from './pages/admin/MembersAdmin';
-import PostsAdmin from './pages/admin/PostsAdmin';
-import IntakesAdmin from './pages/admin/IntakesAdmin';
-import ApplicationsAdmin from './pages/admin/ApplicationsAdmin';
-import TestimonialsAdmin from './pages/admin/TestimonialsAdmin';
-import StudentsAdmin from './pages/admin/StudentsAdmin';
-import Profile from './pages/Profile';
+import RouteFallback from './components/RouteFallback';
 import RequireRole from './RequireRole';
-import TrainerLayout from './pages/TrainerLayout';
-import TrainerDashboard from './pages/TrainerDashboard';
-import TrainerStudents from './pages/TrainerStudents';
-import TrainerAttendance from './pages/TrainerAttendance';
-import TrainerMarks from './pages/TrainerMarks';
-import FinanceLayout from './pages/FinanceLayout';
-import FinanceDashboard from './pages/FinanceDashboard';
-import FinanceStudentBalances from './pages/FinanceStudentBalances';
-import FinanceRecords from './pages/FinanceRecords';
-import FinanceFees from './pages/FinanceFees';
-import UserManagement from './pages/UserManagement';
-import TrainerAssignments from './pages/TrainerAssignments';
+import Home from './pages/Home';
+
+const About = lazy(() => import('./pages/About'));
+const Programs = lazy(() => import('./pages/Programs'));
+const Team = lazy(() => import('./pages/Team'));
+const News = lazy(() => import('./pages/News'));
+const NewsDetail = lazy(() => import('./pages/NewsDetail'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Gallery = lazy(() => import('./pages/Gallery'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const Apply = lazy(() => import('./pages/Apply'));
+const Auth = lazy(() => import('./pages/Auth'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const Messages = lazy(() => import('./pages/admin/Messages'));
+const MembersAdmin = lazy(() => import('./pages/admin/MembersAdmin'));
+const PostsAdmin = lazy(() => import('./pages/admin/PostsAdmin'));
+const IntakesAdmin = lazy(() => import('./pages/admin/IntakesAdmin'));
+const ApplicationsAdmin = lazy(() => import('./pages/admin/ApplicationsAdmin'));
+const TestimonialsAdmin = lazy(() => import('./pages/admin/TestimonialsAdmin'));
+const StudentsAdmin = lazy(() => import('./pages/admin/StudentsAdmin'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const TrainerAssignments = lazy(() => import('./pages/TrainerAssignments'));
+const TrainerLayout = lazy(() => import('./pages/TrainerLayout'));
+const TrainerDashboard = lazy(() => import('./pages/TrainerDashboard'));
+const TrainerStudents = lazy(() => import('./pages/TrainerStudents'));
+const TrainerAttendance = lazy(() => import('./pages/TrainerAttendance'));
+const TrainerMarks = lazy(() => import('./pages/TrainerMarks'));
+const FinanceLayout = lazy(() => import('./pages/FinanceLayout'));
+const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
+const FinanceStudentBalances = lazy(() => import('./pages/FinanceStudentBalances'));
+const FinanceRecords = lazy(() => import('./pages/FinanceRecords'));
+const FinanceFees = lazy(() => import('./pages/FinanceFees'));
 
 const titles = {
   '/': 'Home',
@@ -89,6 +91,10 @@ export default function App() {
     <BrowserRouter>
       <TitleManager />
       <ScrollToTop />
+      {/* Every page below is code-split, so a single boundary here keeps a
+          slow chunk from throwing "no fallback UI was specified" on the
+          role-gated dashboards, which render outside the public shell. */}
+      <Suspense fallback={<div className="loading"><div className="spinner" />Loading...</div>}>
       <Routes>
         <Route
           path="/admin"
@@ -155,30 +161,33 @@ export default function App() {
             <>
               <Navbar />
               <main>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/programs" element={<Programs />} />
-                  <Route path="/team" element={<Team />} />
-                  <Route path="/news" element={<News />} />
-                  <Route path="/news/:slug" element={<NewsDetail />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/gallery" element={<Gallery />} />
-                  <Route path="/apply" element={<Apply />} />
-        {/* Shareable per-intake application link, e.g. /apply/<intakeId> */}
-        <Route path="/apply/:intakeId" element={<Apply />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/login" element={<Auth mode="login" />} />
-                  <Route path="/signup" element={<Auth mode="signup" />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/programs" element={<Programs />} />
+                    <Route path="/team" element={<Team />} />
+                    <Route path="/news" element={<News />} />
+                    <Route path="/news/:slug" element={<NewsDetail />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/gallery" element={<Gallery />} />
+                    <Route path="/apply" element={<Apply />} />
+                    {/* Shareable per-intake application link, e.g. /apply/<intakeId> */}
+                    <Route path="/apply/:intakeId" element={<Apply />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/login" element={<Auth mode="login" />} />
+                    <Route path="/signup" element={<Auth mode="signup" />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
               </main>
               <Footer />
             </>
           }
         />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

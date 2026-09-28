@@ -4,6 +4,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import fs from "fs";
 import mongoose from "mongoose";
 import path from "path";
@@ -31,6 +32,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
+// Gzip JSON/HTML responses. Already-compressed asset types (jpg, png, webp,
+// pdf) are skipped by the `compressible` check, so uploads pass through.
+app.use(compression());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.get("/assets/Logo.png", (req, res) => {

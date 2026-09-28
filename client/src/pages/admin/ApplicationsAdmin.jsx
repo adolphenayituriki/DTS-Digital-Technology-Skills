@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import * as XLSX from 'xlsx';
 import {
   Check, X, Eye, Trash2, Search, Download, Mail, Phone, MapPin,
   CalendarDays, BookOpen, FileText, GraduationCap, RefreshCcw,
@@ -89,11 +88,14 @@ export default function ApplicationsAdmin() {
     rejected: applications.filter((a) => a.status === 'rejected').length,
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     if (filtered.length === 0) {
       toast.error('Nothing to export for the current view.');
       return;
     }
+    // xlsx is ~800kB of the bundle and is only ever needed on this click,
+    // so it is pulled in on demand rather than shipped to every visitor.
+    const XLSX = await import('xlsx');
     const rows = filtered.map((a, i) => ({
       '#': i + 1,
       'Full Name': a.name,

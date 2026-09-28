@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
+import RouteFallback from './RouteFallback';
 
 export default function StaffLayout({ title, subtitle, navItems }) {
   const { user, logout } = useAuth();
@@ -93,7 +94,9 @@ export default function StaffLayout({ title, subtitle, navItems }) {
             </div>
           )}
         </div>
-        <Outlet />
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

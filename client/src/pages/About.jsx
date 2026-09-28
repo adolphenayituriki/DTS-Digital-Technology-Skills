@@ -6,7 +6,7 @@ const steps = [
   {
     n: '01',
     icon: <Layers size={22} />,
-    title: 'Foundational Training',
+    title: 'Basic Skills (Foundational Training)',
     desc: 'Computer literacy in Google services, Microsoft Office, and online job applications. A solid digital foundation for beginners.',
   },
   {
@@ -65,7 +65,7 @@ export default function About() {
                   <div className="photo-fill">
                     <img src="/Graduation images/ELITEFRAMSTUDIO(93).jpg" alt="DTS Team at UR-Huye Campus" loading="lazy" />
                   </div>
-                  <div className="photo-cap">DTS Team · UR-Huye Campus</div>
+                  <div className="photo-cap">DTS Team and some graduates · UR-Huye Campus</div>
                 </div>
               </FadeIn>
           </div>
