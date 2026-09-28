@@ -1,8 +1,9 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut, UserCog, ClipboardCheck, Menu, X } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users, FileText, Star, Calendar, ClipboardList, GraduationCap, LogOut, UserCog, ClipboardCheck, Menu, X, Settings } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import RouteFallback from '../../components/RouteFallback';
+import Avatar from '../../components/Avatar';
 
 const navItems = [
   { to: '/admin', icon: <LayoutDashboard size={18} />, label: 'Dashboard', end: true },
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/admin/testimonials', icon: <Star size={18} />, label: 'Testimonials' },
   { to: '/admin/users', icon: <UserCog size={18} />, label: 'User Access', adminOnly: true },
   { to: '/admin/trainer-assignments', icon: <ClipboardCheck size={18} />, label: 'Trainer Assignments', adminOnly: true },
+  { to: '/admin/settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 
 export default function AdminLayout() {
@@ -99,13 +101,13 @@ export default function AdminLayout() {
             <p className="admin-breadcrumb">DTS Administration</p>
           </div>
           {user && (
-            <div className="admin-user-chip">
-              <span className="admin-user-initial">{(user.name || user.email || 'A')[0].toUpperCase()}</span>
+            <NavLink to="/admin/settings" className="admin-user-chip" title="Account settings">
+              <Avatar size="sm" name={user.name || user.email} src={user.photo} />
               <div>
                 <b>{user.name}</b>
                 <small>{user.role}</small>
               </div>
-            </div>
+            </NavLink>
           )}
         </div>
         <Suspense fallback={<RouteFallback />}>

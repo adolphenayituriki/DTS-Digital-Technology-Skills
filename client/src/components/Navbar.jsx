@@ -7,6 +7,7 @@ import {
 import useAuth from '../hooks/useAuth';
 import apiFetch from '../api';
 import { roleHome, roleLabel } from '../roleHome';
+import Avatar from './Avatar';
 
 const links = [
   { to: '/', label: 'Home' },
@@ -251,6 +252,13 @@ export default function Navbar() {
                 >
                   {workspaceLabel}
                 </NavLink>
+                <NavLink
+                  to="/account"
+                  className={({ isActive }) => (isActive ? 'active dash-link' : 'dash-link')}
+                  onClick={() => setOpen(false)}
+                >
+                  <User size={15} /> My Profile
+                </NavLink>
                 <button className="dash-link-logout" onClick={handleLogout}>
                   <LogOut size={15} /> Logout
                 </button>
@@ -277,8 +285,25 @@ export default function Navbar() {
             </Link>
             {isLoggedIn ? (
               <>
-                <Link to={workspace} className="admin-icon" aria-label={workspaceLabel} title={workspaceLabel}>
+                <Link
+                  to={user?.mustChangePassword ? '/account' : workspace}
+                  className="admin-icon"
+                  aria-label={workspaceLabel}
+                  title={workspaceLabel}
+                >
                   <LayoutDashboard size={16} />
+                </Link>
+                {/* The avatar is the one control every signed-in user already
+                    looks at, so an outstanding password change is surfaced
+                    here rather than hidden inside the profile page. */}
+                <Link
+                  to="/account"
+                  className={`admin-icon navbar-avatar${user?.mustChangePassword ? ' is-alert' : ''}`}
+                  aria-label={user?.mustChangePassword ? 'Change your password' : 'My Profile'}
+                  title={user?.mustChangePassword ? 'Change your temporary password' : `My Profile${user?.name ? ` — ${user.name}` : ''}`}
+                >
+                  <Avatar size="sm" name={user?.name || user?.email} src={user?.photo} eager />
+                  {user?.mustChangePassword && <span className="navbar-avatar-alert" aria-hidden="true" />}
                 </Link>
                 <button className="admin-icon" onClick={handleLogout} aria-label="Logout" title="Logout">
                   <LogOut size={16} />

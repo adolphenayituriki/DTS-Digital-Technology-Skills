@@ -236,7 +236,7 @@ export default function Auth({ mode }) {
                   <label htmlFor="stu-freg">Registration Number</label>
                   <div className="profile-input-wrap">
                     <IdCard size={16} />
-                    <input id="stu-freg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForgot.regNumber} onChange={(e) => setStuForgot((f) => ({ ...f, regNumber: e.target.value }))} placeholder="e.g. DTS-2026-0001" required />
+                    <input id="stu-freg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForgot.regNumber} onChange={(e) => setStuForgot((f) => ({ ...f, regNumber: e.target.value }))} placeholder="e.g. 225020019" required />
                   </div>
                 </div>
                 <div className="form-group">
@@ -266,7 +266,7 @@ export default function Auth({ mode }) {
                     <label htmlFor="stu-reg">Registration Number</label>
                     <div className="profile-input-wrap">
                       <IdCard size={16} />
-                      <input id="stu-reg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForm.regNumber} onChange={stuChange} placeholder="e.g. DTS-2026-0001" required />
+                      <input id="stu-reg" name="regNumber" className="form-control" autoCapitalize="characters" value={stuForm.regNumber} onChange={stuChange} placeholder="e.g. 225020019" required />
                     </div>
                   </div>
                   <div className="form-group">

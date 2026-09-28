@@ -6,15 +6,13 @@ import apiFetch from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { gradeForScore } from '../../utils/grade';
+import Avatar from '../../components/Avatar';
 
 const STATUS_META = {
   applicant: { label: 'Applicant', color: 'var(--primary)', bg: '#e8f6fd' },
   active: { label: 'Active Student', color: 'var(--success)', bg: '#f0fdf4' },
   rejected: { label: 'Rejected', color: 'var(--error)', bg: '#fef2f2' },
 };
-
-  const initials = (name = '') =>
-  name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 
 const emptyMarkDraft = { course: '', score: '', grade: '', remarks: '', completed: false };
 
@@ -293,7 +291,7 @@ export default function StudentsAdmin() {
                 </td>
                 <td>
                   <div className="app-adm-cell">
-                    <span className="app-adm-avatar">{initials(s.name)}</span>
+                    <Avatar size="sm" name={s.name} />
                     <div>
                       <strong>{s.name}</strong>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{s.email}</div>
@@ -330,7 +328,7 @@ export default function StudentsAdmin() {
               <button className="dialog-close app-detail-close" onClick={() => setSelected(null)} aria-label="Close">
                 <X size={18} />
               </button>
-              <span className="app-detail-avatar">{initials(selected.name)}</span>
+              <Avatar size="lg" name={selected.name} />
               <h3>{selected.name}</h3>
               <div className="student-detail-reg"><GraduationCap size={13} /> {selected.regNumber}</div>
               <span className="app-status-badge" style={{

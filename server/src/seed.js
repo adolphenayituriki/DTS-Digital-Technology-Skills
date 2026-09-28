@@ -25,6 +25,9 @@ const seed = async () => {
       email: "admin@dts.rw",
       password: "admin123",
       role: "admin",
+      // The seed password is a published default, so the account is useless
+      // until whoever holds it picks their own.
+      mustChangePassword: true,
     });
     console.log("Admin user created");
 

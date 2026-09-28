@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import apiFetch from '../../api';
+import { Plus, Edit, Trash2, Camera, X } from 'lucide-react';
+import apiFetch, { API_URL, TOKEN_KEY, getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
+import Avatar from '../../components/Avatar';
 
-const emptyForm = { name: '', role: '', bio: '', email: '' };
+const emptyForm = { name: '', role: '', bio: '', email: '', photo: '' };
 
 export default function MembersAdmin() {
   const toast = useToast();
@@ -15,6 +16,7 @@ export default function MembersAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [confirmId, setConfirmId] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchMembers = () => {
     setLoading(true);
@@ -27,6 +29,33 @@ export default function MembersAdmin() {
   useEffect(() => { fetchMembers(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  // Member.photo has always existed on the model and round-tripped through
+  // POST/PUT, but the form never sent it, so a member could only ever get a
+  // photo by editing the database by hand.
+  const handlePhoto = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const payload = new FormData();
+      payload.append('file', file);
+      const res = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+        body: payload,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      setForm((f) => ({ ...f, photo: getApiOrigin() + data.url }));
+    } catch (err) {
+      toast.error(err.message || 'Could not upload that image.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,7 +78,13 @@ export default function MembersAdmin() {
   };
 
   const startEdit = (m) => {
-    setForm({ name: m.name, role: m.role, bio: m.bio || '', email: m.email || '' });
+    setForm({
+      name: m.name,
+      role: m.role,
+      bio: m.bio || '',
+      email: m.email || '',
+      photo: m.photo || '',
+    });
     setEditId(m._id);
     setShowForm(true);
   };
@@ -78,6 +113,27 @@ export default function MembersAdmin() {
           <h3 style={{ marginBottom: '1rem' }}>{editId ? 'Edit Member' : 'Add New Member'}</h3>
           {error && <div className="alert alert-error">{error}</div>}
           <form onSubmit={handleSubmit}>
+            <div className="member-photo-row">
+              <Avatar size="lg" name={form.name} src={form.photo} />
+              <div className="member-photo-actions">
+                <label className="btn btn-outline btn-sm">
+                  <Camera size={14} /> {uploading ? 'Uploading...' : form.photo ? 'Replace photo' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handlePhoto}
+                    hidden
+                    disabled={uploading}
+                  />
+                </label>
+                {form.photo && (
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setForm((f) => ({ ...f, photo: '' }))}>
+                    <X size={14} /> Remove
+                  </button>
+                )}
+                <small>JPG, PNG, GIF or WebP · max 5 MB</small>
+              </div>
+            </div>
             <div className="grid-2">
               <div className="form-group">
                 <label>Name *</label>
@@ -119,7 +175,12 @@ export default function MembersAdmin() {
         <tbody>
           {members.map((m) => (
             <tr key={m._id}>
-              <td><strong>{m.name}</strong></td>
+              <td>
+                <div className="app-adm-cell">
+                  <Avatar size="sm" name={m.name} src={m.photo} seed={m.order} />
+                  <strong>{m.name}</strong>
+                </div>
+              </td>
               <td>{m.role}</td>
               <td style={{ fontSize: '0.85rem' }}>{m.email || '-'}</td>
               <td>

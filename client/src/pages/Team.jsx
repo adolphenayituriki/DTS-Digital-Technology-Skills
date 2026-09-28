@@ -2,48 +2,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import apiFetch from '../api';
 import { Search, Users, Mail, Hourglass, ChevronLeft, ChevronRight } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
-
-const AVATAR_THEMES = [
-  'linear-gradient(135deg, #23A8DE 0%, #5cc7f0 100%)',
-  'linear-gradient(135deg, #142851 0%, #2d4a8f 100%)',
-  'linear-gradient(135deg, #39B24C 0%, #6bd07a 100%)',
-  'linear-gradient(135deg, #f59e0b 0%, #fbc157 100%)',
-  'linear-gradient(135deg, #e11d48 0%, #fb7185 100%)',
-];
+import Avatar from '../components/Avatar';
 
 const teamImages = [
   "/Teams/ELITEFRAMSTUDIO(123).jpg",
   "/Teams/ELITEFRAMSTUDIO(124).jpg",
 ];
 
-const initials = (name = '') =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
-
-function Avatar({ member }) {
-  const theme = AVATAR_THEMES[(member.order || 0) % AVATAR_THEMES.length];
-  if (member.photo) {
-    return (
-      <div className="team-avatar team-avatar-photo">
-        <img src={member.photo} alt={member.name} loading="lazy" />
-      </div>
-    );
-  }
-  return (
-    <div className="team-avatar" style={{ background: theme }} aria-hidden="true">
-      {initials(member.name)}
-    </div>
-  );
-}
-
 function MemberCard({ member }) {
   return (
     <div className="card team-card">
-      <Avatar member={member} />
+      <Avatar size="xl" name={member.name} src={member.photo} seed={member.order} />
       <h3>{member.name}</h3>
       <span className="team-role-pill">{member.role}</span>
       {member.bio && <p className="team-card-bio">{member.bio}</p>}

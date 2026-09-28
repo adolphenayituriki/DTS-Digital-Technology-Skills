@@ -1,15 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info, UploadCloud, FileCheck2, Trash2 } from 'lucide-react';
 import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
 import { emailProblem, normalizeEmail } from '../utils/email';
+import { LEVELS_OF_STUDY, GENDERS, REG_NUMBER_PATTERN } from '../utils/options';
 
-const STEPS = ['Personal Info', 'Contact', 'Course', 'Review'];
+const BASE_STEPS = ['Personal Info', 'Contact', 'Studies'];
+
+// Advanced entrants already hold the Basic certificate, so they get an extra
+// step to prove it. The step list is derived rather than fixed, which keeps the
+// stepper, the validation and the submit payload in agreement about how many
+// steps there are.
+const stepsFor = (isAdvanced) =>
+  isAdvanced ? [...BASE_STEPS, 'Certificate', 'Review'] : [...BASE_STEPS, 'Review'];
+
+const CERT_MAX_BYTES = 5 * 1024 * 1024;
+const CERT_MAX_MB = CERT_MAX_BYTES / 1024 / 1024;
+const CERT_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtBytes = (bytes) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 export default function Apply() {
   const [searchParams] = useSearchParams();
@@ -25,11 +39,25 @@ export default function Apply() {
     email: user?.email || '',
     phone: '',
     campus: '',
+    regNumber: '',
+    levelOfStudy: '',
+    department: '',
+    gender: '',
     preferred: searchParams.get('program') ? [searchParams.get('program')] : [],
     motivation: '',
   });
+  const [certificate, setCertificate] = useState(null);
+  const [certError, setCertError] = useState('');
   const [sending, setSending] = useState(false);
   const [step, setStep] = useState(1);
+
+  // The level is a property of the intake the applicant picked, not something
+  // they fill in - which is also what decides whether a certificate is needed.
+  const isAdvanced = useMemo(
+    () => /advanced/i.test(`${selected?.program || ''} ${selected?.title || ''}`),
+    [selected],
+  );
+  const STEPS = useMemo(() => stepsFor(isAdvanced), [isAdvanced]);
 
   useEffect(() => {
     apiFetch('/intakes')
@@ -49,6 +77,11 @@ export default function Apply() {
       ...f,
       preferred: courses.includes(fromParam) ? [fromParam] : [],
     }));
+    // Switching intakes can flip whether a certificate applies, so any file
+    // chosen for the previous intake is dropped rather than silently carried
+    // over into an application it was not meant for.
+    setCertificate(null);
+    setCertError('');
     setSelected(intake);
     setStep(1);
   };
@@ -106,6 +139,27 @@ export default function Apply() {
   // Only nag once the field has something in it, otherwise the empty form opens
   // with an error already showing.
   const emailHint = form.email.trim() ? emailProblem(form.email) : '';
+  const regHint = form.regNumber.trim() && !REG_NUMBER_PATTERN.test(form.regNumber.trim())
+    ? 'Use the format 225020019, or leave blank if this is your first intake.'
+    : '';
+
+  // Checked before the file is ever sent, so a 5 MB rejection is instant
+  // instead of costing the applicant the upload first.
+  const acceptCertificate = (file) => {
+    if (!file) return;
+    if (!CERT_TYPES.includes(file.type)) {
+      setCertificate(null);
+      setCertError('Certificate must be a JPG, PNG or PDF file.');
+      return;
+    }
+    if (file.size > CERT_MAX_BYTES) {
+      setCertificate(null);
+      setCertError(`Certificate is too large. Maximum size is ${CERT_MAX_MB} MB.`);
+      return;
+    }
+    setCertificate(file);
+    setCertError('');
+  };
 
   const nextStep = () => {
     if (step === 1 && (!form.name.trim() || !form.email.trim())) {
@@ -116,8 +170,18 @@ export default function Apply() {
       toast.error(emailHint, { title: 'Check your email address' });
       return;
     }
+    if (step === 1 && regHint) {
+      toast.error(regHint, { title: 'Check your registration number' });
+      return;
+    }
     if (step === 3 && form.preferred.length === 0) {
       toast.error('Please select at least one preferred course.');
+      return;
+    }
+    // The Certificate step is index 4 when it exists, and the one before
+    // Review when it does not.
+    if (isAdvanced && step === 4 && !certificate) {
+      toast.error('Advanced applicants must attach their Basic certificate.');
       return;
     }
     setStep((s) => Math.min(s + 1, STEPS.length));
@@ -144,30 +208,65 @@ export default function Apply() {
       toast.error(emailError, { title: 'Check your email address' });
       return;
     }
+    if (regHint) {
+      toast.error(regHint, { title: 'Check your registration number' });
+      return;
+    }
+    if (isAdvanced && !certificate) {
+      toast.error('Advanced applicants must attach their Basic certificate.');
+      return;
+    }
     setSending(true);
     try {
-      await apiFetch('/applications', {
-        method: 'POST',
-        body: JSON.stringify({
-          intakeId: selected._id,
-          name: form.name,
-          email: normalizeEmail(form.email),
-          phone: form.phone,
-          campus: form.campus,
-          motivation: form.motivation,
-          preferredCourses: form.preferred,
-          program: form.preferred.join(', '),
-        }),
-      });
-      toast.success('Application submitted!', { title: 'Check your email for your DTS Reg Number and PIN 🎉', duration: 6000, grand: true });
+      const payload = {
+        intakeId: selected._id,
+        name: form.name,
+        email: normalizeEmail(form.email),
+        phone: form.phone,
+        campus: form.campus,
+        regNumber: form.regNumber,
+        levelOfStudy: form.levelOfStudy,
+        department: form.department,
+        gender: form.gender,
+        motivation: form.motivation,
+        program: form.preferred.join(', '),
+        preferredCourses: form.preferred,
+      };
+
+      let body;
+      let headers;
+      if (certificate) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            value.forEach((v) => fd.append(key, v));
+          } else {
+            fd.append(key, value);
+          }
+        });
+        fd.append('certificate', certificate);
+        body = fd;
+      } else {
+        body = JSON.stringify(payload);
+        headers = { 'Content-Type': 'application/json' };
+      }
+
+      await apiFetch('/applications', { method: 'POST', body, headers });
+      toast.success('Application submitted!', { title: 'Check your email for your PIN 🎉', duration: 6000, grand: true });
       setForm((f) => ({
         name: isLoggedIn ? user.name : '',
         email: isLoggedIn ? user.email : '',
         phone: '',
         campus: '',
+        regNumber: '',
+        levelOfStudy: '',
+        department: '',
+        gender: '',
         preferred: [],
         motivation: '',
       }));
+      setCertificate(null);
+      setCertError('');
       setSelected(null);
       setStep(1);
     } catch (err) {
@@ -325,7 +424,13 @@ export default function Apply() {
                   </div>
                   {!isLoggedIn && (
                     <div className="alert alert-info" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      Applying as a guest. After you submit, you will receive your DTS Registration Number and PIN by email to view your profile.
+                      Applying as a guest. After you submit, you will receive your Registration Number and PIN by email to view your profile.
+                    </div>
+                  )}
+                  {isAdvanced && (
+                    <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <FileCheck2 size={18} />
+                      <span>Advanced entrants must hold the DTS Basic certificate. You will be asked to upload it before you can submit.</span>
                     </div>
                   )}
                   <ol className="apply-steps">
@@ -368,6 +473,33 @@ export default function Apply() {
                               <small id="apply-email-hint" className="form-error-hint">{emailHint}</small>
                             )}
                           </div>
+                          <div className="form-group">
+                            <label>Reg Number</label>
+                            <input
+                              name="regNumber"
+                              className={`form-control${regHint ? ' is-invalid' : ''}`}
+                              value={form.regNumber}
+                              onChange={handleChange}
+                              placeholder="22xxxxxxx"
+                              autoComplete="off"
+                              aria-invalid={Boolean(regHint)}
+                              aria-describedby={regHint ? 'apply-reg-hint' : 'apply-reg-help'}
+                            />
+                            {regHint ? (
+                              <small id="apply-reg-hint" className="form-error-hint">{regHint}</small>
+                            ) : (
+                              <small id="apply-reg-help" className="form-hint">Optional. Only if you have studied with DTS before.</small>
+                            )}
+                          </div>
+                          <div className="form-group">
+                            <label>Gender</label>
+                            <select name="gender" className="form-control" value={form.gender} onChange={handleChange}>
+                              <option value="">Prefer not to say</option>
+                              {GENDERS.filter((g) => g !== 'Prefer not to say').map((g) => (
+                                <option key={g} value={g}>{g}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -390,7 +522,22 @@ export default function Apply() {
 
                     {step === 3 && (
                       <div className="step-body">
-                        <p className="step-hint">Select one or more preferred courses for the {selected.program} level.</p>
+                        <p className="step-hint">Tell us where you are in your studies and what you want to take.</p>
+                        <div className="grid-2">
+                          <div className="form-group">
+                            <label>Level of Study</label>
+                            <select name="levelOfStudy" className="form-control" value={form.levelOfStudy} onChange={handleChange}>
+                              <option value="">Select your level</option>
+                              {LEVELS_OF_STUDY.map((level) => (
+                                <option key={level} value={level}>{level}</option>
+                              ))}
+                            </select>
+                          </div>
+                           <div className="form-group">
+                             <label>Department</label>
+                             <input name="department" className="form-control" value={form.department} onChange={handleChange} placeholder="e.g. Education, Computer Science, Business & Management" />
+                           </div>
+                        </div>
                         <div className="form-group">
                           <label>Preferred Courses *</label>
                           <div className="course-options">
@@ -410,7 +557,49 @@ export default function Apply() {
                       </div>
                     )}
 
-                    {step === 4 && (
+                    {isAdvanced && step === 4 && (
+                      <div className="step-body">
+                        <p className="step-hint">
+                          The {selected.program} session is open to applicants who already hold the DTS Basic
+                          certificate. Upload yours so we can confirm your eligibility.
+                        </p>
+                        {certificate ? (
+                          <div className="cert-picked">
+                            <span className="cert-picked-icon"><FileCheck2 size={18} /></span>
+                            <div className="cert-picked-text">
+                              <strong>{certificate.name}</strong>
+                              <small>{fmtBytes(certificate.size)} · Ready to upload</small>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => { setCertificate(null); setCertError(''); }}
+                            >
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <label
+                            className={`cert-drop${certError ? ' is-invalid' : ''}`}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => { e.preventDefault(); acceptCertificate(e.dataTransfer.files?.[0]); }}
+                          >
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                              onChange={(e) => { acceptCertificate(e.target.files?.[0]); e.target.value = ''; }}
+                              aria-describedby="apply-cert-help"
+                            />
+                            <UploadCloud size={28} />
+                            <strong>Click to upload or drop your certificate here</strong>
+                            <small id="apply-cert-help">JPG, PNG or PDF · up to {CERT_MAX_MB} MB</small>
+                          </label>
+                        )}
+                        {certError && <small className="form-error-hint">{certError}</small>}
+                      </div>
+                    )}
+
+                    {step === STEPS.length && (
                       <div className="step-body">
                         <p className="step-hint">Review your details before submitting.</p>
                         <div className="apply-review">
@@ -421,6 +610,19 @@ export default function Apply() {
                           <div className="apply-review-row"><span>Email</span><strong>{form.email}</strong></div>
                           <div className="apply-review-row"><span>Phone</span><strong>{form.phone || '—'}</strong></div>
                           <div className="apply-review-row"><span>Campus</span><strong>{form.campus || '—'}</strong></div>
+                          <div className="apply-review-row"><span>Level of Study</span><strong>{form.levelOfStudy || '—'}</strong></div>
+                          <div className="apply-review-row"><span>Department</span><strong>{form.department || '—'}</strong></div>
+                          <div className="apply-review-row"><span>Gender</span><strong>{form.gender || 'Prefer not to say'}</strong></div>
+                          <div className="apply-review-row">
+                            <span>UR Reg Number</span>
+                            <strong>{form.regNumber.trim() || '—'}</strong>
+                          </div>
+                          {isAdvanced && (
+                            <div className="apply-review-row">
+                              <span>Basic Certificate</span>
+                              <strong>{certificate ? certificate.name : '—'}</strong>
+                            </div>
+                          )}
                           {form.motivation && <div className="apply-review-row"><span>Motivation</span><strong>{form.motivation}</strong></div>}
                         </div>
                       </div>

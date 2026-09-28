@@ -25,9 +25,35 @@ const userSchema = new mongoose.Schema({
     enum: ["admin", "editor", "trainer", "finance", "user"],
     default: "user",
   },
+  // Self-service profile fields. The photo is an absolute URL returned by
+  // POST /api/upload, or a seeded client path like "/Teams/..." - both are
+  // stored verbatim so the client can drop it straight into <img src>.
+  phone: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  photo: {
+    type: String,
+    trim: true,
+    default: "",
+  },
   active: {
     type: Boolean,
     default: true,
+  },
+  // Set whenever an admin issues a password on this user's behalf. The account
+  // still signs in normally, but every dashboard is blocked behind the
+  // change-password form until the user picks their own - which is the only
+  // point where the temporary password stops being the real one.
+  mustChangePassword: {
+    type: Boolean,
+    default: false,
+  },
+  // Last time the user chose their own password, for the "last changed" hint.
+  passwordUpdatedAt: {
+    type: Date,
+    default: null,
   },
   createdAt: {
     type: Date,

@@ -1,15 +1,21 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, X } from 'lucide-react';
+import { LogOut, Menu, Settings, X } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import RouteFallback from './RouteFallback';
+import Avatar from './Avatar';
 
-export default function StaffLayout({ title, subtitle, navItems }) {
+export default function StaffLayout({ title, subtitle, navItems, settingsPath }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
-  const activeItem = navItems.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)));
+  // Settings is appended rather than passed in by each workspace so the
+  // password route can never be left off one of them by accident.
+  const visibleNavItems = settingsPath
+    ? [...navItems, { to: settingsPath, icon: <Settings size={18} />, label: 'Settings' }]
+    : navItems;
+  const activeItem = visibleNavItems.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)));
 
   // Navigating away should always leave the drawer closed behind you.
   useEffect(() => { setNavOpen(false); }, [location.pathname]);
@@ -48,7 +54,7 @@ export default function StaffLayout({ title, subtitle, navItems }) {
         </div>
         <span className="admin-nav-title">Workspace</span>
         <nav>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -85,13 +91,13 @@ export default function StaffLayout({ title, subtitle, navItems }) {
             <p className="admin-breadcrumb">{subtitle}</p>
           </div>
           {user && (
-            <div className="admin-user-chip">
-              <span className="admin-user-initial">{(user.name || user.email || 'U')[0].toUpperCase()}</span>
+            <NavLink to={settingsPath || '/account'} className="admin-user-chip" title="Account settings">
+              <Avatar size="sm" name={user.name || user.email} src={user.photo} />
               <div>
                 <b>{user.name}</b>
                 <small>{user.role}</small>
               </div>
-            </div>
+            </NavLink>
           )}
         </div>
         <Suspense fallback={<RouteFallback />}>

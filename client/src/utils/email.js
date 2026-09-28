@@ -2,6 +2,9 @@
 //
 // This exists to give immediate feedback in the browser; the server remains the
 // authority and re-checks everything. Keep the two in sync when changing rules.
+//
+// Shape rules only. A "www." prefix or a dotted local part is accepted, because
+// real applicants use addresses like that. A pasted URL is still rejected.
 
 export const normalizeEmail = (value) => String(value ?? "").trim().toLowerCase();
 
@@ -13,7 +16,6 @@ export const emailProblem = (value) => {
   if (email.includes("://") || /^(https?|ftp):/i.test(email)) {
     return "That looks like a web address, not an email. Enter just the email, e.g. name@gmail.com";
   }
-  if (/^www\./i.test(email)) return "Remove the leading www. from the email address";
 
   const parts = email.split("@");
   if (parts.length !== 2) return "Enter an email address in the form name@example.com";
@@ -26,9 +28,6 @@ export const emailProblem = (value) => {
   }
   if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) {
     return "The part before the @ sign is not a valid email name";
-  }
-  if (/\.(com|net|org|edu|gov|co|ac|io|dev|app|info|biz|me|rw)$/i.test(local)) {
-    return `It looks like a website was entered before the @. Did you mean ${local.replace(/\.[^.]+$/, "")}@${domain}?`;
   }
 
   if (!domain) return "Enter the domain after the @ sign";

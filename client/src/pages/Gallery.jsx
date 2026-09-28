@@ -14,16 +14,16 @@ import FadeIn from '../components/FadeIn';
 // captions are defined.
 const images = [
   // Training
-  { src: '/hero-1.jpg', w: 1600, h: 1143, label: 'Training Session', category: 'Training' },
-  { src: '/hero-2.jpg', w: 1600, h: 1066, label: 'Computer Workshop', category: 'Training' },
-  { src: '/hero-3.jpg', w: 1600, h: 1143, label: 'Classroom Training', category: 'Training' },
-  { src: '/hero-5.jpg', w: 1600, h: 1280, label: 'Digital Skills Class', category: 'Training' },
-  { src: '/hero-6.jpg', w: 1600, h: 1067, label: 'Hands-on Practice', category: 'Training' },
+  { src: '/hero-1.jpg', w: 1600, h: 1143, label: 'With Irembo (Byikorere Program) at Huye campus', category: 'Training' },
+  { src: '/hero-2.jpg', w: 1600, h: 1066, label: 'With Irembo during action', category: 'Training' },
+  { src: '/hero-3.jpg', w: 1600, h: 1143, label: 'With Irembo (Byikorere Program)', category: 'Training' },
+  { src: '/hero-5.jpg', w: 1600, h: 1280, label: 'Amazing practice of youth (About Byikorere Program)', category: 'Training' },
+  { src: '/hero-6.jpg', w: 1600, h: 1067, label: 'Day Capture (after an event)', category: 'Training' },
 
   // Events
-  { src: '/activity-1.jpg', w: 1080, h: 607, label: 'Team Activity', category: 'Events' },
-  { src: '/activity-2.jpg', w: 1008, h: 567, label: 'DTS Event', category: 'Events' },
-  { src: '/Guests/ELITEFRAMSTUDIO(73).jpg', w: 1448, h: 2000, label: 'Guests at a DTS Event', category: 'Events' },
+  { src: '/activity-1.jpg', w: 1080, h: 607, label: 'During Class Moment', category: 'Events' },
+  { src: '/activity-2.jpg', w: 1008, h: 567, label: 'DTS Classroom Moment', category: 'Events' },
+  { src: '/Guests/ELITEFRAMSTUDIO(73).jpg', w: 1448, h: 2000, label: 'Guests at a DTS Gradusation', category: 'Events' },
   { src: '/Guests/ELITEFRAMSTUDIO(133) (1).jpg', w: 1364, h: 2000, label: 'Event Guests', category: 'Events' },
   { src: '/Guests/WhatsApp Image 2026-09-25 at 16.48.45.jpeg', w: 720, h: 1080, label: 'Event Guest', category: 'Events' },
   { src: '/Guests/WhatsApp Image 2026-09-b25 at 16.41.13.jpeg', w: 720, h: 1080, label: 'Event Guest', category: 'Events' },
@@ -38,8 +38,8 @@ const images = [
   // Team
   { src: '/Featured Images/ELITEFRAMSTUDIO(48).jpg', w: 1887, h: 2000, label: 'DTS Team at Work', category: 'Team' },
   { src: '/Featured Images/ELITEFRAMSTUDIO(134).jpg', w: 2000, h: 1331, label: 'Team Session', category: 'Team' },
-  { src: '/Featured Images/ELITEFRAMSTUDIO(135).jpg', w: 1965, h: 2000, label: 'Team at UR-Huye Campus', category: 'Team' },
-  { src: '/Featured Images/WhatsApp Image 2026-09-25 at 16.41.13.jpeg', w: 720, h: 720, label: 'Team Moment', category: 'Team' },
+ 
+  { src: '/Featured Images/WhatsApp Image 2026-09-25 at 16.41.13.jpeg', w: 720, h: 720, label: 'DTS Founder (Valens)', category: 'Team' },
   { src: '/Teams/ELITEFRAMSTUDIO(124).jpg', w: 2000, h: 1331, label: 'The DTS Team', category: 'Team' },
 ];
 

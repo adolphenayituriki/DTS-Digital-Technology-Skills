@@ -189,7 +189,22 @@ const credentialsCard = (regNumber, pin) => `
   <p style="font-family:${FONT};font-size:13px;line-height:1.65;color:#64748b;margin:10px 0 0;">Use your Registration Number and PIN to log in to your DTS student profile and check your application status, intake details, and results. Do not share your PIN with anyone.</p>
   ${ctaButton("View My Profile", `${siteUrl()}/profile`)}`;
 
-const footerBand = () => {
+// Staff counterpart to credentialsCard. The temporary password is shown in
+// cleartext because it is the only copy the recipient gets before they replace
+// it, and it is worthless the moment they do.
+const staffCredentialsCard = (email, password, roleLabel) => `
+  ${sectionLabel("Your DTS Account Access")}
+  ${detailCard("Sign-in Details — Set Your Own Password First", [
+    ["Email address", `<strong style="font-size:15px;color:#142851;">${escapeHtml(email)}</strong>`],
+    ["Temporary password", `<strong style="font-size:15px;color:#142851;letter-spacing:0.04em;">${escapeHtml(password)}</strong>`],
+    ["Role", escapeHtml(roleLabel)],
+  ])}
+  <p style="font-family:${FONT};font-size:13px;line-height:1.65;color:#64748b;margin:10px 0 0;">Sign in with the details above. The dashboard will ask you to choose a new password straight away — that temporary password stops working as soon as you do.</p>
+  ${ctaButton("Sign In & Set My Password", `${siteUrl()}/login`)}`;
+
+const DEFAULT_FOOTER_NOTE = "This is an automated application confirmation email.";
+
+const footerBand = (note = DEFAULT_FOOTER_NOTE) => {
   const fromEmail = process.env.BREVO_FROM_EMAIL || "";
   return `
   <tr>
@@ -204,14 +219,14 @@ const footerBand = () => {
       </table>
       <div style="border-top:1px solid #26344f;margin:16px 0 0;height:0;font-size:0;line-height:0;">&nbsp;</div>
       <div style="font-family:${FONT};font-size:11px;color:#8fa2c0;line-height:1.6;margin-top:10px;">
-        This is an automated application confirmation email.<br>
+        ${escapeHtml(note)}<br>
         Copyright &copy; 2026 Digital Technology Skills. All rights reserved.
       </div>
     </td>
   </tr>`;
 };
 
-const layout = ({ heading, heroLabel = "", body }) => `
+const layout = ({ heading, heroLabel = "", footerNote, body }) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -238,7 +253,7 @@ const layout = ({ heading, heroLabel = "", body }) => `
           <tr>
             <td class="body-pad" style="padding:28px 32px;">${body}</td>
           </tr>
-          ${footerBand()}
+          ${footerBand(footerNote)}
         </table>
       </td>
     </tr>
@@ -267,6 +282,8 @@ export async function sendApplicationConfirmation(application, intake, credentia
     ${detailCard("Application Details", [
       ["Application", escapeHtml(intakeTitle)],
       ["Level", escapeHtml(level)],
+      ...(application.levelOfStudy ? [["Your level of study", escapeHtml(application.levelOfStudy)]] : []),
+      ...(application.department ? [["Department", escapeHtml(application.department)]] : []),
       ["Preferred course", escapeHtml(getCourses(application))],
       ["Submitted on", formatDate(application.createdAt)],
     ])}
@@ -297,7 +314,7 @@ export async function sendApplicationStatusChange(application, student) {
     body = `
       <p style="font-family:${FONT};font-size:15px;line-height:1.6;color:#1a202c;margin:0 0 14px;">Hello <strong style="color:#142851;">${escapeHtml(application.name)}</strong>,</p>
       <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:0;">Congratulations! We are pleased to inform you that you have been <strong style="color:#142851;">accepted</strong> into <strong style="color:#142851;">${escapeHtml(intakeTitle)}</strong>.</p>
-      ${student ? detailCard("Your DTS Registration", [
+      ${student ? detailCard("Your UR Registration", [
         ["Registration Number", `<strong style="color:#142851;">${escapeHtml(student.regNumber)}</strong>`],
       ]) : ""}
       ${student ? ctaButton("View My Profile", `${siteUrl()}/profile`) : ""}
@@ -336,18 +353,35 @@ export async function sendApplicationStatusChange(application, student) {
 
 export async function notifyAdminsNewApplication(application, intake) {
   const intakeTitle = intake?.title || application.intakeTitle;
+  // An Advanced applicant is only in the system because they attached a Basic
+  // certificate, so the file is surfaced first - verifying it is the first
+  // thing admissions does with these.
+  const isAdvanced = /advanced/i.test(`${intakeTitle} ${intake?.program || ""}`);
+  const rows = [
+    ["Intake", escapeHtml(intakeTitle)],
+    ["Name", escapeHtml(application.name)],
+    ["Email", escapeHtml(application.email)],
+    ["Phone", escapeHtml(application.phone)],
+    ...(application.regNumber ? [["UR Reg number", escapeHtml(application.regNumber)]] : []),
+    ["Level of study", escapeHtml(application.levelOfStudy)],
+    ["Department", escapeHtml(application.department)],
+    ["Gender", escapeHtml(application.gender)],
+    ["Campus", escapeHtml(application.campus)],
+    ["Preferred course", escapeHtml(getCourses(application))],
+    ...(isAdvanced
+      ? [[
+        "Basic certificate",
+        application.certificateName
+          ? `${escapeHtml(application.certificateName)} (uploaded)`
+          : "Missing - must be requested before review",
+      ]]
+      : []),
+    ["Motivation", escapeHtml(application.motivation)],
+    ["Submitted on", formatDate(application.createdAt)],
+  ];
   const body = `
     <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:0;">A new application has just been submitted on the DTS website.</p>
-    ${detailCard("Application Details", [
-      ["Intake", escapeHtml(intakeTitle)],
-      ["Name", escapeHtml(application.name)],
-      ["Email", escapeHtml(application.email)],
-      ["Phone", escapeHtml(application.phone)],
-      ["Campus", escapeHtml(application.campus)],
-      ["Preferred course", escapeHtml(getCourses(application))],
-      ["Motivation", escapeHtml(application.motivation)],
-      ["Submitted on", formatDate(application.createdAt)],
-    ])}
+    ${detailCard("Application Details", rows)}
     <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:14px 0 0;">Review this application in the admin dashboard.</p>
     ${ctaButton("Review Applications", `${siteUrl()}/admin/applications`)}
   `;
@@ -402,6 +436,54 @@ export async function sendStudentCredentials(student, { pin, intakeTitle } = {})
     to: student.email,
     subject: `Your DTS credentials - ${student.regNumber}`,
     html: layout({ heading: "Your DTS Credentials", heroLabel: "Student Profile", body }),
+  });
+}
+
+const ROLE_LABEL = {
+  admin: "Administrator",
+  editor: "Editor",
+  trainer: "Trainer",
+  finance: "Finance",
+  user: "Member",
+};
+
+// How an account came to exist, from the recipient's point of view. `created`
+// reads as a welcome; `reset` reads as "your old password is gone" - important
+// so a reset notice is never mistaken for a phishing email.
+export async function sendStaffCredentials(user, temporaryPassword, { reason = "created", sentBy } = {}) {
+  const isReset = reason === "reset";
+  const heading = isReset ? "Your DTS Password Has Been Reset" : "Welcome to the DTS Team";
+  const roleLabel = ROLE_LABEL[user.role] || user.role;
+
+  const intro = isReset
+    ? `An administrator${sentBy?.name ? ` (<strong style="color:#142851;">${escapeHtml(sentBy.name)}</strong>)` : ""} has reset the password on your DTS account. Your previous password no longer works.`
+    : `An administrator${sentBy?.name ? ` (<strong style="color:#142851;">${escapeHtml(sentBy.name)}</strong>)` : ""} has created a DTS account for you with <strong style="color:#142851;">${escapeHtml(roleLabel)}</strong> access.`;
+
+  const body = `
+    <p style="font-family:${FONT};font-size:15px;line-height:1.6;color:#1a202c;margin:0 0 14px;">Hello <strong style="color:#142851;">${escapeHtml(user.name)}</strong>,</p>
+    <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:0;">${intro}</p>
+    ${staffCredentialsCard(user.email, temporaryPassword, roleLabel)}
+    ${sectionLabel("What Happens Next?")}
+    ${stepsList([
+      { title: "Sign In", text: "Use the email and temporary password above on the DTS website." },
+      { title: "Choose Your Own Password", text: "You will be taken straight to a password screen. Pick something only you know — it replaces the temporary password." },
+      { title: "Use the Dashboard", text: `Once your password is set you land on your ${roleLabel.toLowerCase()} dashboard.` },
+    ])}
+    <p style="font-family:${FONT};font-size:13px;line-height:1.65;color:#64748b;margin:18px 0 0;">For your security: do not share this email or your password, and sign in as soon as you can. If you were not expecting this account, contact the DTS office and do not use the credentials above.</p>
+    <p style="font-family:${FONT};font-size:14px;line-height:1.6;color:#1a202c;margin:16px 0 0;">Best regards,<br><strong style="color:#142851;">The DTS Team</strong></p>
+  `;
+
+  return sendMail({
+    to: user.email,
+    subject: isReset
+      ? "Your DTS account password has been reset"
+      : "Your DTS account is ready — sign in to set your password",
+    html: layout({
+      heading,
+      heroLabel: isReset ? "Password Reset" : roleLabel,
+      footerNote: "This is an automated account notification email.",
+      body,
+    }),
   });
 }
 

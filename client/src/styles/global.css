@@ -264,6 +264,10 @@ input, textarea, select { font-family: inherit; }
   color: var(--text-light); transition: all var(--transition);
 }
 .admin-icon:hover { border-color: var(--primary); color: var(--primary); background: #f0f7fb; }
+/* The avatar fills the whole round button, so drop the button's own border and
+   padding - otherwise the circle sits inside a circle. */
+.admin-icon.navbar-avatar { border-color: transparent; padding: 0; background: none; overflow: hidden; }
+.admin-icon.navbar-avatar:hover { background: none; border-color: transparent; box-shadow: 0 0 0 2px var(--primary); }
 .hamburger {
   display: none; background: none; border: none; padding: 0.45rem; border-radius: 8px;
   color: var(--text); cursor: pointer; align-items: center; justify-content: center;
@@ -582,10 +586,6 @@ input, textarea, select { font-family: inherit; }
   border-top: 1px solid #f1f4f8; padding-top: 1.4rem; margin-top: 0.25rem;
 }
 .testimonial-author .avatar {
-  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: #fff; font-weight: 700; font-size: 0.85rem;
-  display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 14px -4px rgba(35, 168, 222, 0.45);
 }
 .testimonial-author .author {
@@ -900,15 +900,9 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   padding: 0.28rem 0.85rem; border-radius: 999px;
 }
 
-.team-avatar {
-  width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 1.15rem;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 1.7rem; letter-spacing: 0.02em;
-  border: 3px solid #fff; flex-shrink: 0;
-  box-shadow: 0 10px 24px -8px rgba(20, 40, 81, 0.32);
-}
-.team-avatar-photo { background: #e9edf3; overflow: hidden; }
-.team-avatar-photo img { width: 100%; height: 100%; object-fit: cover; }
+/* The avatar itself is styled by the shared .avatar-xl block; the team card
+   only owns the spacing underneath it. */
+.team-grid .avatar { margin: 0 auto 1.15rem; box-shadow: 0 10px 24px -8px rgba(20, 40, 81, 0.32); }
 
 .team-grid {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem;
@@ -1166,11 +1160,6 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   display: flex; align-items: center; gap: 0.6rem;
   background: var(--surface); border: 1px solid #eef0f4; box-shadow: var(--shadow-sm);
   padding: 0.4rem 0.85rem 0.4rem 0.4rem; border-radius: 999px;
-}
-.admin-user-initial {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
 }
 .admin-user-chip div { display: flex; flex-direction: column; line-height: 1.15; }
 .admin-user-chip b { font-size: 0.8rem; font-weight: 700; }
@@ -1465,13 +1454,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .app-adm-row td { transition: background var(--transition); }
 .app-adm-row:hover td { background: #f0f7fb; }
 .app-adm-cell { display: flex; align-items: center; gap: 0.75rem; }
-.app-adm-avatar {
-  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: #fff; font-weight: 700; font-size: 0.82rem;
-  box-shadow: 0 4px 10px -3px rgba(35, 168, 222, 0.45);
-}
+.app-adm-cell .avatar { box-shadow: 0 4px 10px -3px rgba(35, 168, 222, 0.45); }
 .app-status-badge {
   display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: capitalize;
   padding: 0.24rem 0.7rem; border-radius: 999px;
@@ -1493,12 +1476,13 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .app-detail-head.status-reviewed { background: linear-gradient(135deg, #1d96ca, #5cc7f0); }
 .app-detail-head.status-accepted { background: linear-gradient(135deg, #2f9d41, #6bd07a); }
 .app-detail-head.status-rejected { background: linear-gradient(135deg, #dc2626, #f87171); }
-.app-detail-avatar {
-  width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 0.55rem;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.22); border: 2px solid rgba(255, 255, 255, 0.55);
+/* The avatar inside the dark application-detail head keeps the frosted-glass
+   look it had before the shared .avatar component existed. */
+.app-detail-head .avatar {
+  margin: 0 auto 0.55rem;
+  background: rgba(255, 255, 255, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(6px);
-  color: #fff; font-size: 1.05rem; font-weight: 800;
   box-shadow: 0 8px 20px rgba(6, 16, 43, 0.3);
 }
 .app-detail-head h3 { color: #fff; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
@@ -2149,6 +2133,12 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .apply-step-label { font-size: 0.7rem; font-weight: 600; color: var(--text-light); letter-spacing: 0.01em; }
 .apply-steps li.is-active .apply-step-label { color: var(--primary); font-weight: 700; }
+/* Advanced applicants see five steps, so the labels are allowed to shrink
+   rather than wrap to two lines and unalign the connector line. */
+@media (max-width: 620px) {
+  .apply-step-label { font-size: 0.62rem; }
+  .apply-steps { gap: 0.25rem; }
+}
 .step-hint { font-size: 0.84rem; color: var(--text-light); margin: 0 0 1.1rem; line-height: 1.5; }
 .course-options { display: grid; gap: 0.55rem; }
 .course-option {
@@ -2407,12 +2397,6 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 }
 
 /* â”€â”€ Dashboard â”€â”€ */
-.dash-avatar {
-  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: #fff; font-weight: 700; font-size: 1rem;
-  display: flex; align-items: center; justify-content: center;
-}
 .dash-app-item {
   display: flex; align-items: flex-start; gap: 0.75rem;
   padding: 1rem 0; border-bottom: 1px solid #f1f5f9;
@@ -2541,6 +2525,214 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
 
+/* â”€â”€ Avatar (shared, all surfaces) â”€â”€ */
+/* Rendered by components/Avatar.jsx. The gradient comes from an inline style
+   set by the component, so this only handles shape, size and the photo. */
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; overflow: hidden; position: relative;
+  border-radius: 50%; color: #fff; font-weight: 700;
+  line-height: 1; text-transform: uppercase; user-select: none;
+  background: var(--avatar-bg, linear-gradient(135deg, #23A8DE 0%, #5CC7F0 100%));
+}
+.avatar-initials { pointer-events: none; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-xs { width: 26px; height: 26px; font-size: 0.6rem; }
+.avatar-sm { width: 32px; height: 32px; font-size: 0.7rem; }
+.avatar-md { width: 40px; height: 40px; font-size: 0.85rem; }
+.avatar-lg { width: 56px; height: 56px; font-size: 1.15rem; }
+.avatar-xl { width: 96px; height: 96px; font-size: 1.9rem; border: 3px solid #fff; box-shadow: var(--shadow-md); }
+.avatar.has-photo { background: #e9edf3; }
+.avatar-ring { box-shadow: 0 0 0 2px #fff, var(--shadow-sm); }
+
+/* Visible to screen readers, invisible on screen. Used for the avatar's
+   accessible name when the badge is initials-only. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* â”€â”€ My Profile (/account) â”€â”€ */
+.account-section { padding-top: 2.25rem; }
+.account-layout {
+  display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  gap: 1.5rem; align-items: start;
+}
+.account-aside { display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 88px; }
+.account-main { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+
+.account-id { text-align: center; padding: 1.5rem 1.1rem; }
+.account-id h3 { font-size: 1.05rem; font-weight: 700; margin-top: 0.9rem; }
+.account-role {
+  display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.4rem;
+  background: #e8f6fd; color: var(--primary); font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em; padding: 0.2rem 0.65rem; border-radius: 999px;
+}
+.account-id-email {
+  display: block; margin-top: 0.6rem; font-size: 0.76rem; color: var(--text-light);
+  overflow-wrap: anywhere;
+}
+
+.account-tips { padding: 1rem 1.1rem; }
+.account-tips h4 {
+  display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-light); margin-bottom: 0.6rem;
+}
+.account-tips ul { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
+.account-tips li { font-size: 0.8rem; line-height: 1.5; color: var(--text-light); padding-left: 0.9rem; position: relative; }
+.account-tips li::before {
+  content: ''; position: absolute; left: 0; top: 0.55em;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--primary-light);
+}
+.account-tips b { color: var(--text); }
+
+.account-card { padding: 1.25rem 1.35rem 1.35rem; }
+.account-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;
+}
+.account-card-head h3 { display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; font-weight: 700; }
+.account-card-head h3 svg { color: var(--primary); }
+.account-card-head p { font-size: 0.8rem; color: var(--text-light); margin-top: 0.15rem; }
+.account-dirty {
+  flex-shrink: 0; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+  font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px;
+}
+.account-divider { border: none; border-top: 1px solid #eef1f6; margin: 1.35rem 0; }
+
+.account-photo-row { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; }
+.account-photo-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.account-photo-actions label { cursor: pointer; }
+.account-photo-hint { width: 100%; font-size: 0.74rem; color: var(--text-light); }
+
+.account-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.35rem; }
+.account-pw-hint { display: block; margin-bottom: 0.75rem; }
+
+.account-danger { border-color: #fecaca; }
+.account-danger h3 { font-size: 0.95rem; font-weight: 700; color: var(--error); }
+.account-danger p { font-size: 0.82rem; color: var(--text-light); margin: 0.35rem 0 0.85rem; max-width: 46ch; }
+.account-since { display: block; margin-top: 0.85rem; font-size: 0.74rem; color: var(--text-light); }
+
+.account-gate { max-width: 460px; margin: 0 auto; text-align: center; padding: 2.5rem 1.5rem; }
+.account-gate > svg { color: var(--primary); }
+.account-gate h2 { font-size: 1.25rem; font-weight: 700; margin: 0.9rem 0 0.4rem; }
+.account-gate p { color: var(--text-light); font-size: 0.9rem; }
+.account-gate-actions { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; margin-top: 1.35rem; }
+
+/* Photo picker reused by the members admin form. */
+.member-photo-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.member-photo-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.member-photo-actions label { cursor: pointer; }
+.member-photo-actions small { width: 100%; font-size: 0.74rem; color: var(--text-light); }
+
+/* -- Password change (shared by every dashboard, /account and the forced
+      first-login screen) ---------------------------------------------- */
+.pw-form .form-group { margin-bottom: 0.9rem; }
+.pw-input-wrap { position: relative; display: flex; align-items: center; }
+.pw-input-wrap > svg { position: absolute; left: 12px; color: var(--text-light); pointer-events: none; }
+.pw-input-wrap .form-control { padding-left: 2.4rem; padding-right: 2.6rem; }
+.pw-field-hint { display: block; margin-top: 0.3rem; font-size: 0.75rem; color: var(--text-light); }
+
+.pw-strength { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.4rem; }
+.pw-strength-track { flex: 1; height: 5px; border-radius: 999px; background: #eef1f6; overflow: hidden; }
+.pw-strength-track span { display: block; height: 100%; border-radius: 999px; transition: width 0.2s ease, background 0.2s ease; }
+.pw-strength small { font-size: 0.72rem; font-weight: 700; }
+
+.pw-rules {
+  list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.35rem 0.9rem; margin: 0.25rem 0 0.9rem;
+}
+.pw-rules li {
+  display: flex; align-items: center; gap: 0.35rem;
+  font-size: 0.76rem; color: var(--text-light);
+}
+.pw-rules li svg { flex-shrink: 0; color: #cbd5e1; }
+.pw-rules li.ok { color: var(--success); }
+.pw-rules li.ok svg { color: var(--success); }
+
+/* Forced first-login screen. */
+.pw-gate-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 2.5rem 1.25rem; background: #f4f6fa;
+}
+.pw-gate { width: 100%; max-width: 560px; }
+.pw-gate-screen .pw-gate > .account-card,
+.pw-gate.is-embedded > .account-card { box-shadow: var(--shadow-sm); }
+.pw-gate-head { text-align: center; margin-bottom: 1.25rem; }
+.pw-gate-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #e8f6fd; color: var(--primary); margin-bottom: 0.75rem;
+}
+.pw-gate-head h1 { font-size: 1.4rem; font-weight: 700; }
+.pw-gate-head p { font-size: 0.85rem; color: var(--text-light); margin-top: 0.2rem; }
+
+.pw-gate-banner {
+  display: flex; gap: 0.7rem; align-items: flex-start;
+  background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12;
+  border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 1.1rem;
+}
+.pw-gate-banner > svg { flex-shrink: 0; margin-top: 0.1rem; }
+.pw-gate-banner b { display: block; font-size: 0.9rem; }
+.pw-gate-banner p { font-size: 0.82rem; line-height: 1.6; margin-top: 0.2rem; }
+
+.pw-gate-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; flex-wrap: wrap; margin-top: 1.1rem;
+}
+.pw-gate-foot p { font-size: 0.78rem; color: var(--text-light); max-width: 40ch; }
+.pw-gate-foot a { color: var(--primary); font-weight: 600; }
+
+/* Settings page (admin / trainer / finance workspaces). */
+.settings-panel { align-self: start; }
+.settings-security { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.settings-footnote { font-size: 0.78rem; color: var(--text-light); margin-top: 1.1rem; }
+.settings-panel .account-tips { padding: 0.9rem 1rem; background: #f8fafc; border-radius: 10px; }
+
+/* User Access: password state and the one-time copy-back after a mail failure. */
+.pw-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 999px;
+  background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; white-space: nowrap;
+}
+.pw-badge.is-pending { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.pw-reset-btn { margin-top: 0.4rem; width: 100%; }
+.fallback-credentials { align-items: flex-start; }
+.fallback-credentials-row { display: flex; align-items: flex-end; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.fallback-credentials-row span { display: flex; flex-direction: column; }
+.fallback-credentials-row small { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
+.fallback-credentials-row b { font-size: 0.88rem; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.create-user-note { align-items: flex-start; margin: 0 0 1rem; }
+.create-user-note p { font-size: 0.8rem; line-height: 1.6; }
+.admin-table-foot {
+  display: flex; gap: 0.5rem; align-items: flex-start;
+  padding: 0.9rem 1rem 0; border-top: 1px solid #eef1f6; margin-top: 0.5rem;
+}
+.admin-table-foot svg { flex-shrink: 0; color: var(--primary); margin-top: 0.1rem; }
+.admin-table-foot p { font-size: 0.76rem; color: var(--text-light); line-height: 1.6; }
+
+/* Student profile: security card and its "change your PIN" alert. */
+.profile-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.7rem; }
+.profile-pin-alert { align-items: flex-start; }
+.profile-pin-alert p { font-size: 0.85rem; line-height: 1.6; }
+#profile-security { margin-top: 1.25rem; }
+#profile-security .profile-card { padding: 1.15rem 1.25rem 1.25rem; }
+
+/* Navbar avatar badge for an outstanding password change. */
+.navbar-avatar { position: relative; }
+.navbar-avatar-alert {
+  position: absolute; top: -1px; right: -1px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--error); border: 2px solid #fff;
+}
+
+@media (max-width: 900px) {
+  .account-layout { grid-template-columns: 1fr; }
+  .account-aside { position: static; }
+}
+
 /* â”€â”€ Student Profile (public /profile) â”€â”€ */
 .profile-key-icon {
   margin: 0 auto;
@@ -2553,16 +2745,6 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   position: absolute; left: 12px; color: var(--text-light); pointer-events: none;
 }
 .profile-input-wrap .form-control { padding-left: 2.4rem; }
-.profile-head {
-  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
-  padding: 1rem 1.1rem;
-}
-.profile-avatar {
-  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
-  background: transparent; color: var(--primary); font-weight: 800; font-size: 1.05rem;
-  border: 1.5px solid rgba(0, 128, 96, 0.35);
-  display: flex; align-items: center; justify-content: center;
-}
 .profile-reg {
   display: inline-flex; align-items: center; gap: 0.35rem;
   margin-top: 0.2rem; font-size: 0.78rem; font-weight: 700;
@@ -2583,11 +2765,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 
 /* Compact panel rhythm for the student profile. Replaces the page's former
    inline paddings/margins so every section lines up at the same density. */
-.profile-shell { max-width: 780px; }
-.profile-head-body { flex: 1; min-width: 0; }
-.profile-head-body h3 { margin: 0; }
-.profile-center { text-align: center; margin-top: 0.9rem; }
-.profile-center.is-spaced { margin-top: 1.1rem; }
+.profile-shell { max-width: 1180px; }
 .profile-auth { padding: 1.5rem; max-width: 480px; margin: 0 auto; }
 .profile-auth-head { text-align: center; margin-bottom: 1.1rem; }
 .profile-auth-head h3 { margin: 0.7rem 0 0.25rem; font-size: 1rem; }
@@ -2672,7 +2850,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 
 @media (max-width: 560px) {
   .profile-head { gap: 0.6rem; padding: 0.9rem; }
-  .profile-avatar { width: 42px; height: 42px; font-size: 0.95rem; }
+  .profile-head .avatar { width: 42px; height: 42px; font-size: 0.95rem; }
 }
 
 /* â”€â”€ Admin Students â”€â”€ */
@@ -3106,17 +3284,6 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 }
 
 /* â”€â”€ Student Profile Compact â”€â”€ */
-.profile-head {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 1rem 1.2rem;
-}
-.profile-avatar {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: #fff; display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 1.2rem; flex-shrink: 0;
-}
-.profile-head h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.2rem; }
 .profile-reg { font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 0.3rem; }
 .app-status-badge {
   font-size: 0.68rem; font-weight: 700; padding: 0.3rem 0.7rem;
@@ -3186,20 +3353,25 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .profile-safe { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.7rem 0.9rem; background: #f8fafc; border: 1px solid #eef0f4; border-radius: var(--radius-md); margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-light); }
 .profile-safe svg { flex-shrink: 0; margin-top: 0.1rem; color: var(--success); }
 
-/* Section compact */
-.section-compact { padding: 1.25rem 0; }
-.page-header-compact { padding: 1.5rem 0 0.75rem; }
-.page-header-compact h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
-.page-header-compact p { color: var(--text-light); font-size: 0.85rem; }
+/* Section compact — only the student profile uses these two, so they are
+   trimmed as hard as possible to keep the whole board above the fold. */
+.section-compact { padding: 0.7rem 0 1.4rem; }
+.page-header-compact { padding: 1rem 0 0.3rem; }
+.page-header-compact h1 {
+  font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em;
+  margin-bottom: 0.1rem;
+}
+.page-header-compact p { color: var(--text-light); font-size: 0.75rem; }
 
 @media (max-width: 640px) {
-  .profile-head { padding: 0.85rem 1rem; gap: 0.75rem; }
-  .profile-avatar { width: 48px; height: 48px; font-size: 1rem; }
-  .profile-head h3 { font-size: 1rem; }
   .app-status-badge { font-size: 0.62rem; padding: 0.25rem 0.55rem; }
   .profile-grid { grid-template-columns: 1fr; }
   .payment-summary { grid-template-columns: 1fr; }
-  .attendance-summary { grid-template-columns: 1fr; gap: 0.4rem; }
+  /* Kept as three columns: the stat boxes are short, and stacking them is what
+     made the old single-column page so long. */
+  .attendance-summary { gap: 0.35rem; }
+  .attendance-stat { padding: 0.55rem 0.3rem; }
+  .attendance-stat-value { font-size: 1.05rem; }
   .upcoming-session { padding: 0.5rem; gap: 0.5rem; }
 }
 
@@ -3237,6 +3409,15 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   border-color: var(--error);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
 }
+/* Confirmed-good fields, e.g. a password that already satisfies the policy. */
+.form-control.is-valid {
+  border-color: var(--success);
+  background: #f6fffb;
+}
+.form-control.is-valid:focus {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+}
 .form-error-hint {
   display: block;
   margin-top: 0.35rem;
@@ -3244,22 +3425,96 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   line-height: 1.4;
   color: var(--error);
 }
-
-/* Profile overview: single status line, at-a-glance tiles, section headings */
-.profile-head-status {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: var(--text-light, #6b7280);
+.form-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-light);
 }
-.profile-head-status svg { flex-shrink: 0; margin-top: 0.1rem; }
-.profile-head-status.is-active { color: var(--success, #39b24c); }
-.profile-head-status.is-applicant { color: var(--primary, #23a8de); }
-.profile-head-status.is-rejected { color: var(--error, #ef4444); }
 
+/* Basic certificate picker on the Advanced application step */
+.cert-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1.25rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft, #fbfdff);
+  color: var(--text-light);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.cert-drop:hover {
+  border-color: var(--primary);
+  background: var(--primary-light, #f2f9fd);
+  color: var(--primary);
+}
+.cert-drop.is-invalid {
+  border-color: var(--error);
+  background: #fff7f7;
+}
+.cert-drop strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+.cert-drop small {
+  font-size: 0.78rem;
+}
+.cert-drop svg { color: var(--primary); }
+.cert-drop.is-invalid svg { color: var(--error); }
+/* The input is only a keyboard/click target; the label draws the control. */
+.cert-drop input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.cert-drop:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.cert-picked {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--success);
+  border-radius: var(--radius);
+  background: #f6fffb;
+}
+.cert-picked-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--success);
+  color: #fff;
+}
+.cert-picked-text {
+  flex: 1;
+  min-width: 0;
+}
+.cert-picked-text strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.cert-picked-text small {
+  font-size: 0.76rem;
+  color: var(--text-light);
+}
+
+/* Profile overview: at-a-glance tiles above the card grid */
 .profile-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -3301,15 +3556,253 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .profile-summary-tile.is-ok .profile-summary-value { color: var(--success, #39b24c); }
 .profile-summary-tile.is-warn .profile-summary-value { color: var(--error, #ef4444); }
 
-.profile-section-label {
+/* ---- Student profile: compact dashboard ----
+   The profile used to be a single 780px column of stacked cards, then a
+   two-column layout with a sticky rail. Both were tall, because every panel
+   took a full row. This is a dense board: one identity strip, one status
+   line, a stat row, then a 3-up and a 2-up card grid. Everything fits a
+   laptop screen without scrolling. */
+.profile-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.profile-dash > * { margin-top: 0; }
+
+/* Anchor targets must clear the sticky site header. */
+#profile-overview,
+#profile-fees,
+#profile-attendance,
+#profile-sessions,
+#profile-results,
+#profile-achievements,
+#profile-note { scroll-margin-top: 84px; }
+
+/* Identity strip: name, section jumps and the two actions, on one line. */
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.8rem;
+}
+.profile-hero-id {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.profile-hero-text { min-width: 0; }
+.profile-hero-text h2 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.profile-hero .app-status-badge { margin-left: 0; }
+.profile-hero .profile-reg { margin-top: 0.1rem; }
+
+.profile-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+.profile-jump a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #e8edf2;
+  border-radius: 999px;
+  background: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text, #1a1a2e);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color var(--transition, 0.15s), color var(--transition, 0.15s), background var(--transition, 0.15s);
+}
+.profile-jump a:hover {
+  border-color: var(--primary, #23a8de);
+  background: #f2f8fd;
+  color: var(--primary, #23a8de);
+}
+.profile-jump a svg { width: 13px; height: 13px; color: var(--text-light, #6b7280); }
+.profile-jump a:hover svg { color: var(--primary, #23a8de); }
+
+.profile-hero-actions { display: flex; gap: 0.35rem; }
+
+/* Status banner: one line, never a separate panel. */
+.profile-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.profile-banner svg { flex-shrink: 0; }
+.profile-banner p { margin: 0; }
+.profile-banner.is-active { background: #f2fbf4; border-color: #c7e9cf; color: #1d6b2c; }
+.profile-banner.is-applicant { background: #f2f8fd; border-color: #c7e2f5; color: #1a5b83; }
+.profile-banner.is-rejected { background: #fef4f4; border-color: #f6cfcf; color: #9b2222; }
+
+/* Stat row: label above, value and note on one line. */
+.profile-summary { margin-bottom: 0; }
+.profile-summary-tile { padding: 0.45rem 0.6rem; }
+.profile-summary-value { margin-top: 0; font-size: 0.98rem; }
+.profile-summary-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+  margin-top: 0.15rem;
+}
+.profile-summary-note { margin-top: 0; font-size: 0.68rem; }
+
+/* Card grids. `is-3` for the reference panels, `is-2` for the wide ones. */
+.profile-cols {
+  display: grid;
+  gap: 0.7rem;
+  align-items: start;
+}
+.profile-cols.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.profile-cols.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-cols .profile-card { margin-top: 0; }
+
+.profile-card { padding: 0.65rem 0.75rem; }
+.profile-card-title {
+  font-size: 0.78rem;
+  margin-bottom: 0.45rem;
+  gap: 0.35rem;
+}
+.profile-block { margin-top: 0.45rem; }
+.profile-section { margin-top: 0.55rem; }
+.profile-hint { font-size: 0.65rem; }
+
+/* Fields: label and value stay tight so six of them fit two columns. */
+.profile-grid { gap: 0.4rem 0.7rem; font-size: 0.78rem; }
+.profile-field span { font-size: 0.62rem; gap: 0.25rem; }
+.profile-field b { font-size: 0.8rem; }
+.intake-course-chip { font-size: 0.64rem; padding: 0.2rem 0.5rem; margin: 0.15rem 0.25rem 0.15rem 0; }
+.app-detail-label { font-size: 0.62rem; gap: 0.25rem; margin-bottom: 0.3rem; }
+
+/* Money: a label/value list rather than three boxes. In a one-third-width
+   column the boxes wrapped to two rows and cost about 40px. */
+.payment-summary {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #eef0f4;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.payment-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: #f8fafc;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+}
+.payment-stat + .payment-stat { border-top: 1px solid #eef0f4; }
+.payment-stat-label {
+  font-size: 0.66rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+.payment-stat-value { font-size: 0.82rem; font-weight: 700; margin-top: 0; }
+.payment-status-badge { margin-top: 0; font-size: 0.66rem; padding: 0.25rem 0.55rem; }
+.profile-payment-foot {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin: 1.1rem 0 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-light, #6b7280);
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
 }
-.profile-section-label svg { color: var(--primary, #23a8de); }
+.profile-sub.is-inline { margin-top: 0; font-size: 0.68rem; }
+.profile-history { margin-top: 0; gap: 0.15rem; }
+.profile-history-row { padding: 0.2rem 0.4rem; font-size: 0.72rem; }
+
+/* Attendance stays three across, including on phones: the boxes are short and
+   stacking them was one of the biggest sources of page height. */
+.attendance-stat { padding: 0.45rem 0.3rem; }
+.attendance-stat-value { font-size: 1.05rem; }
+.attendance-stat-label { font-size: 0.58rem; margin-top: 0.1rem; }
+.upcoming-sessions { gap: 0.25rem; margin-top: 0.35rem; }
+.upcoming-session { padding: 0.35rem 0.45rem; gap: 0.45rem; }
+.upcoming-session-title { font-size: 0.75rem; }
+.upcoming-session-meta { font-size: 0.66rem; }
+
+/* Empty states: icon beside the sentence, not stacked above it. */
+.profile-empty.is-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+  text-align: left;
+}
+.profile-empty.is-inline p { margin: 0; font-size: 0.76rem; }
+
+/* Results table */
+.profile-marks { font-size: 0.72rem; }
+.profile-marks th, .profile-marks td { padding: 0.32rem 0.45rem; }
+.profile-marks th { font-size: 0.58rem; }
+
+/* Achievements: two per row inside the half-width panel. */
+.profile-achievements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+.profile-achievement {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+}
+.profile-achievement-icon { width: 26px; height: 26px; border-radius: 7px; }
+.profile-achievement-body b { font-size: 0.76rem; line-height: 1.25; }
+.profile-achievement-body .muted { font-size: 0.66rem; }
+.profile-achievement .btn { padding: 0.2rem 0.45rem; font-size: 0.66rem; }
+
+/* Note and safety line: label inline with the text, so both stay one line. */
+.profile-note.is-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+.profile-note.is-inline .app-detail-label { margin-bottom: 0; flex: 0 0 auto; }
+.profile-note.is-inline p { font-size: 0.78rem; }
+.profile-safe.is-inline {
+  margin-top: 0;
+  padding: 0.1rem 0.15rem;
+  background: none;
+  border: 0;
+  font-size: 0.68rem;
+}
+
+@media (max-width: 1080px) {
+  .profile-cols.is-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .profile-cols.is-3, .profile-cols.is-2 { grid-template-columns: 1fr; }
+  .profile-jump { margin-left: 0; width: 100%; }
+  .profile-hero-actions { width: 100%; }
+  .profile-hero-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+@media (max-width: 480px) {
+  .profile-achievements { grid-template-columns: 1fr; }
+  .profile-note.is-inline { flex-direction: column; gap: 0.15rem; }
+}
+

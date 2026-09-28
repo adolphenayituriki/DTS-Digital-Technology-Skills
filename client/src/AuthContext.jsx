@@ -68,6 +68,22 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, isLoggedIn: !!user, ready, setSession, logout }), [user, ready, setSession, logout]);
+  // Merge a partial profile patch into the cached session. Used after
+  // PUT /auth/me so the avatar in the navbar, the staff sidebar headers and
+  // this page all update from the one response instead of each re-fetching.
+  const updateUser = useCallback((patch) => {
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current, ...patch };
+      try {
+        localStorage.setItem('dts_user', JSON.stringify(next));
+      } catch {
+        /* private mode: keep the in-memory value, just skip the cache */
+      }
+      return next;
+    });
+  }, []);
+
+  const value = useMemo(() => ({ user, isLoggedIn: !!user, ready, setSession, logout, updateUser }), [user, ready, setSession, logout, updateUser]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

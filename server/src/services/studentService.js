@@ -51,6 +51,9 @@ export async function createStudentForApplication(application, { userId } = {}) 
           : [],
         motivation: application.motivation,
         status: studentStatusFromApplication(application.status),
+        // The PIN is emailed to the applicant, so it is a temporary password
+        // until they choose their own.
+        mustChangePin: true,
       });
       return { student, pin };
     } catch (error) {
@@ -64,5 +67,14 @@ export async function createStudentForApplication(application, { userId } = {}) 
 export async function resetStudentPin(student) {
   const pin = generatePin();
   student.pinHash = await bcrypt.hash(pin, PIN_SALT_ROUNDS);
+  student.mustChangePin = true;
   return { student, pin };
+}
+
+// Used only by the student themselves, so it does not raise the flag. Keeping
+// the hashing here means the PIN can never be written in plaintext.
+export async function setStudentPin(student, pin) {
+  student.pinHash = await bcrypt.hash(pin, PIN_SALT_ROUNDS);
+  student.mustChangePin = false;
+  return student;
 }

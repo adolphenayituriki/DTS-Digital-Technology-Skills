@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, Calendar, FileText, ArrowRight, GraduationCap, IdCard, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { ClipboardList, Calendar, FileText, ArrowRight, GraduationCap, IdCard, Settings } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
+import Avatar from '../components/Avatar';
+import PasswordForm from '../components/PasswordForm';
+import PasswordChangeGate from '../components/PasswordChangeGate';
 
 const statusMap = {
   pending: { label: 'Pending', color: 'var(--warning)' },
@@ -25,9 +28,6 @@ export default function Dashboard() {
   const [applications, setApplications] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pw, setPw] = useState({ currentPassword: '', newPassword: '', confirm: '' });
-  const [showPw, setShowPw] = useState(false);
-  const [pwSaving, setPwSaving] = useState(false);
 
   useEffect(() => {
     if (!ready) return;
@@ -44,38 +44,13 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [ready, isLoggedIn, navigate, toast]);
 
-  const changePassword = async (e) => {
-    e.preventDefault();
-    if (!pw.currentPassword || !pw.newPassword) {
-      toast.error('Enter your current and new password.');
-      return;
-    }
-    if (pw.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters.');
-      return;
-    }
-    if (pw.newPassword !== pw.confirm) {
-      toast.error('New passwords do not match.');
-      return;
-    }
-    setPwSaving(true);
-    try {
-      await apiFetch('/auth/password', {
-        method: 'PUT',
-        body: JSON.stringify({ currentPassword: pw.currentPassword, newPassword: pw.newPassword }),
-      });
-      setPw({ currentPassword: '', newPassword: '', confirm: '' });
-      toast.success('Password updated.');
-    } catch (err) {
-      toast.error(err.message || 'Failed to update password.');
-    } finally {
-      setPwSaving(false);
-    }
-  };
-
   if (!ready || !isLoggedIn) {
     return <div className="loading"><div className="spinner" />Loading...</div>;
   }
+
+  // Same rule as the staff dashboards: the emailed temporary password has to
+  // be replaced before the account can be used.
+  if (user?.mustChangePassword) return <PasswordChangeGate embedded />;
 
   const accepted = applications.filter((a) => a.status === 'accepted').length;
   const pending = applications.filter((a) => a.status === 'pending').length;
@@ -95,9 +70,7 @@ export default function Dashboard() {
             <div className="dash-stack">
               <div className="dash-panel">
                 <div className="dash-profile-head">
-                  <div className="dash-avatar">
-                    {(user?.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
-                  </div>
+                  <Avatar size="lg" name={user?.name || user?.email} src={user?.photo} />
                   <div>
                     <h3>{user?.name}</h3>
                     <p>{user?.email}</p>
@@ -141,54 +114,21 @@ export default function Dashboard() {
                     Browse Programs
                     <ArrowRight size={15} />
                   </Link>
+                  <Link to="/account" className="dash-action">
+                    <span className="dash-action-icon"><Settings size={15} /></span>
+                    Profile &amp; Security
+                    <ArrowRight size={15} />
+                  </Link>
                 </div>
               </div>
 
-              <div className="dash-panel">
-                <div className="dash-form-title">
-                  <KeyRound size={15} /> Change Password
-                </div>
-                <form onSubmit={changePassword} className="dash-pw-grid">
-                  <div className="form-group">
-                    <label>Current password</label>
-                    <input
-                      className="form-control"
-                      type={showPw ? 'text' : 'password'}
-                      value={pw.currentPassword}
-                      onChange={(e) => setPw((c) => ({ ...c, currentPassword: e.target.value }))}
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>New password</label>
-                    <input
-                      className="form-control"
-                      type={showPw ? 'text' : 'password'}
-                      value={pw.newPassword}
-                      onChange={(e) => setPw((c) => ({ ...c, newPassword: e.target.value }))}
-                      autoComplete="new-password"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Confirm new password</label>
-                    <input
-                      className="form-control"
-                      type={showPw ? 'text' : 'password'}
-                      value={pw.confirm}
-                      onChange={(e) => setPw((c) => ({ ...c, confirm: e.target.value }))}
-                      autoComplete="new-password"
-                    />
-                  </div>
-                  <div className="dash-pw-actions">
-                    <button className="btn btn-primary btn-sm" type="submit" disabled={pwSaving}>
-                      {pwSaving ? 'Saving...' : 'Update Password'}
-                    </button>
-                    <button className="btn btn-outline btn-sm" type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Hide passwords' : 'Show passwords'}>
-                      {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                  </div>
-                </form>
-              </div>
+              <PasswordForm
+                className="dash-panel"
+                heading="Change Password"
+                description="Your password is yours alone. Change it if you think anyone else has seen it."
+                submitLabel="Update Password"
+                showLastChanged
+              />
             </div>
 
             <div className="dash-panel">

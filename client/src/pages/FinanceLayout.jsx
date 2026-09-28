@@ -10,5 +10,12 @@ const navItems = [
 ];
 
 export default function FinanceLayout() {
-  return <StaffLayout title="Finance Workspace" subtitle="Payments, intake fees, income, and expenses" navItems={navItems} />;
+  return (
+    <StaffLayout
+      title="Finance Workspace"
+      subtitle="Payments, intake fees, income, and expenses"
+      navItems={navItems}
+      settingsPath="/finance/settings"
+    />
+  );
 }

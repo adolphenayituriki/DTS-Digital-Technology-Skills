@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
   Check, X, Eye, Trash2, Search, Download, Mail, Phone, MapPin,
   CalendarDays, BookOpen, FileText, GraduationCap, RefreshCcw,
+  User, Hash, Building2, Paperclip,
 } from 'lucide-react';
-import apiFetch from '../../api';
+import apiFetch, { getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
+import Avatar from '../../components/Avatar';
 
 const STATUS_META = {
   pending: { label: 'Pending', color: 'var(--text-light)', bg: '#f1f5f9' },
@@ -13,9 +15,6 @@ const STATUS_META = {
   accepted: { label: 'Accepted', color: 'var(--success)', bg: '#f0fdf4' },
   rejected: { label: 'Rejected', color: 'var(--error)', bg: '#fef2f2' },
 };
-
-const initials = (name = '') =>
-  name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -75,7 +74,11 @@ export default function ApplicationsAdmin() {
     (a) =>
       (!filter || filter === 'all' || a.status === filter) &&
       (!query ||
-        [a.name, a.email, a.phone, a.campus, a.program, a.intakeTitle, a.status, ...(a.preferredCourses || [])]
+        [
+          a.name, a.email, a.phone, a.regNumber, a.levelOfStudy, a.department, a.gender,
+          a.campus, a.program, a.intakeTitle, a.status, a.certificateName,
+          ...(a.preferredCourses || []),
+        ]
           .filter(Boolean)
           .some((v) => v.toString().toLowerCase().includes(query))),
   );
@@ -101,18 +104,25 @@ export default function ApplicationsAdmin() {
       'Full Name': a.name,
       'Email': a.email,
       'Phone': a.phone || '',
+      'DTS Reg Number': a.regNumber || '',
+      'Gender': a.gender || '',
+      'Level of Study': a.levelOfStudy || '',
+      'Department': a.department || '',
       'Campus / Location': a.campus || '',
       'Intake': a.intakeTitle,
       'Program': a.program || '',
       'Preferred Courses': (a.preferredCourses || []).join('; '),
+      'Basic Certificate': a.certificateName || (a.certificate ? 'Uploaded' : ''),
       'Motivation': a.motivation || '',
       'Applied On': fmtDate(a.createdAt),
       'Status': STATUS_META[a.status] ? STATUS_META[a.status].label : a.status,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
+    // Column order must match the header order above.
     ws['!cols'] = [
       { wch: 4 }, { wch: 24 }, { wch: 26 }, { wch: 16 }, { wch: 16 },
-      { wch: 28 }, { wch: 18 }, { wch: 30 }, { wch: 48 }, { wch: 13 }, { wch: 12 },
+      { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 28 },
+      { wch: 18 }, { wch: 30 }, { wch: 26 }, { wch: 48 }, { wch: 13 }, { wch: 12 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Applications');
@@ -185,10 +195,15 @@ export default function ApplicationsAdmin() {
                 onKeyDown={(e) => { if (e.key === 'Enter') setSelected(app); }}>
                 <td>
                   <div className="app-adm-cell">
-                    <span className="app-adm-avatar">{initials(app.name)}</span>
+                    <Avatar size="sm" name={app.name} />
                     <div>
                       <strong>{app.name}</strong>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{app.email}</div>
+                      {app.regNumber && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                          <Hash size={11} /> {app.regNumber}
+                        </div>
+                      )}
                       {app.phone && (
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
                           <Phone size={11} /> {app.phone}
@@ -243,7 +258,7 @@ export default function ApplicationsAdmin() {
               <button className="dialog-close app-detail-close" onClick={() => setSelected(null)} aria-label="Close">
                 <X size={18} />
               </button>
-              <span className="app-detail-avatar">{initials(selected.name)}</span>
+              <Avatar size="lg" name={selected.name} />
               <h3>{selected.name}</h3>
               <a className="app-detail-mail" href={`mailto:${selected.email}`}>
                 <Mail size={13} /> {selected.email}
@@ -257,20 +272,32 @@ export default function ApplicationsAdmin() {
             </div>
 
             <div className="app-detail-body">
-              <div className="app-detail-grid">
-                <div className="app-detail-item">
-                  <CalendarDays size={15} /><span>Phone</span><b>{renderDetailValue(selected.phone)}</b>
+                <div className="app-detail-grid">
+                  <div className="app-detail-item">
+                    <Phone size={15} /><span>Phone</span><b>{renderDetailValue(selected.phone)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <MapPin size={15} /><span>Campus</span><b>{renderDetailValue(selected.campus)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <GraduationCap size={15} /><span>Intake</span><b>{selected.intakeTitle}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <CalendarDays size={15} /><span>Applied</span><b>{fmtDateTime(selected.createdAt)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <Hash size={15} /><span>Reg Number</span><b>{renderDetailValue(selected.regNumber)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <User size={15} /><span>Level of Study</span><b>{renderDetailValue(selected.levelOfStudy)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <Building2 size={15} /><span>Department</span><b>{renderDetailValue(selected.department)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <User size={15} /><span>Gender</span><b>{renderDetailValue(selected.gender || 'Prefer not to say')}</b>
+                  </div>
                 </div>
-                <div className="app-detail-item">
-                  <MapPin size={15} /><span>Campus</span><b>{renderDetailValue(selected.campus)}</b>
-                </div>
-                <div className="app-detail-item">
-                  <GraduationCap size={15} /><span>Intake</span><b>{selected.intakeTitle}</b>
-                </div>
-                <div className="app-detail-item">
-                  <CalendarDays size={15} /><span>Applied</span><b>{fmtDateTime(selected.createdAt)}</b>
-                </div>
-              </div>
 
               <div className="app-detail-block">
                 <div className="app-detail-label"><BookOpen size={15} /> Program & Preferred Courses</div>
@@ -289,6 +316,23 @@ export default function ApplicationsAdmin() {
                 <div className="app-detail-block">
                   <div className="app-detail-label"><FileText size={15} /> Motivation</div>
                   <p>{selected.motivation}</p>
+                </div>
+              )}
+
+              {selected.certificate && (
+                <div className="app-detail-block">
+                  <div className="app-detail-label"><Paperclip size={15} /> Basic Certificate</div>
+                  <a
+                    className="btn btn-outline btn-xs"
+                    href={`${getApiOrigin()}${selected.certificate}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open certificate
+                  </a>
+                  {selected.certificateName && (
+                    <div className="table-subtext" style={{ marginTop: '0.5rem' }}>{selected.certificateName}</div>
+                  )}
                 </div>
               )}
 

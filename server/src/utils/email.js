@@ -1,12 +1,12 @@
 // Shared email normalisation and validation.
 //
-// The previous check was /^[^\s@]+@[^\s@]+\.[^\s@]+$/, which accepts anything
-// with an "@" and a dot somewhere after it. That let a pasted URL fragment
-// through: "www.nayituriki.com@gmail.com" has a perfectly legal looking local
-// part to that regex, so it was stored as a real student email address.
-//
-// The rules below are deliberately stricter about the local part, which is
-// where that class of typo lives.
+// The rules are shape rules only: one @, a legal local part, a dotted domain
+// with a real TLD. An earlier version also rejected a "www." prefix and any
+// local part ending in a domain-looking label, on the assumption that those
+// were pasted URLs. Real applicants do have such addresses, so those two
+// checks are gone - a person who typed it is the authority on it. A pasted URL
+// is still caught, because "://" and a scheme prefix are never legal in an
+// address.
 
 export const normalizeEmail = (value) => String(value ?? "").trim().toLowerCase();
 
@@ -18,9 +18,6 @@ export const emailProblem = (value) => {
   if (/\s/.test(email)) return "Email address cannot contain spaces";
   if (email.includes("://") || /^(https?|ftp):/i.test(email)) {
     return "That looks like a web address, not an email. Enter just the email, e.g. name@gmail.com";
-  }
-  if (/^www\./i.test(email)) {
-    return "Remove the leading www. from the email address";
   }
 
   const parts = email.split("@");
@@ -37,11 +34,6 @@ export const emailProblem = (value) => {
   if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) {
     return "The part before the @ sign is not a valid email name";
   }
-  // A dotted local part is legal, but "something.com@" almost always means a
-  // website was typed where an email was expected.
-  if (/\.(com|net|org|edu|gov|co|ac|io|dev|app|info|biz|me|rw)$/i.test(local)) {
-    return `It looks like a website was entered before the @. Did you mean ${local.replace(/\.[^.]+$/, "")}@${domain}?`;
-  }
 
   if (!domain) return "Enter the domain after the @ sign";
   if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(domain)) {
@@ -57,20 +49,18 @@ export const emailProblem = (value) => {
 export const isValidEmail = (value) => emailProblem(value) === null;
 
 // Best-effort repair for values already stored before the stricter rule existed.
-// Strips a URL scheme and a leading www., then removes a domain-looking label
-// from the local part. Returns null when nothing sensible can be salvaged, so
-// the caller can leave the record alone rather than guess.
+// Strips a URL scheme only; a leading www. or a dotted local part is kept as-is
+// because real applicants do have such addresses (e.g. www.name@host.com).
+// Returns null when nothing sensible can be salvaged, so the caller can leave
+// the record alone rather than guess.
 export const repairEmail = (value) => {
-  let email = normalizeEmail(value).replace(/^[a-z]+:\/\//i, "").replace(/^www\./i, "");
+  let email = normalizeEmail(value).replace(/^[a-z]+:\/\//i, "");
 
   const at = email.indexOf("@");
   if (at === -1) return null;
 
-  let local = email.slice(0, at);
+  const local = email.slice(0, at);
   const domain = email.slice(at + 1);
-
-  const trailing = local.match(/\.(com|net|org|edu|gov|co|ac|io|dev|app|info|biz|me|rw)$/i);
-  if (trailing) local = local.slice(0, -trailing[0].length);
 
   if (!local || !domain) return null;
 

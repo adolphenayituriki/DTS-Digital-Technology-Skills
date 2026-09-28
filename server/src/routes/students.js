@@ -6,8 +6,10 @@ import auth from "../middleware/auth.js";
 import studentSession from "../middleware/studentSession.js";
 import {
   resetStudentPin,
+  setStudentPin,
   applicationStatusFromStudent,
 } from "../services/studentService.js";
+import { createRateLimiter } from "../utils/rateLimit.js";
 import {
   sendStudentCredentials,
   sendApplicationStatusChange,
@@ -32,31 +34,11 @@ const publicStudent = (student) => {
   return data;
 };
 
-const rateLimit = new Map();
-const RATE_WINDOW_MS = 15 * 60 * 1000;
-const RATE_MAX_ATTEMPTS = 10;
-
-const checkRateLimit = (key) => {
-  const now = Date.now();
-  const entry = rateLimit.get(key);
-  if (!entry || now - entry.start > RATE_WINDOW_MS) {
-    rateLimit.set(key, { start: now, count: 1 });
-    return { allowed: true, retryAfter: 0 };
-  }
-  entry.count += 1;
-  if (entry.count > RATE_MAX_ATTEMPTS) {
-    const retryAfter = Math.ceil((RATE_WINDOW_MS - (now - entry.start)) / 1000);
-    return { allowed: false, retryAfter };
-  }
-  return { allowed: true, retryAfter: 0 };
-};
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimit.entries()) {
-    if (now - entry.start > RATE_WINDOW_MS) rateLimit.delete(key);
-  }
-}, RATE_WINDOW_MS).unref();
+const signInLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many sign-in attempts. Please wait a few minutes and try again.",
+});
 
 router.post("/login", async (req, res) => {
   try {
@@ -66,12 +48,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Registration number and PIN are required" });
     }
 
-    const limit = checkRateLimit(`${req.ip}:${regNumber}`);
+    const limit = signInLimiter.check(`${req.ip}:${regNumber}`);
     if (!limit.allowed) {
       res.set("Retry-After", String(limit.retryAfter));
-      return res.status(429).json({
-        message: "Too many sign-in attempts. Please wait a few minutes and try again.",
-      });
+      return res.status(429).json({ message: signInLimiter.message });
     }
 
     const student = await Student.findOne({ regNumber: new RegExp(`^${regNumber}$`, "i") }).select("+pinHash");
@@ -83,6 +63,48 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Incorrect PIN" });
     }
     res.json({ ...publicStudent(student), token: signStudentToken(student._id) });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Self-service PIN change. The student keeps their session (the token is
+// scoped to the record, not the PIN) but the emailed PIN stops being the real
+// one the moment this succeeds.
+router.put("/mine/pin", studentSession, async (req, res) => {
+  try {
+    const student = req.student || (await Student.findOne({ userId: req.user._id }));
+    if (!student) {
+      return res.status(404).json({ message: "No student record is linked to this session" });
+    }
+
+    const currentPin = String(req.body.currentPin || "").trim();
+    const newPin = String(req.body.newPin || "").trim();
+
+    if (!currentPin || !newPin) {
+      return res.status(400).json({ message: "Enter your current and new PIN" });
+    }
+    // Must match what generatePin() produces, or a "PIN" that cannot ever be
+    // generated again could lock the student out of their own record.
+    if (!/^\d{6}$/.test(newPin)) {
+      return res.status(400).json({ message: "Your new PIN must be exactly 6 digits" });
+    }
+    if (newPin === currentPin) {
+      return res.status(400).json({ message: "Your new PIN must be different from the current one" });
+    }
+
+    const withHash = await Student.findById(student._id).select("+pinHash");
+    if (!(await withHash.comparePin(currentPin))) {
+      return res.status(401).json({ message: "Current PIN is incorrect" });
+    }
+
+    await setStudentPin(withHash, newPin);
+    await withHash.save();
+
+    res.json({
+      message: "PIN updated successfully",
+      student: publicStudent(withHash),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

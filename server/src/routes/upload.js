@@ -3,7 +3,6 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import auth from "../middleware/auth.js";
-import requireRole from "../middleware/roles.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,11 +35,25 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+// Admins and editors post news hero images, so they keep the full 5 MB. Every
+// other signed-in user is only uploading their own avatar, which is capped
+// hard - otherwise this endpoint becomes free bulk image hosting.
+const SELF_SERVICE_MAX = 2 * 1024 * 1024;
+const isPublisher = (user) => user?.role === "admin" || user?.role === "editor";
+
 const router = Router();
 
-router.post("/", auth, requireRole("admin", "editor"), (req, res) => {
+router.post("/", auth, (req, res) => {
+  const max = isPublisher(req.user) ? 5 * 1024 * 1024 : SELF_SERVICE_MAX;
+  upload.limits = { fileSize: max };
   upload.single("file")(req, res, (err) => {
     if (err) {
+      // multer surfaces its own size error; make it readable and say the limit.
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          message: `Image is too large. Maximum size is ${Math.round(max / 1024 / 1024)} MB.`,
+        });
+      }
       return res.status(400).json({ message: err.message });
     }
 

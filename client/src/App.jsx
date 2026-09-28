@@ -19,6 +19,7 @@ const Apply = lazy(() => import('./pages/Apply'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
+const MyProfile = lazy(() => import('./pages/MyProfile'));
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Messages = lazy(() => import('./pages/admin/Messages'));
@@ -40,6 +41,7 @@ const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
 const FinanceStudentBalances = lazy(() => import('./pages/FinanceStudentBalances'));
 const FinanceRecords = lazy(() => import('./pages/FinanceRecords'));
 const FinanceFees = lazy(() => import('./pages/FinanceFees'));
+const AccountSettings = lazy(() => import('./pages/AccountSettings'));
 
 const titles = {
   '/': 'Home',
@@ -54,6 +56,7 @@ const titles = {
   '/signup': 'Sign Up',
   '/dashboard': 'My Dashboard',
   '/profile': 'Student Profile',
+  '/account': 'My Profile',
   '/admin': 'Admin Dashboard',
   '/admin/messages': 'Messages',
   '/admin/members': 'Members',
@@ -64,14 +67,17 @@ const titles = {
   '/admin/testimonials': 'Testimonials',
   '/admin/users': 'User Access',
   '/admin/trainer-assignments': 'Trainer Assignments',
+  '/admin/settings': 'Settings',
   '/trainer': 'Trainer Dashboard',
   '/trainer/students': 'Trainer Students',
   '/trainer/attendance': 'Trainer Attendance',
   '/trainer/marks': 'Trainer Marks',
+  '/trainer/settings': 'Settings',
   '/finance': 'Finance Dashboard',
   '/finance/students': 'Finance Student Balances',
   '/finance/records': 'Finance Records',
   '/finance/fees': 'Finance Intake Fees',
+  '/finance/settings': 'Settings',
 };
 
 function TitleManager() {
@@ -128,6 +134,7 @@ export default function App() {
               </RequireRole>
             }
           />
+          <Route path="settings" element={<AccountSettings />} />
         </Route>
         <Route
           path="/trainer"
@@ -141,6 +148,7 @@ export default function App() {
           <Route path="students" element={<TrainerStudents />} />
           <Route path="attendance" element={<TrainerAttendance />} />
           <Route path="marks" element={<TrainerMarks />} />
+          <Route path="settings" element={<AccountSettings />} />
         </Route>
         <Route
           path="/finance"
@@ -154,6 +162,7 @@ export default function App() {
           <Route path="students" element={<FinanceStudentBalances />} />
           <Route path="records" element={<FinanceRecords />} />
           <Route path="fees" element={<FinanceFees />} />
+          <Route path="settings" element={<AccountSettings />} />
         </Route>
         <Route
           path="*"
@@ -175,6 +184,7 @@ export default function App() {
                     {/* Shareable per-intake application link, e.g. /apply/<intakeId> */}
                     <Route path="/apply/:intakeId" element={<Apply />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/account" element={<MyProfile />} />
                     <Route path="/login" element={<Auth mode="login" />} />
                     <Route path="/signup" element={<Auth mode="signup" />} />
                     <Route path="/dashboard" element={<Dashboard />} />

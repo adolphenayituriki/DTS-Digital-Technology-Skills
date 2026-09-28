@@ -10,5 +10,12 @@ const navItems = [
 ];
 
 export default function TrainerLayout() {
-  return <StaffLayout title="Trainer Workspace" subtitle="Class management and student progress" navItems={navItems} />;
+  return (
+    <StaffLayout
+      title="Trainer Workspace"
+      subtitle="Class management and student progress"
+      navItems={navItems}
+      settingsPath="/trainer/settings"
+    />
+  );
 }

@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
   ShieldCheck, FileText, CalendarDays, GraduationCap, Eye, ArrowRight, ArrowLeft,
-  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt, Award, Download,
+  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt, Award, Download, ShieldAlert,
 } from 'lucide-react';
 import apiFetch, { setStudentSession, clearStudentSession, getStudentSession } from '../api';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
+import Avatar from '../components/Avatar';
 import AchievementCardModal from '../components/AchievementCard';
+import ChangePinForm from '../components/ChangePinForm';
 
 const STATUS_META = {
   applicant: { label: 'Application Pending Review', color: 'var(--primary)', bg: '#e8f6fd' },
@@ -44,13 +46,6 @@ const BADGE_STYLES = {
   partial: { background: '#fff7ed', color: '#c2410c' },
   unpaid: { background: '#fef2f2', color: '#991b1b' },
   neutral: { background: '#f1f5f9', color: '#475569' },
-};
-
-// A single initial from the first word. Two initials produced "NA" for
-// surname-first records such as "NAYITURIKI Adolphe", which reads as "N/A".
-const initials = (name = '') => {
-  const first = String(name).trim().split(/\s+/).filter(Boolean)[0];
-  return first ? first[0].toUpperCase() : '?';
 };
 
 export default function Profile() {
@@ -243,6 +238,19 @@ export default function Profile() {
     rejected: <FileText size={18} />,
   }[student?.status] || null;
 
+  // Anchor list for the jump bar. An entry is only added when the panel it
+  // points at will actually render, so it never links to a dead target. The
+  // figures themselves live in the stat row, so no counts are repeated here.
+  const navItems = [
+    { id: 'profile-overview', label: 'Overview', icon: <ClipboardList size={15} /> },
+    (payment || paymentLoading) && { id: 'profile-fees', label: 'Payment', icon: <CreditCard size={15} /> },
+    student?.status === 'active' && { id: 'profile-attendance', label: 'Attendance', icon: <CalendarDays size={15} /> },
+    totalMarks > 0 && { id: 'profile-results', label: 'Results', icon: <ClipboardList size={15} /> },
+    completedMarks.length > 0 && { id: 'profile-achievements', label: 'Achievements', icon: <Award size={15} /> },
+    { id: 'profile-security', label: 'Security', icon: <KeyRound size={15} /> },
+    student?.remarks && { id: 'profile-note', label: 'Note from DTS', icon: <FileText size={15} /> },
+  ].filter(Boolean);
+
   const signOut = () => {
     clearStudentSession();
     setStudent(null);
@@ -277,14 +285,14 @@ export default function Profile() {
                     Forgot your PIN? Enter the Registration Number and the email you applied with — we'll email you a new PIN.
                   </p>
                   <div className="form-group">
-                    <label>DTS Registration Number</label>
+                    <label>UR Registration Number</label>
                     <div className="profile-input-wrap">
                       <IdCard size={16} />
                       <input
                         className="form-control"
                         value={forgot.regNumber}
                         onChange={(e) => setForgot({ ...forgot, regNumber: e.target.value })}
-                        placeholder="e.g. DTS-2026-0001"
+                        placeholder="e.g. 225020019"
                         autoCapitalize="characters"
                       />
                     </div>
@@ -320,14 +328,14 @@ export default function Profile() {
                 <>
                   <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                      <label>DTS Registration Number</label>
+                      <label>UR Registration Number</label>
                       <div className="profile-input-wrap">
                         <IdCard size={16} />
                         <input
                           className="form-control"
                           value={form.regNumber}
                           onChange={(e) => setForm({ ...form, regNumber: e.target.value })}
-                          placeholder="e.g. DTS-2026-0001"
+                          placeholder="e.g. 225020019"
                           autoCapitalize="characters"
                         />
                       </div>
@@ -368,337 +376,352 @@ export default function Profile() {
             </div>
           )}
 
+          {!student && !showForm && (
+            <div className="loading"><div className="spinner" />Loading your profile...</div>
+          )}
+
           {student && meta && (
-            <>
-              <div className="card profile-head">
-                <div className="profile-avatar">{initials(student.name)}</div>
-                <div className="profile-head-body">
-                  <h3>{student.name}</h3>
-                  <div className="profile-reg">
-                    <IdCard size={14} /> {student.regNumber}
+            <div className="profile-dash">
+              {/* One compact strip: identity, section jumps and the two actions.
+                  This replaces the tall left rail, which cost about as much
+                  vertical space as the content it was meant to organise. */}
+              <section className="card profile-hero">
+                <div className="profile-hero-id">
+                  <Avatar size="lg" name={student.name} />
+                  <div className="profile-hero-text">
+                    <h2>{student.name}</h2>
+                    <div className="profile-reg"><IdCard size={13} /> {student.regNumber}</div>
                   </div>
-                  {statusMessage && (
-                    <p className={`profile-head-status is-${student.status}`}>
-                      {StatusIcon}
-                      <span>{statusMessage}</span>
-                    </p>
-                  )}
+                  <span
+                    className="app-status-badge"
+                    style={{ color: meta.color, background: meta.bg }}
+                  >
+                    {meta.label}
+                  </span>
                 </div>
-                <span className="app-status-badge" style={{ color: meta.color, background: meta.bg, alignSelf: 'flex-start' }}>
-                  {meta.label}
-                </span>
-              </div>
+
+                <nav className="profile-jump" aria-label="Profile sections">
+                  {navItems.map((item) => (
+                    <a key={item.id} href={`#${item.id}`}>
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </a>
+                  ))}
+                </nav>
+
+                <div className="profile-hero-actions">
+                  {!isLoggedIn && (
+                    <button type="button" className="btn btn-outline btn-sm" onClick={signOut}>
+                      Sign Out
+                    </button>
+                  )}
+                  <Link to="/apply" className="btn btn-outline btn-sm">
+                    Apply for Another Intake <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </section>
+
+              {statusMessage && (
+                <div className={`profile-banner is-${student.status}`}>
+                  {StatusIcon}
+                  <p>{statusMessage}</p>
+                </div>
+              )}
 
               {summaryTiles.length > 0 && (
-                <div className="profile-summary">
+                <div className="profile-summary" id="profile-overview">
                   {summaryTiles.map((t) => (
                     <div key={t.key} className={`profile-summary-tile${t.tone ? ` is-${t.tone}` : ''}`}>
                       <div className="profile-summary-label">{t.icon}{t.label}</div>
-                      <div className="profile-summary-value">{t.value}</div>
-                      {t.note && <div className="profile-summary-note">{t.note}</div>}
+                      <div className="profile-summary-line">
+                        <span className="profile-summary-value">{t.value}</span>
+                        {t.note && <span className="profile-summary-note">{t.note}</span>}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="profile-section-label">
-                <GraduationCap size={15} /> Enrollment
-              </div>
-
-              <div className="card profile-card">
-                <h3 className="profile-card-title">Intake Details</h3>
-                <div className="profile-grid">
-                  <div className="profile-field"><span><GraduationCap size={14} /> Intake</span><b>{student.intakeTitle}</b></div>
-                  {student.program && <div className="profile-field"><span><BookOpen size={14} /> Level</span><b>{student.program}</b></div>}
-                  <div className="profile-field"><span><Mail size={14} /> Email</span><b>{student.email}</b></div>
-                  {student.phone && <div className="profile-field"><span><Phone size={14} /> Phone</span><b>{student.phone}</b></div>}
-                  {student.campus && <div className="profile-field"><span><MapPin size={14} /> Campus</span><b>{student.campus}</b></div>}
-                  <div className="profile-field"><span><CalendarDays size={14} /> Registered</span><b>{fmtDate(student.createdAt)}</b></div>
-                </div>
-                {Array.isArray(student.preferredCourses) && student.preferredCourses.length > 0 && (
-                  <div className="profile-section">
-                    <div className="app-detail-label" style={{ marginBottom: '0.4rem' }}><BookOpen size={15} /> Courses</div>
-                    <div className="app-detail-courses">
-                      {student.preferredCourses.map((c) => (
-                        <span key={c} className="intake-course-chip">{c}</span>
-                      ))}
-                    </div>
+              <div className="profile-cols is-3">
+                <section className="card profile-card" id="profile-intake">
+                  <h3 className="profile-card-title"><GraduationCap size={14} /> Intake Details</h3>
+                  <div className="profile-grid">
+                    <div className="profile-field"><span><GraduationCap size={13} /> Intake</span><b>{student.intakeTitle}</b></div>
+                    {student.program && <div className="profile-field"><span><BookOpen size={13} /> Level</span><b>{student.program}</b></div>}
+                    <div className="profile-field"><span><Mail size={13} /> Email</span><b>{student.email}</b></div>
+                    {student.phone && <div className="profile-field"><span><Phone size={13} /> Phone</span><b>{student.phone}</b></div>}
+                    {student.campus && <div className="profile-field"><span><MapPin size={13} /> Campus</span><b>{student.campus}</b></div>}
+                    <div className="profile-field"><span><CalendarDays size={13} /> Registered</span><b>{fmtDate(student.createdAt)}</b></div>
                   </div>
-                )}
-              </div>
-
-              <div className="profile-section-label">
-                <CreditCard size={15} /> Fees
-              </div>
-
-              {payment && (() => {
-                const currency = payment.currency || 'RWF';
-                const badge = paymentBadge(payment);
-                const hasFee = Number(payment.expected || 0) > 0;
-                return (
-                <div className="card profile-card">
-                  <div className="profile-card-head">
-                    <h3 className="profile-card-title"><CreditCard size={15} /> Payment Status</h3>
-                    {paymentLoading && <span className="profile-hint">Updating...</span>}
-                  </div>
-                  {hasFee && (
-                    <div style={{ marginBottom: '0.7rem' }}>
-                      <div className="profile-meter-row">
-                        <span className="muted">Payment Progress</span>
-                        <b>{paymentProgress(payment).label}</b>
-                      </div>
-                      <div className={`profile-meter${Number(payment.balance || 0) <= 0 ? ' is-paid' : ''}`}>
-                        <i style={{ width: `${paymentProgress(payment).pct}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  <div className="payment-summary">
-                    <div className="payment-stat">
-                      <div className="payment-stat-label">Required Fee</div>
-                      <div className="payment-stat-value">{money(payment.expected, currency)}</div>
-                    </div>
-                    <div className="payment-stat">
-                      <div className="payment-stat-label">Amount Paid</div>
-                      <div className="payment-stat-value" style={{ color: 'var(--success)' }}>{money(payment.paid, currency)}</div>
-                    </div>
-                    <div className="payment-stat">
-                      <div className="payment-stat-label">Outstanding Balance</div>
-                      <div className="payment-stat-value" style={{ color: Number(payment.balance || 0) > 0 ? 'var(--error)' : 'var(--success)' }}>{money(payment.balance, currency)}</div>
-                    </div>
-                  </div>
-                  <div
-                    className="payment-status-badge"
-                    style={{ marginTop: '0.6rem', ...BADGE_STYLES[badge.tone] }}
-                  >
-                    {badge.icon}
-                    {badge.label}
-                  </div>
-                  {payment.intakeTitle && (
-                    <div className="profile-sub">
-                      For: {payment.intakeTitle}
-                    </div>
-                  )}
-                  {Array.isArray(payment.payments) && payment.payments.length > 0 && (
-                    <div className="profile-history">
-                      <div className="app-detail-label" style={{ marginBottom: '0.4rem' }}><Receipt size={15} /> Payment History</div>
-                      {payment.payments.map((p, i) => (
-                        <div key={`${p.occurredAt}-${i}`} className="profile-history-row">
-                          <span className="muted">{fmtDate(p.occurredAt)}</span>
-                          <b>{money(p.amount, p.currency || currency)}</b>
+                  {Array.isArray(student.preferredCourses) && student.preferredCourses.length > 0 && (
+                      <div className="profile-section">
+                        <div className="app-detail-label"><BookOpen size={13} /> Courses</div>
+                        <div className="app-detail-courses">
+                          {student.preferredCourses.map((c) => (
+                                <span key={c} className="intake-course-chip">{c}</span>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
                   )}
-                </div>
-                );
-              })()}
+                </section>
+
+                {payment && (() => {
+                      const currency = payment.currency || 'RWF';
+                      const badge = paymentBadge(payment);
+                      const hasFee = Number(payment.expected || 0) > 0;
+                      return (
+                        <section className="card profile-card" id="profile-fees">
+                          <div className="profile-card-head">
+                            <h3 className="profile-card-title"><CreditCard size={15} /> Payment Status</h3>
+                            {paymentLoading && <span className="profile-hint">Updating...</span>}
+                          </div>
+                          {hasFee && (
+                              <div className="profile-block">
+                                <div className="profile-meter-row">
+                                  <span className="muted">Payment Progress</span>
+                                  <b>{paymentProgress(payment).label}</b>
+                                </div>
+                                <div className={`profile-meter${Number(payment.balance || 0) <= 0 ? ' is-paid' : ''}`}>
+                                  <i style={{ width: `${paymentProgress(payment).pct}%` }} />
+                                </div>
+                              </div>
+                          )}
+                          <div className="payment-summary">
+                            <div className="payment-stat">
+                              <div className="payment-stat-label">Required Fee</div>
+                              <div className="payment-stat-value">{money(payment.expected, currency)}</div>
+                            </div>
+                            <div className="payment-stat">
+                              <div className="payment-stat-label">Amount Paid</div>
+                              <div className="payment-stat-value" style={{ color: 'var(--success)' }}>{money(payment.paid, currency)}</div>
+                            </div>
+                            <div className="payment-stat">
+                              <div className="payment-stat-label">Balance</div>
+                              <div className="payment-stat-value" style={{ color: Number(payment.balance || 0) > 0 ? 'var(--error)' : 'var(--success)' }}>{money(payment.balance, currency)}</div>
+                            </div>
+                          </div>
+                          <div className="profile-payment-foot">
+                            <span
+                            className="payment-status-badge"
+                            style={{ ...BADGE_STYLES[badge.tone] }}
+                            >
+                            {badge.icon}
+                            {badge.label}
+                          </span>
+                          {payment.intakeTitle && (
+                              <span className="profile-sub is-inline">For: {payment.intakeTitle}</span>
+                          )}
+                        </div>
+                        {Array.isArray(payment.payments) && payment.payments.length > 0 && (
+                            <div className="profile-section">
+                              <div className="app-detail-label"><Receipt size={13} /> Payment History</div>
+                              <div className="profile-history">
+                                {payment.payments.map((p, i) => (
+                                      <div key={`${p.occurredAt}-${i}`} className="profile-history-row">
+                                        <span className="muted">{fmtDate(p.occurredAt)}</span>
+                                        <b>{money(p.amount, p.currency || currency)}</b>
+                                      </div>
+                                ))}
+                              </div>
+                            </div>
+                        )}
+                      </section>
+                    );
+                })()}
 
               {paymentLoading && !payment && (
-                <div className="card profile-card">
-                  <div className="loading"><div className="spinner" />Loading payment status...</div>
-                </div>
+                  <section className="card profile-card">
+                    <div className="loading"><div className="spinner" />Loading payment status...</div>
+                  </section>
               )}
 
-              <div className="profile-section-label">
-                <Award size={15} /> Results
+              {student.status === 'active' && (
+                  <section className="card profile-card" id="profile-attendance">
+                    <div className="profile-card-head">
+                      <h3 className="profile-card-title"><CalendarDays size={14} /> Attendance</h3>
+                      <span className="profile-hint">
+                        {attendance && attendance.total > 0 ? `${attendance.total} sessions` : 'No sessions yet'}
+                      </span>
+                    </div>
+                    {!attendance || attendance.total === 0 ? (
+                        <div className="profile-empty is-inline">
+                          <CalendarDays size={18} style={{ opacity: 0.4 }} />
+                          <p>No attendance has been recorded yet.</p>
+                        </div>
+                      ) : (
+                        <>
+                        <div className="attendance-summary">
+                          <div className="attendance-stat present">
+                            <div className="attendance-stat-value">{attendance.present}</div>
+                            <div className="attendance-stat-label">Present</div>
+                          </div>
+                          <div className="attendance-stat absent">
+                            <div className="attendance-stat-value">{attendance.absent}</div>
+                            <div className="attendance-stat-label">Absent</div>
+                          </div>
+                          <div className="attendance-stat late">
+                            <div className="attendance-stat-value">{attendance.late}</div>
+                            <div className="attendance-stat-label">Late</div>
+                          </div>
+                        </div>
+                        <div className="profile-block">
+                          <div className="profile-meter-row">
+                            <span className="muted">Attendance rate</span>
+                            <b>{attendance.rate}%</b>
+                          </div>
+                          <div className={`profile-meter${attendance.rate >= 75 ? ' is-paid' : ''}`}>
+                            <i style={{ width: `${Math.min(100, Math.max(0, attendance.rate))}%` }} />
+                          </div>
+                        </div>
+                        </>
+                    )}
+
+                    {/* Sessions sit inside the attendance card: same data
+                      source, and folding them in removes a page row. */}
+                    {attendance && attendance.records.length > 0 && (
+                        <div className="profile-section" id="profile-sessions">
+                          <div className="app-detail-label"><Clock size={13} /> Recent Sessions</div>
+                          <div className="upcoming-sessions">
+                            {attendance.records.map((r) => (
+                                  <div key={r.id} className="upcoming-session">
+                                    <div className="upcoming-day">
+                                      <span>{fmtDate(r.sessionDate).slice(0, 3)}</span>
+                                      <span className="profile-hint">{new Date(r.sessionDate).getDate()}</span>
+                                    </div>
+                                    <div className="upcoming-session-body">
+                                      <div className="upcoming-session-title">{r.course || 'Session'}</div>
+                                      <div className="upcoming-session-meta">
+                                        {fmtDate(r.sessionDate)}{r.note ? ` · ${r.note}` : ''}
+                                      </div>
+                                    </div>
+                                    <span className={`finance-status status-${r.status === 'present' ? 'paid' : r.status === 'absent' ? 'unpaid' : 'pending'}`}>
+                                      {r.status}
+                                    </span>
+                                  </div>
+                            ))}
+                          </div>
+                        </div>
+                    )}
+                  </section>
+              )}
               </div>
 
-              <div className="card profile-card">
-                <h3 className="profile-card-title">Results &amp; Marks</h3>
-                {Array.isArray(student.marks) && student.marks.length > 0 ? (
-                  <div className="profile-marks-wrap">
-                  <table className="profile-marks">
-                    <thead>
-                      <tr>
-                        <th>Course</th>
-                        <th>Score</th>
-                        <th>Grade</th>
-                        <th>Remarks</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {student.marks.map((m) => (
-                        <tr key={m._id}>
-                          <td>{m.course}</td>
-                          <td>{m.score}%</td>
-                          <td>{m.grade || '—'}</td>
-                          <td>{m.remarks || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="profile-cols is-2">
+                <section className="card profile-card" id="profile-results">
+                  <h3 className="profile-card-title"><ClipboardList size={14} /> Results &amp; Marks</h3>
+                  {Array.isArray(student.marks) && student.marks.length > 0 ? (
+                      <div className="profile-marks-wrap">
+                        <table className="profile-marks">
+                          <thead>
+                            <tr>
+                              <th>Course</th>
+                              <th>Score</th>
+                              <th>Grade</th>
+                              <th>Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {student.marks.map((m) => (
+                                  <tr key={m._id}>
+                                    <td>{m.course}</td>
+                                    <td>{m.score}%</td>
+                                    <td>{m.grade || '—'}</td>
+                                    <td>{m.remarks || '—'}</td>
+                                  </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="profile-empty is-inline">
+                        <ClipboardList size={18} style={{ opacity: 0.4 }} />
+                        <p>
+                          {student.status === 'active'
+                            ? 'No marks recorded yet.'
+                            : 'Marks appear once your application is accepted.'}
+                        </p>
+                      </div>
+                  )}
+                </section>
+
+                {completedMarks.length > 0 && (
+                    <section className="card profile-card" id="profile-achievements">
+                      <div className="profile-card-head">
+                        <h3 className="profile-card-title"><Award size={14} /> Your Achievements</h3>
+                        <span
+                        className="profile-hint"
+                        title="A celebratory keepsake card, not a formal certificate."
+                        >
+                        {completedMarks.length} completed
+                      </span>
+                    </div>
+                    <div className="profile-achievements">
+                      {completedMarks.map((m) => (
+                            <div key={m._id} className="profile-achievement">
+                              <div className="profile-achievement-icon"><Award size={14} /></div>
+                              <div className="profile-achievement-body">
+                                <b>{m.course}</b>
+                                <span className="muted">
+                                  {m.score != null ? `${m.score}%` : null}
+                                  {m.score != null && m.grade ? ' · ' : ''}
+                                  {m.grade || null}
+                                  {m.completedAt ? ` · ${fmtDate(m.completedAt)}` : ''}
+                                </span>
+                              </div>
+                              <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => setCardMark(m)}
+                              >
+                              <Download size={13} /> Card
+                            </button>
+                          </div>
+                    ))}
                   </div>
-                ) : (
-                  <div className="profile-empty">
-                    <ClipboardList size={28} style={{ opacity: 0.35 }} />
+                </section>
+              )}
+              </div>
+
+              {student.remarks && (
+                  <section className="card profile-card profile-note is-inline" id="profile-note">
+                    <div className="app-detail-label"><FileText size={13} /> Note from DTS</div>
+                    <p>{student.remarks}</p>
+                  </section>
+              )}
+
+              {/* Security lives on the profile rather than behind a link so the
+                  PIN a student was emailed by DTS is theirs to replace without
+                  having to email anyone. */}
+              <section id="profile-security">
+                {student.mustChangePin && (
+                  <div className="alert alert-error profile-pin-alert">
+                    <ShieldAlert size={18} />
                     <p>
-                      {student.status === 'active'
-                        ? 'No marks recorded yet. Your results will appear here once assessments are complete.'
-                        : 'Marks will be shown here once your application is accepted and training begins.'}
+                      <b>Choose your own PIN.</b> The one you were sent by email is temporary and
+                      only works until you replace it.
                     </p>
                   </div>
                 )}
+                <ChangePinForm onChanged={(fresh) => fresh && setStudent(fresh)} />
+              </section>
+
+              <div className="profile-safe is-inline">
+                <ShieldCheck size={14} />
+                <span>Keep your Registration Number and PIN safe — DTS staff will never ask for your PIN.</span>
               </div>
-
-              {/* Achievement cards - one per course staff have marked complete */}
-              {completedMarks.length > 0 && (
-                <div className="card profile-card">
-                  <div className="profile-card-head">
-                    <h3 className="profile-card-title"><Award size={15} /> Your Achievements</h3>
-                    <span className="profile-hint">
-                      {completedMarks.length} course{completedMarks.length === 1 ? '' : 's'} completed
-                    </span>
-                  </div>
-                  <p className="profile-hint" style={{ marginTop: 0, marginBottom: '0.8rem' }}>
-                    Download a keepsake card for each course you have finished. This is a
-                    celebratory card, not a formal certificate.
-                  </p>
-                  <div className="profile-achievements">
-                    {completedMarks.map((m) => (
-                      <div key={m._id} className="profile-achievement">
-                        <div className="profile-achievement-icon"><Award size={18} /></div>
-                        <div className="profile-achievement-body">
-                          <b>{m.course}</b>
-                          <span className="muted">
-                            {m.score != null ? `${m.score}%` : null}
-                            {m.score != null && m.grade ? ' · ' : ''}
-                            {m.grade || null}
-                            {m.completedAt ? ` · ${fmtDate(m.completedAt)}` : ''}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => setCardMark(m)}
-                        >
-                          <Download size={14} /> Card
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="profile-section-label">
-                <CalendarDays size={15} /> Attendance
               </div>
-
-              {/* Attendance Overview - real figures from the Attendance collection */}
-              {student.status === 'active' && (
-                <div className="card profile-card">
-                  <div className="profile-card-head">
-                    <h3 className="profile-card-title"><CalendarDays size={15} /> Attendance Overview</h3>
-                    <span className="profile-hint">
-                      {attendance && attendance.total > 0 ? `${attendance.total} sessions recorded` : 'No sessions yet'}
-                    </span>
-                  </div>
-                  {!attendance || attendance.total === 0 ? (
-                    <div className="profile-empty">
-                      <CalendarDays size={28} style={{ opacity: 0.35 }} />
-                      <p>Your trainer has not recorded any attendance sessions yet.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="attendance-summary">
-                        <div className="attendance-stat present">
-                          <div className="attendance-stat-value">{attendance.present}</div>
-                          <div className="attendance-stat-label">Present</div>
-                        </div>
-                        <div className="attendance-stat absent">
-                          <div className="attendance-stat-value">{attendance.absent}</div>
-                          <div className="attendance-stat-label">Absent</div>
-                        </div>
-                        <div className="attendance-stat late">
-                          <div className="attendance-stat-value">{attendance.late}</div>
-                          <div className="attendance-stat-label">Late</div>
-                        </div>
-                      </div>
-                      <div className="profile-section">
-                        <div className="profile-meter-row">
-                          <span className="muted">Attendance rate</span>
-                          <b>{attendance.rate}%</b>
-                        </div>
-                        <div className={`profile-meter${attendance.rate >= 75 ? ' is-paid' : ''}`}>
-                          <i style={{ width: `${Math.min(100, Math.max(0, attendance.rate))}%` }} />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
               )}
-
-              {/* Recent attendance - replaces the previously hardcoded
-                  "upcoming sessions" panel, which had no data source. */}
-              {student.status === 'active' && attendance && attendance.records.length > 0 && (
-                <div className="card profile-card">
-                  <div className="profile-card-head">
-                    <h3 className="profile-card-title"><Clock size={15} /> Recent Sessions</h3>
-                    <span className="profile-hint">Latest {attendance.records.length}</span>
-                  </div>
-                  <div className="upcoming-sessions">
-                    {attendance.records.map((r) => (
-                      <div key={r.id} className="upcoming-session">
-                        <div className="upcoming-day">
-                          <span>{fmtDate(r.sessionDate).slice(0, 3)}</span>
-                          <span className="profile-hint">{new Date(r.sessionDate).getDate()}</span>
-                        </div>
-                        <div className="upcoming-session-body">
-                          <div className="upcoming-session-title">{r.course || 'Session'}</div>
-                          <div className="upcoming-session-meta">
-                            {fmtDate(r.sessionDate)}{r.note ? ` · ${r.note}` : ''}
-                          </div>
-                        </div>
-                        <span className={`finance-status status-${r.status === 'present' ? 'paid' : r.status === 'absent' ? 'unpaid' : 'pending'}`}>
-                          {r.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {student.remarks && (
-                <div className="card profile-card profile-note">
-                  <div className="app-detail-label" style={{ marginBottom: '0.4rem' }}><FileText size={15} /> Note from DTS</div>
-                  <p>{student.remarks}</p>
-                </div>
-              )}
-
-              <div className="profile-safe">
-                <ShieldCheck size={16} />
-                <span>Keep your Registration Number and PIN safe — you need them to sign in. DTS staff will never ask for your PIN.</span>
               </div>
+              </section>
 
-              {!isLoggedIn && student && (
-                <div className="profile-center">
-                  <button type="button" className="btn btn-outline btn-sm" onClick={signOut}>
-                    Sign Out
-                  </button>
-                </div>
+              {cardMark && (
+                  <AchievementCardModal
+                  student={student}
+                  mark={cardMark}
+                  intakeTitle={student?.intakeTitle}
+                  onClose={() => setCardMark(null)}
+                  />
               )}
-
-              <div className="profile-center is-spaced">
-                <Link to="/apply" className="btn btn-outline btn-sm">
-                  Apply for Another Intake <ArrowRight size={14} />
-                </Link>
-              </div>
-            </>
-          )}
-
-          {!student && !showForm && (
-            <div className="loading"><div className="spinner" />Loading your profile...</div>
-          )}
-        </div>
-      </section>
-
-      {cardMark && (
-        <AchievementCardModal
-          student={student}
-          mark={cardMark}
-          intakeTitle={student?.intakeTitle}
-          onClose={() => setCardMark(null)}
-        />
-      )}
     </>
   );
 }

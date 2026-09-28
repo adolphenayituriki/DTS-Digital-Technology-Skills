@@ -61,6 +61,14 @@ const studentSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+    // Set whenever the PIN was generated on this student's behalf - at
+    // registration, by an admin reset, or by the forgot-PIN recovery. The
+    // profile stays reachable, but the security panel takes over until the
+    // student picks a PIN of their own.
+    mustChangePin: {
+      type: Boolean,
+      default: false,
+    },
     applicationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Application",

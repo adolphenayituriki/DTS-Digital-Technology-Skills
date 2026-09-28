@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
+import Avatar from './Avatar';
 
 const defaultTestimonials = [
   {
@@ -24,9 +25,6 @@ const defaultTestimonials = [
     rating: 4,
   },
 ];
-
-const initials = (name = '') =>
-  name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 
 export default function TestimonialCarousel({ testimonials }) {
   const items = testimonials?.length ? testimonials : defaultTestimonials;
@@ -69,7 +67,7 @@ export default function TestimonialCarousel({ testimonials }) {
         </div>
         <blockquote>"{t.content}"</blockquote>
         <figcaption className="testimonial-author">
-          <div className="avatar">{initials(t.name)}</div>
+          <Avatar size="lg" name={t.name} />
           <div>
             <div className="author">{t.name}</div>
             <div className="role">{t.role}</div>
