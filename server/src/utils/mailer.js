@@ -14,7 +14,10 @@ const escapeHtml = (value) =>
 const siteUrl = () =>
   (process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:5000").replace(/\/+$/, "");
 
-const getLogoUrl = () => process.env.BREVO_LOGO_URL || `${siteUrl()}/Logo.png`;
+// BREVO_LOGO_URL is checked first so an email host can override the logo with a
+// CDN or inline attachment. Otherwise the logo is served from the public site,
+// which email clients can actually reach (localhost would break in most inboxes).
+const getLogoUrl = () => process.env.BREVO_LOGO_URL || `${siteUrl()}/Logo.png`;;
 
 export async function getAdminEmails() {
   const emails = new Set();
@@ -208,16 +211,17 @@ const footerBand = (note = DEFAULT_FOOTER_NOTE) => {
   const fromEmail = process.env.BREVO_FROM_EMAIL || "";
   return `
   <tr>
-    <td class="foot-pad" style="background:#0f1f3d;padding:24px 32px;text-align:center;">
-      <div style="font-family:${FONT};font-size:15px;color:#ffffff;font-weight:800;">Digital Technology Skills</div>
+    <td class="foot-pad" style="background:#0f1f3d;padding:28px 32px;text-align:center;">
+      ${logoImage()}
+      <div style="font-family:${FONT};font-size:15px;color:#ffffff;font-weight:800;margin-top:12px;">Digital Technology Skills</div>
       <div style="font-family:${FONT};font-size:11px;color:#b6c3d9;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;margin-top:4px;">UR-Huye Campus &bull; Rwanda</div>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:16px auto 0;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:18px auto 0;">
         <tr>
           <td style="padding:0 10px;"><a href="${siteUrl()}" target="_blank" style="font-family:${FONT};font-size:12px;color:#7dd3fc;text-decoration:none;font-weight:600;">Website</a></td>
           ${fromEmail ? `<td style="padding:0 10px;border-left:1px solid #33415e;"><a href="mailto:${escapeHtml(fromEmail)}" style="font-family:${FONT};font-size:12px;color:#7dd3fc;text-decoration:none;font-weight:600;">${escapeHtml(fromEmail)}</a></td>` : ""}
         </tr>
       </table>
-      <div style="border-top:1px solid #26344f;margin:16px 0 0;height:0;font-size:0;line-height:0;">&nbsp;</div>
+      <div style="border-top:1px solid #26344f;margin:18px 0 0;height:0;font-size:0;line-height:0;">&nbsp;</div>
       <div style="font-family:${FONT};font-size:11px;color:#8fa2c0;line-height:1.6;margin-top:10px;">
         ${escapeHtml(note)}<br>
         Copyright &copy; 2026 Digital Technology Skills. All rights reserved.
