@@ -24,6 +24,7 @@ import trainerRoutes from "./routes/trainer.js";
 import trainerAdminRoutes from "./routes/trainerAdmin.js";
 import financeRoutes from "./routes/finance.js";
 import statsRoutes from "./routes/stats.js";
+import { logSecretStatus } from "./utils/token.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,6 +92,7 @@ if (fs.existsSync(distDir)) {
 
 connectDB().then(() => {
   app.listen(PORT, () => {
+    logSecretStatus();
     console.log(`Server running on port ${PORT}`);
   });
 });
