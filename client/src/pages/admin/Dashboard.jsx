@@ -87,7 +87,7 @@ export default function Dashboard() {
           const part = c.meter ? stats[c.meter] ?? 0 : 0;
           const pct = total > 0 ? Math.round((part / total) * 100) : 0;
           return (
-            <Link key={c.key} to={c.to} className={`stat-card tone-${c.tone}`}>
+             <Link key={c.key} to={c.to} className="stat-card">
               <div className="stat-top">
                 <div className="stat-value">{total}</div>
                 <div className="stat-chip">{c.icon}</div>
