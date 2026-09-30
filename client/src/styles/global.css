@@ -161,7 +161,6 @@ input, textarea, select { font-family: inherit; }
   font-size: 0.6rem; font-weight: 600; color: var(--text-light);
   text-transform: uppercase; letter-spacing: 0.13em; margin-top: 0.2rem;
 }
-.footer-logo { height: 48px; width: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 1.25rem; }
 .login-logo { height: 48px; width: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 0.75rem; }
 .login-brand { display: flex; flex-direction: column; align-items: center; }
 .navbar-links { display: flex; align-items: center; gap: 0.15rem; }
@@ -643,7 +642,6 @@ input, textarea, select { font-family: inherit; }
 /* â”€â”€ Footer â”€â”€ */
 .footer { background: #0f1f3d; color: #94a3b8; padding: 3rem 0 0; }
 .footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1.2fr 1.2fr; gap: 2rem; margin-bottom: 2.25rem; }
-.footer-logo { height: 42px; margin-bottom: 1rem; }
 .footer h4 { color: #fff; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .footer p { font-size: 0.8rem; line-height: 1.6; }
 .footer a { color: #94a3b8; transition: color var(--transition); font-size: 0.83rem; }
@@ -663,17 +661,69 @@ input, textarea, select { font-family: inherit; }
   flex-wrap: wrap;
 }
 .footer-bottom p { margin: 0; }
-/* ur logo.jpg is a JPEG on a white background, so on the dark footer it needs a
-   white chip to read as deliberate rather than as a stray white rectangle. */
-.footer-ur-logo {
-  height: 44px;
-  width: auto;
+.footer-campus-note { color: #7c8db0; font-size: 0.76rem; }
+
+/* A logo inside a fixed circle. Both mark files are non-square, so the circle is
+   a fixed square box with `cover` - the circle is drawn by the box, not by the
+   image, which keeps it crisp at any size and stops the mark being squashed. */
+.circle-logo {
+  --logo-size: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--logo-size);
+  height: var(--logo-size);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
   background: #fff;
-  border-radius: 8px;
-  padding: 5px 9px;
-  object-fit: contain;
-  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 22px rgba(3, 10, 26, 0.45);
 }
+.circle-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+.circle-logo-dts { margin-bottom: 1rem; }
+
+/* The UR mark sits with the campus it hosts us, labelled as a partner rather
+   than as a second DTS brand. */
+.footer-partner {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 1.15rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.footer-partner > div { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+.footer-partner b { color: #fff; font-size: 0.82rem; font-weight: 700; }
+.footer-partner small { color: #94a3b8; font-size: 0.72rem; }
+.footer-partner-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.15rem;
+}
+.footer-contact-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.footer-contact-row:last-of-type { margin-bottom: 0; }
+.footer-contact-row svg { flex-shrink: 0; margin-top: 0.15rem; }
+.footer-contact-row a { word-break: break-word; }
 .footer-social { display: flex; gap: 0.5rem; margin-top: 0.85rem; }
 .footer-social a {
   width: 30px; height: 30px; border-radius: 8px;
@@ -2183,6 +2233,88 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   color: #fff; transition: all 0.18s ease;
 }
 .course-option.is-selected .course-checkbox { background: var(--accent); border-color: var(--accent); }
+
+/* Place of learning. Wider and with an icon per option than a course checkbox,
+   because the two choices a first-time applicant makes - on campus or online -
+   carry the most weight on the whole form. */
+.learning-place-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.6rem;
+}
+.learning-place-option {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.8rem 0.9rem; border: 1.5px solid #e6eaf0; border-radius: 12px;
+  background: #fff; cursor: pointer; user-select: none;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.learning-place-option:hover { border-color: var(--primary); background: #f7fbff; }
+.learning-place-option.is-selected {
+  border-color: var(--primary); background: rgba(35, 168, 222, 0.08);
+  box-shadow: 0 0 0 3px rgba(35, 168, 222, 0.12);
+}
+.learning-place-option input { position: absolute; opacity: 0; width: 0; height: 0; }
+.learning-place-icon {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; color: var(--primary);
+  background: rgba(35, 168, 222, 0.12);
+}
+.learning-place-option.is-selected .learning-place-icon {
+  background: var(--primary); color: #fff;
+}
+.learning-place-text { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; flex: 1 1 auto; }
+.learning-place-text b { font-size: 0.86rem; color: var(--text); font-weight: 700; }
+.learning-place-text small { font-size: 0.7rem; color: var(--text-light); line-height: 1.35; }
+.learning-place-tick {
+  width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%;
+  border: 2px solid #cfd6e0; background: #fff; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.learning-place-option.is-selected .learning-place-tick {
+  background: var(--accent); border-color: var(--accent);
+}
+.label-hint { font-weight: 500; color: var(--text-light); text-transform: none; letter-spacing: 0; }
+
+/* Post-application receipt. Deliberately not a toast: the applicant has to be
+   able to re-read the 2,000 RWF instruction after the toast has gone. */
+.apply-receipt {
+  border: 1px solid #d9e9f2;
+  border-left: 4px solid var(--accent);
+  background: linear-gradient(180deg, #f7fcff 0%, #ffffff 100%);
+  padding: 1.5rem 1.6rem;
+  margin-bottom: 1.75rem;
+}
+.apply-receipt-head { display: flex; gap: 0.85rem; align-items: flex-start; }
+.apply-receipt-tick {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #e7f7ec; color: #237a34;
+}
+.apply-receipt h3 { margin: 0 0 0.25rem; font-size: 1.15rem; }
+.apply-receipt p { margin: 0; color: var(--text-light); font-size: 0.88rem; line-height: 1.55; }
+.apply-receipt-steps { list-style: none; margin: 1.1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+.apply-receipt-steps li {
+  display: flex; gap: 0.6rem; align-items: flex-start;
+  padding: 0.75rem 0.9rem; border-radius: 10px;
+  background: #fff; border: 1px solid #eef2f7;
+  font-size: 0.85rem; line-height: 1.55; color: var(--text);
+}
+.apply-receipt-steps svg { flex-shrink: 0; margin-top: 0.18rem; color: var(--primary); }
+.apply-receipt-steps b { color: var(--primary); }
+.apply-receipt-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1.15rem; }
+
+/* Assignments are grouped per trainer, so the panel head carries the search box
+   and each group has its own header row above its own table. */
+.assignment-group { border-top: 1px solid #eef1f5; padding: 0.85rem 0.25rem 0.25rem; }
+.assignment-group:first-of-type { border-top: none; }
+.assignment-group-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+}
+.assignment-group-head strong { font-size: 0.9rem; color: var(--text); }
+.assignment-search { max-width: 230px; padding: 0.4rem 0.7rem; font-size: 0.8rem; }
+.dash-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .apply-review { border: 1px solid #eef0f4; border-radius: 14px; overflow: hidden; margin-bottom: 1.25rem; }
 .apply-review-row {
   display: flex; justify-content: space-between; gap: 1rem;
@@ -2197,6 +2329,79 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   margin-top: 0.25rem;
 }
 .apply-form-nav-right { display: flex; align-items: center; gap: 0.5rem; }
+
+/* ---- Apply wizard: compact pass -------------------------------------------
+   Scoped to .apply-form-card so the admin and account forms keep their own
+   density. The wizard shows one step at a time, so every millimetre of padding
+   here is a millimetre an applicant has to scroll past before the Continue
+   button: labels, fields, option rows and the review table are all tightened
+   together so the steps stay visually balanced rather than just one of them
+   shrinking. */
+.apply-form-card { padding: 1.35rem 1.5rem; }
+.apply-form-head { margin-bottom: 0.7rem; }
+.apply-form-head h3 { font-size: 1.05rem; }
+.apply-form-sub { margin-top: 0.15rem; font-size: 0.76rem; }
+
+.apply-steps { margin: 0 0 0.95rem; padding: 0.65rem 0 0.8rem; }
+.apply-steps li { gap: 0.28rem; }
+.apply-step-num { width: 22px; height: 22px; font-size: 0.68rem; }
+.apply-steps li:not(:last-child)::after { top: 11px; }
+.apply-step-label { font-size: 0.66rem; }
+
+.step-body { padding-top: 0; }
+.apply-form-card .step-hint { font-size: 0.78rem; margin: 0 0 0.75rem; line-height: 1.45; }
+
+.apply-form-card .form-group { margin-bottom: 0.8rem; }
+.apply-form-card .form-group:last-child { margin-bottom: 0; }
+.apply-form-card .form-group label { font-size: 0.78rem; margin-bottom: 0.25rem; }
+.apply-form-card .form-control { padding: 0.5rem 0.7rem; font-size: 0.85rem; border-width: 1.25px; }
+.apply-form-card .form-hint,
+.apply-form-card .form-error-hint { margin-top: 0.22rem; font-size: 0.68rem; }
+.apply-form-card .grid-2 { gap: 0 1.1rem; }
+
+.apply-form-card .course-options { gap: 0.35rem; }
+.apply-form-card .course-option { padding: 0.45rem 0.65rem; gap: 0.55rem; font-size: 0.82rem; }
+.apply-form-card .course-checkbox { width: 17px; height: 17px; border-radius: 5px; }
+
+.apply-form-card .learning-place-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.apply-form-card .learning-place-option { padding: 0.5rem 0.6rem; gap: 0.5rem; }
+.learning-place-icon { width: 28px; height: 28px; border-radius: 8px; }
+.learning-place-icon svg { width: 15px; height: 15px; }
+.learning-place-text b { font-size: 0.78rem; }
+.learning-place-text small { font-size: 0.65rem; line-height: 1.3; }
+.learning-place-tick { width: 17px; height: 17px; border-radius: 50%; }
+.apply-form-card textarea.form-control { min-height: 74px; }
+
+.apply-review { margin-bottom: 0.9rem; }
+.apply-review-row { padding: 0.46rem 0.85rem; font-size: 0.8rem; }
+
+.apply-form-nav { margin-top: 0.9rem; padding-top: 0.85rem; border-top: 1px solid #f1f4f8; }
+.apply-form-card .cert-drop { padding: 1rem; gap: 0.3rem; }
+.apply-form-card .cert-drop svg { width: 22px; height: 22px; }
+.apply-form-card .cert-drop strong { font-size: 0.84rem; }
+.apply-form-card .cert-drop small { font-size: 0.7rem; }
+/* The guest and certificate notices sit above the stepper on every step, so
+   they are the one block of repeated chrome in the wizard - kept on one line
+   where the width allows it. */
+.apply-form-card .alert { padding: 0.5rem 0.75rem; margin-bottom: 0.7rem; font-size: 0.78rem; }
+.apply-form-card .alert svg { width: 15px; height: 15px; flex-shrink: 0; }
+.apply-form-card .alert p { margin: 0; line-height: 1.45; }
+
+.apply-receipt { padding: 1.2rem 1.35rem; margin-bottom: 1.25rem; }
+.apply-receipt-steps { gap: 0.4rem; margin-top: 0.85rem; }
+.apply-receipt-steps li { padding: 0.6rem 0.75rem; font-size: 0.8rem; }
+.apply-receipt-actions { margin-top: 0.9rem; }
+
+/* Three across only fits once the option text is allowed to wrap; below the
+   card width it falls back to one column rather than squeezing three labels
+   into unreadable slivers. */
+@media (max-width: 700px) {
+  .apply-form-card .learning-place-options { grid-template-columns: 1fr; }
+  .apply-form-card { padding: 1.1rem 1.15rem; }
+}
 
 /* â”€â”€ Steps Flow â”€â”€ */
 .news-steps { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #eef0f4; }

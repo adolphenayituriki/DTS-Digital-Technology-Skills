@@ -77,11 +77,21 @@ app.get("/api/status", async (req, res) => {
   });
 });
 
+// Any /api path that fell through every router above. Without this the SPA
+// fallback answered unmatched API calls with index.html and a 404 status,
+// which the client could only report as a bare "Request failed (404)" - the
+// single most useless error a user can be shown. Naming the method and path
+// makes a wrong endpoint obvious immediately.
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    message: `Unknown API endpoint: ${req.method} /api${req.path}`,
+  });
+});
+
 const distDir = path.join(__dirname, "../../client/dist");
 if (fs.existsSync(distDir)) {
   app.use(express.static(distDir));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api/")) return next();
+  app.get("*", (req, res) => {
     res.sendFile(path.join(distDir, "index.html"));
   });
 } else {

@@ -23,6 +23,14 @@ export const DEPARTMENTS = [
   'Other',
 ];
 
+// Where the applicant wants to study: on campus at UR-Huye, or online over
+// Zoom / Google Meet. Mirrors server/src/utils/options.js.
+export const LEARNING_PLACES = [
+  'Physical — UR-Huye Campus',
+  'Online — Zoom',
+  'Online — Google Meet',
+];
+
 export const GENDERS = ['Female', 'Male', 'Other', 'Prefer not to say'];
 
 // Mirror of the server pattern: a numeric UR run of 8-12 digits, e.g. 225020019.

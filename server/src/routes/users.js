@@ -48,10 +48,18 @@ router.get("/", async (req, res) => {
 // phone or hand it over in plain sight. Instead the password is generated
 // here, emailed to the address on the account, and flagged so the recipient is
 // forced to replace it on first sign-in.
+//
+// The admin form does not ask for a password at all, so a password is optional
+// here: requiring one produced "name, email, and password are required" on a
+// perfectly good submission.
 router.post("/", async (req, res) => {
   try {
-    const { name, email, role = "user" } = req.body;
-    const requestedPassword = req.body.password;
+    // Older client builds posted `username`/`fullName`; accepting them costs
+    // nothing and keeps a cached bundle working against a newer server.
+    const name = String(req.body.name ?? req.body.fullName ?? req.body.username ?? "").trim();
+    const email = normalizeEmail(req.body.email);
+    const role = String(req.body.role ?? req.body.roleName ?? "user");
+    const requestedPassword = req.body.password ? String(req.body.password) : "";
 
     if (!name || !email) {
       return res.status(400).json({ message: "Name and email are required" });
@@ -69,17 +77,20 @@ router.post("/", async (req, res) => {
     if (emailError) {
       return res.status(400).json({ message: emailError });
     }
-    const normalizedEmail = normalizeEmail(email);
-    if (await User.exists({ email: normalizedEmail })) {
+    if (await User.exists({ email })) {
       return res.status(409).json({ message: "User already exists" });
     }
 
     const temporaryPassword = requestedPassword || generateTemporaryPassword();
     const user = await User.create({
       name,
-      email: normalizedEmail,
+      email,
       password: temporaryPassword,
       role,
+      // A trainer is only useful once they can open the trainer dashboard, and
+      // the assignment screen only lists trainers, so the role is recorded
+      // exactly as chosen and never silently downgraded.
+      active: true,
       mustChangePassword: true,
     });
 

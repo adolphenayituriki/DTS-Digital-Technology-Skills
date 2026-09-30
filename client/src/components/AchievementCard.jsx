@@ -4,7 +4,10 @@ const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 800;
 
 const GRADIENT =
-  "linear-gradient(135deg, #142851 0%, #1d3a6b 42%, #23507f 68%, #23a8de 100%)";
+  "linear-gradient(135deg, #0f2149 0%, #16305e 40%, #1b4074 66%, #1b6f9e 100%)";
+
+export const DTS_LOGO_SRC = "/Logo.png";
+export const UR_LOGO_SRC = "/ur%20logo.jpg";
 
 const fmtDate = (d) =>
   d
@@ -100,27 +103,85 @@ const AchievementCard = forwardRef(function AchievementCard(
           }}
         />
 
+        {/* Logos: DTS on the left, UR on the right, both circular like the
+            login form. Circular crops need a solid backdrop because both source
+            files are rectangular photos/PNGs with non-square aspect ratios. */}
         <div
           style={{
             position: "relative",
             display: "flex",
             alignItems: "center",
-            gap: "18px",
+            justifyContent: "space-between",
+            width: "100%",
           }}
         >
-          <img
-            src="/Logo.png"
-            alt="Digital Technology Skills"
-            width="76"
-            height="76"
-            style={{ borderRadius: "18px", background: "#ffffff", objectFit: "contain" }}
-          />
-          <div>
-            <div style={{ fontSize: "26px", fontWeight: 700, letterSpacing: "0.5px" }}>
-              Digital Technology Skills
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: "0 1 auto" }}>
+            <div
+              style={{
+                width: "92px",
+                height: "92px",
+                borderRadius: "50%",
+                background: "#ffffff",
+                border: "3px solid rgba(255,255,255,0.75)",
+                boxShadow: "0 10px 26px rgba(0,0,0,0.32)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={DTS_LOGO_SRC}
+                alt="Digital Technology Skills logo"
+                width="92"
+                height="92"
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              />
             </div>
-            <div style={{ fontSize: "17px", opacity: 0.82, letterSpacing: "1.6px" }}>
-              DTS · UR-Huye Campus
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "26px", fontWeight: 700, letterSpacing: "0.5px" }}>
+                Digital Technology Skills
+              </div>
+              <div style={{ fontSize: "17px", opacity: 0.9, letterSpacing: "1.6px" }}>
+                DTS · UR-Huye Campus
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "12px", flex: "0 0 auto" }}
+          >
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "1.2px" }}>
+                University of Rwanda
+              </div>
+              <div style={{ fontSize: "13px", opacity: 0.85, letterSpacing: "1.4px" }}>
+                Huye Campus
+              </div>
+            </div>
+            <div
+              style={{
+                width: "92px",
+                height: "92px",
+                borderRadius: "50%",
+                background: "#ffffff",
+                border: "3px solid rgba(255,255,255,0.75)",
+                boxShadow: "0 10px 26px rgba(0,0,0,0.32)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={UR_LOGO_SRC}
+                alt="University of Rwanda logo"
+                width="92"
+                height="92"
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              />
             </div>
           </div>
         </div>
@@ -174,14 +235,14 @@ const AchievementCard = forwardRef(function AchievementCard(
               fontSize: "15px",
               letterSpacing: "2.4px",
               textTransform: "uppercase",
-              opacity: 0.85,
+              opacity: 0.95,
             }}
           >
             Completed Course
           </div>
           <div style={{ fontSize: "31px", fontWeight: 700, marginTop: "6px" }}>{course}</div>
           {scoreLine ? (
-            <div style={{ fontSize: "19px", marginTop: "6px", opacity: 0.9 }}>{scoreLine}</div>
+            <div style={{ fontSize: "19px", marginTop: "6px" }}>{scoreLine}</div>
           ) : null}
         </div>
 
@@ -193,7 +254,6 @@ const AchievementCard = forwardRef(function AchievementCard(
             textAlign: "center",
             fontSize: "21px",
             lineHeight: 1.55,
-            opacity: 0.94,
           }}
         >
           The skills you have earned are yours to keep, and the determination that
@@ -209,7 +269,6 @@ const AchievementCard = forwardRef(function AchievementCard(
             gap: "18px",
             alignItems: "center",
             fontSize: "17px",
-            opacity: 0.92,
             flexWrap: "wrap",
             justifyContent: "center",
           }}
@@ -227,8 +286,8 @@ const AchievementCard = forwardRef(function AchievementCard(
           style={{
             position: "relative",
             marginTop: "14px",
-            fontSize: "13px",
-            opacity: 0.6,
+            fontSize: "14px",
+            color: "rgba(255,255,255,0.82)",
             textAlign: "center",
           }}
         >
@@ -260,11 +319,13 @@ export default function AchievementCardModal({ student, mark, intakeTitle, onClo
     return () => window.removeEventListener("resize", fit);
   }, []);
 
-  // Decode the logo before exporting. Without this the capture can race the
-  // image and produce a card with a blank logo box.
+  // Decode both logos before exporting. Without this the capture can race the
+  // images and produce a card with blank logo circles.
   useEffect(() => {
-    const img = new Image();
-    img.src = "/Logo.png";
+    [DTS_LOGO_SRC, UR_LOGO_SRC].forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
   }, []);
 
   const safeName = String(student?.name || "student")
@@ -283,11 +344,16 @@ export default function AchievementCardModal({ student, mark, intakeTitle, onClo
     setBusy(true);
     setError("");
     try {
+      // Wait for both logo bitmaps so the capture cannot produce blank circles.
+      const imgs = Array.from(cardRef.current.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) => (img.complete ? img.decode().catch(() => {}) : Promise.resolve()))
+      );
       const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(cardRef.current, {
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
-        pixelRatio: 2,
+        pixelRatio: 3,
         // Avoids a cross-origin fetch of the Google Fonts stylesheet, which
         // fails under CORS and aborts the whole export.
         skipFonts: true,

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Check, X, Eye, Trash2, Search, Download, Mail, Phone, MapPin,
   CalendarDays, BookOpen, FileText, GraduationCap, RefreshCcw,
-  User, Hash, Building2, Paperclip,
+  User, Hash, Building2, Paperclip, MonitorPlay,
 } from 'lucide-react';
 import apiFetch, { getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -76,7 +76,7 @@ export default function ApplicationsAdmin() {
       (!query ||
         [
           a.name, a.email, a.phone, a.regNumber, a.levelOfStudy, a.department, a.gender,
-          a.campus, a.program, a.intakeTitle, a.status, a.certificateName,
+          a.campus, a.learningPlace, a.program, a.intakeTitle, a.status, a.certificateName,
           ...(a.preferredCourses || []),
         ]
           .filter(Boolean)
@@ -109,6 +109,7 @@ export default function ApplicationsAdmin() {
       'Level of Study': a.levelOfStudy || '',
       'Department': a.department || '',
       'Campus / Location': a.campus || '',
+      'Place of Learning': a.learningPlace || '',
       'Intake': a.intakeTitle,
       'Program': a.program || '',
       'Preferred Courses': (a.preferredCourses || []).join('; '),
@@ -278,6 +279,9 @@ export default function ApplicationsAdmin() {
                   </div>
                   <div className="app-detail-item">
                     <MapPin size={15} /><span>Campus</span><b>{renderDetailValue(selected.campus)}</b>
+                  </div>
+                  <div className="app-detail-item">
+                    <MonitorPlay size={15} /><span>Place of Learning</span><b>{renderDetailValue(selected.learningPlace)}</b>
                   </div>
                   <div className="app-detail-item">
                     <GraduationCap size={15} /><span>Intake</span><b>{selected.intakeTitle}</b>

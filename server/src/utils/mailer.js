@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { EARLY_PAYMENT_NOTICE } from "./fees.js";
 
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 const FONT = "Arial, Helvetica, sans-serif";
@@ -151,10 +152,30 @@ const statusPill = (text) => `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;">
     <tr>
       <td style="background:#eaf3ff;border:1px solid #cfdff7;border-radius:999px;padding:9px 16px;">
-        <span style="font-family:${FONT};font-size:13px;color:#1a5fb4;font-weight:700;">${escapeHtml(text)}</span>
+        <span style="font-family:${FONT};font-size:13px;color:#142851;font-weight:700;">${text}</span>
       </td>
     </tr>
   </table>`;
+
+// A boxed aside for something the reader must act on - used for the 2,000 RWF
+// early payment. Warm background so it is visually separate from the neutral
+// detail cards and impossible to skim past.
+const noticeCard = (title, lines) => `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0;border:1px solid #f5dfae;border-left:4px solid #f2a71b;border-radius:10px;background:#fffaf0;">
+    <tr>
+      <td style="padding:16px 18px;">
+        <div style="font-family:${FONT};font-size:15px;color:#142851;font-weight:800;margin:0 0 6px;">${escapeHtml(title)}</div>
+        ${lines
+          .filter(Boolean)
+          .map(
+            (line) =>
+              `<p style="font-family:${FONT};font-size:13.5px;line-height:1.6;color:#4a5568;margin:0 0 6px;">${line}</p>`
+          )
+          .join("")}
+      </td>
+    </tr>
+  </table>`;
+
 
 const stepsList = (steps) => `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 4px;">
@@ -288,11 +309,17 @@ export async function sendApplicationConfirmation(application, intake, credentia
       ["Level", escapeHtml(level)],
       ...(application.levelOfStudy ? [["Your level of study", escapeHtml(application.levelOfStudy)]] : []),
       ...(application.department ? [["Department", escapeHtml(application.department)]] : []),
+      ...(application.learningPlace ? [["Place of learning", escapeHtml(application.learningPlace)]] : []),
       ["Preferred course", escapeHtml(getCourses(application))],
       ["Submitted on", formatDate(application.createdAt)],
     ])}
     ${statusPill("Application status: Pending Review")}
     ${credentials ? credentialsCard(credentials.regNumber, credentials.pin) : ""}
+    ${noticeCard(EARLY_PAYMENT_NOTICE.title, [
+      escapeHtml(EARLY_PAYMENT_NOTICE.summary),
+      escapeHtml(EARLY_PAYMENT_NOTICE.detail),
+      escapeHtml(EARLY_PAYMENT_NOTICE.action),
+    ])}
     ${sectionLabel("What Happens Next?")}
     ${stepsList(NEXT_STEPS)}
     <p style="font-family:${FONT};font-size:14px;line-height:1.65;color:#374151;margin:18px 0 0;">If you have any questions about your application, our team is here to help &mdash; simply reply to this email.</p>

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertTriangle, Check, Copy, KeyRound, Mail, RotateCcw, Save, ShieldAlert, UserPlus,
 } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
 import { PASSWORD_MIN_LENGTH } from '../utils/password';
+import { emailProblem, normalizeEmail } from '../utils/email';
 
 const ROLES = [
   { value: 'trainer', label: 'Trainer' },
@@ -48,12 +50,43 @@ export default function UserManagement() {
 
   const createUser = async (event) => {
     event.preventDefault();
+
+    // Checked here first so a completely filled-in form can never be reported
+    // back as "name, email and password are required": the browser blocks an
+    // empty field, and this catches the whitespace-only and malformed cases the
+    // browser happily lets through.
+    const name = form.name.trim();
+    const email = normalizeEmail(form.email);
+    if (!name) {
+      toast.error('Enter the full name of the person you are creating.');
+      return;
+    }
+    if (!email) {
+      toast.error('Enter the email address their credentials should be sent to.');
+      return;
+    }
+    const emailError = emailProblem(email);
+    if (emailError) {
+      toast.error(emailError, { title: 'Check this email address' });
+      return;
+    }
+    const alreadyListed = users.some((user) => normalizeEmail(user.email) === email);
+    if (alreadyListed) {
+      toast.error('An account already uses that email address.', { title: 'Pick a different address' });
+      return;
+    }
+
     setSaving(true);
     try {
-      const created = await apiFetch('/users', { method: 'POST', body: JSON.stringify(form) });
+      const created = await apiFetch('/users', {
+        method: 'POST',
+        // The server generates the password and emails it, so none is sent here.
+        body: JSON.stringify({ name, email, role: form.role }),
+      });
       setForm(emptyForm);
+      const roleLabel = ROLES.find((r) => r.value === created.role)?.label || created.role;
       if (created.emailSent) {
-        toast.success(`${created.name} can now sign in — credentials emailed to ${created.email}.`, { duration: 6000 });
+        toast.success(`${created.name} (${roleLabel}) can now sign in — credentials emailed to ${created.email}.`, { duration: 6000 });
       } else {
         setFallback({ name: created.name, email: created.email, password: created.temporaryPassword });
         toast.error('Account created, but the credentials email could not be sent.', { title: 'Copy the password below' });
@@ -175,6 +208,18 @@ export default function UserManagement() {
               password — not even you.
             </p>
           </div>
+
+          {form.role === 'trainer' && (
+            <div className="alert alert-info create-user-note">
+              <UserPlus size={17} />
+              <p>
+                This account will have the <b>Trainer</b> role and can sign in to the trainer
+                dashboard. Next, give them the intakes they teach on{' '}
+                <Link to="/admin/trainer-assignments">Trainer Assignments</Link> — a trainer only
+                sees the students of the intakes assigned to them.
+              </p>
+            </div>
+          )}
 
           <button className="btn btn-primary" type="submit" disabled={saving}>
             <Save size={15} /> {saving ? 'Creating...' : 'Create & email credentials'}

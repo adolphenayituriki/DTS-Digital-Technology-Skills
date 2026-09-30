@@ -68,6 +68,14 @@ const applicationSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  // Where this applicant wants to train: on campus at UR-Huye, or online over
+  // Zoom / Google Meet. Validated against LEARNING_PLACES at the route, so it is
+  // always one of the values the form could have produced.
+  learningPlace: {
+    type: String,
+    trim: true,
+    default: "",
+  },
   program: {
     type: String,
     trim: true,

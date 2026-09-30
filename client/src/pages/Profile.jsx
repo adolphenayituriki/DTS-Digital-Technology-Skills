@@ -282,7 +282,7 @@ export default function Profile() {
               {showForgot ? (
                 <form onSubmit={handleForgotPin}>
                   <p className="profile-note-text">
-                    Forgot your PIN? Enter the Registration Number and the email you applied with — we'll email you a new PIN.
+                    Forgot your PIN? Enter the Registration Number and the email you applied with! we'll email you a new PIN.
                   </p>
                   <div className="form-group">
                     <label>UR Registration Number</label>

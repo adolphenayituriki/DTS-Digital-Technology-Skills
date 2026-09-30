@@ -18,9 +18,11 @@ import { emailProblem as checkEmail, normalizeEmail } from "../utils/email.js";
 import {
   LEVELS_OF_STUDY,
   GENDERS,
+  LEARNING_PLACES,
   REG_NUMBER_PATTERN,
   optionProblem,
 } from "../utils/options.js";
+import { earlyPaymentNotice } from "../utils/fees.js";
 import {
   parseCertificateUpload,
   removeCertificate,
@@ -89,6 +91,7 @@ router.post(
       email: rawEmail,
       phone,
       campus,
+      learningPlace: rawLearningPlace,
       motivation,
       preferredCourses,
       levelOfStudy,
@@ -101,7 +104,10 @@ router.post(
     if (!intakeId || !name || !rawEmail) {
       return fail(400, "Intake, name, and email are required");
     }
-    const emailError = checkEmail(rawEmail);
+    // Applicants are issued a Gmail address for their student profile, so a new
+    // application has to be reachable on one. `www.nayituriki.com@gmail.com` and
+    // every other dotted local part is still accepted as typed.
+    const emailError = checkEmail(rawEmail, { requireGmail: true });
     if (emailError) {
       return fail(400, emailError);
     }
@@ -111,10 +117,12 @@ router.post(
     const optionErrors = [
       optionProblem(LEVELS_OF_STUDY, levelOfStudy, "Level of study"),
       optionProblem(GENDERS, gender, "Gender"),
+      optionProblem(LEARNING_PLACES, rawLearningPlace, "Learning place"),
     ].filter(Boolean);
     if (optionErrors.length) {
       return fail(400, optionErrors[0]);
     }
+    const learningPlace = String(rawLearningPlace || "").trim();
     // Stored and compared in normalised form, otherwise "Name@Gmail.com" and
     // "name@gmail.com " would each be treated as a different applicant.
     const email = normalizeEmail(rawEmail);
@@ -157,6 +165,7 @@ router.post(
       email,
       phone,
       campus,
+      learningPlace,
       program: courseList.join(", ") || program,
       preferredCourses: courseList,
       levelOfStudy: String(levelOfStudy || "").trim(),
@@ -182,7 +191,14 @@ router.post(
     notifyAdminsNewApplication(application, intake).catch((e) =>
       console.error("[mailer] admin notify email failed:", e.message)
     );
-    res.status(201).json({ message: "Application submitted successfully", application });
+    // The 2,000 RWF early-payment notice travels back with the response so the
+    // card the applicant reads is driven by the same number the email quotes,
+    // and changing the amount never needs a client rebuild.
+    res.status(201).json({
+      message: "Application submitted successfully",
+      application,
+      earlyPayment: earlyPaymentNotice(),
+    });
   } catch (error) {
     // The certificate is already attached to the document here, so it is left
     // on disk: the file name is the only handle on the stored copy.

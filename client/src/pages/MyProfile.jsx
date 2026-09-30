@@ -67,6 +67,10 @@ export default function MyProfile() {
     event.target.value = '';
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast.error('That file is not an image. Choose a JPG, PNG, GIF or WebP file.');
+      return;
+    }
     if (file.size > MAX_AVATAR_BYTES) {
       toast.error('That image is too large. Please choose one under 2 MB.');
       return;
@@ -82,16 +86,25 @@ export default function MyProfile() {
         body: payload,
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      if (!res.ok) {
+        // A 404 here means the API build in front of this page does not expose
+        // POST /api/upload. Say so instead of leaving the admin guessing.
+        throw new Error(
+          res.status === 404
+            ? 'This server build cannot accept photo uploads (POST /api/upload is missing). Ask your administrator to redeploy the API.'
+            : data.message || `Upload failed (${res.status})`
+        );
+      }
+      if (!data.url) throw new Error('Upload failed: the server did not return an image URL.');
 
       const url = getApiOrigin() + data.url;
-      setPhoto(url);
       // Persist straight away so the avatar is never lost by navigating away
       // before the details form below is submitted.
       const saved = await apiFetch('/auth/me', {
         method: 'PUT',
         body: JSON.stringify({ photo: url }),
       });
+      setPhoto(url);
       updateUser(saved.user);
       toast.success('Profile photo updated.', { celebrate: false });
     } catch (error) {

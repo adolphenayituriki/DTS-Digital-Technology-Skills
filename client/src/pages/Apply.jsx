@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info, UploadCloud, FileCheck2, Trash2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info, UploadCloud, FileCheck2, Trash2, CreditCard, Smartphone, Building2, Video, Mail } from 'lucide-react';
 import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
 import { emailProblem, normalizeEmail } from '../utils/email';
-import { LEVELS_OF_STUDY, GENDERS, REG_NUMBER_PATTERN } from '../utils/options';
+import { LEVELS_OF_STUDY, GENDERS, LEARNING_PLACES, REG_NUMBER_PATTERN } from '../utils/options';
+import { EARLY_PAYMENT_NOTICE } from '../utils/fees';
 
 const BASE_STEPS = ['Personal Info', 'Contact', 'Studies'];
 
@@ -20,6 +21,12 @@ const stepsFor = (isAdvanced) =>
 const CERT_MAX_BYTES = 5 * 1024 * 1024;
 const CERT_MAX_MB = CERT_MAX_BYTES / 1024 / 1024;
 const CERT_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+
+const LEARNING_PLACE_META = {
+  'Physical — UR-Huye Campus': { icon: Building2, hint: 'Come to the DTS office at UR-Huye Campus for scheduled sessions.' },
+  'Online — Zoom': { icon: Video, hint: 'Live sessions on Zoom. The joining link is shared after you are registered.' },
+  'Online — Google Meet': { icon: Video, hint: 'Live sessions on Google Meet. The joining link is shared after you are registered.' },
+};
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const fmtBytes = (bytes) =>
@@ -39,6 +46,7 @@ export default function Apply() {
     email: user?.email || '',
     phone: '',
     campus: '',
+    learningPlace: '',
     regNumber: '',
     levelOfStudy: '',
     department: '',
@@ -50,6 +58,9 @@ export default function Apply() {
   const [certError, setCertError] = useState('');
   const [sending, setSending] = useState(false);
   const [step, setStep] = useState(1);
+  // Held after a successful submit so the applicant reads the next step
+  // instead of being dropped straight back onto an empty intake list.
+  const [submitted, setSubmitted] = useState(null);
 
   // The level is a property of the intake the applicant picked, not something
   // they fill in - which is also what decides whether a certificate is needed.
@@ -83,6 +94,7 @@ export default function Apply() {
     setCertificate(null);
     setCertError('');
     setSelected(intake);
+    setSubmitted(null);
     setStep(1);
   };
 
@@ -137,10 +149,16 @@ export default function Apply() {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   // Only nag once the field has something in it, otherwise the empty form opens
-  // with an error already showing.
-  const emailHint = form.email.trim() ? emailProblem(form.email) : '';
+  // with an error already showing. Applicants are issued a Gmail address for
+  // their student profile, so the address must end in @gmail.com - but anything
+  // before the @ is taken exactly as typed, so www.nayituriki.com@gmail.com is
+  // accepted.
+  const emailHint = form.email.trim() ? emailProblem(form.email, { requireGmail: true }) : '';
   const regHint = form.regNumber.trim() && !REG_NUMBER_PATTERN.test(form.regNumber.trim())
     ? 'Use the format 225020019, or leave blank if this is your first intake.'
+    : '';
+  const learningPlaceHint = form.learningPlace && !LEARNING_PLACES.includes(form.learningPlace)
+    ? 'Choose one of the listed places of learning.'
     : '';
 
   // Checked before the file is ever sent, so a 5 MB rejection is instant
@@ -174,6 +192,14 @@ export default function Apply() {
       toast.error(regHint, { title: 'Check your registration number' });
       return;
     }
+    if (step === 2 && !form.learningPlace) {
+      toast.error('Choose where you want to study: on campus at UR-Huye, or online.');
+      return;
+    }
+    if (learningPlaceHint) {
+      toast.error(learningPlaceHint, { title: 'Check your place of learning' });
+      return;
+    }
     if (step === 3 && form.preferred.length === 0) {
       toast.error('Please select at least one preferred course.');
       return;
@@ -203,13 +229,21 @@ export default function Apply() {
       toast.error('Please fill in your name and email.');
       return;
     }
-    const emailError = emailProblem(form.email);
+    const emailError = emailProblem(form.email, { requireGmail: true });
     if (emailError) {
       toast.error(emailError, { title: 'Check your email address' });
       return;
     }
     if (regHint) {
       toast.error(regHint, { title: 'Check your registration number' });
+      return;
+    }
+    if (!form.learningPlace) {
+      toast.error('Choose where you want to study: on campus at UR-Huye, or online.');
+      return;
+    }
+    if (learningPlaceHint) {
+      toast.error(learningPlaceHint, { title: 'Check your place of learning' });
       return;
     }
     if (isAdvanced && !certificate) {
@@ -224,6 +258,7 @@ export default function Apply() {
         email: normalizeEmail(form.email),
         phone: form.phone,
         campus: form.campus,
+        learningPlace: form.learningPlace,
         regNumber: form.regNumber,
         levelOfStudy: form.levelOfStudy,
         department: form.department,
@@ -251,13 +286,22 @@ export default function Apply() {
         headers = { 'Content-Type': 'application/json' };
       }
 
-      await apiFetch('/applications', { method: 'POST', body, headers });
+      const result = await apiFetch('/applications', { method: 'POST', body, headers });
+      // The 2,000 RWF early-payment notice comes back with the response, so the
+      // card quotes the same amount the confirmation email does.
+      setSubmitted({
+        intakeTitle: selected.title,
+        name: form.name.trim(),
+        email: normalizeEmail(form.email),
+        earlyPayment: result?.earlyPayment || EARLY_PAYMENT_NOTICE,
+      });
       toast.success('Application submitted!', { title: 'Check your email for your PIN 🎉', duration: 6000, grand: true });
       setForm((f) => ({
         name: isLoggedIn ? user.name : '',
         email: isLoggedIn ? user.email : '',
         phone: '',
         campus: '',
+        learningPlace: '',
         regNumber: '',
         levelOfStudy: '',
         department: '',
@@ -306,8 +350,58 @@ export default function Apply() {
             </div>
           )}
 
+          {submitted && (
+            <div className="card apply-receipt" role="status">
+              <div className="apply-receipt-head">
+                <span className="apply-receipt-tick"><CheckCircle size={22} /></span>
+                <div>
+                  <h3>Application received</h3>
+                  <p>
+                    Thank you{submitted.name ? `, ${submitted.name}` : ''}. Your application for{' '}
+                    <b>{submitted.intakeTitle}</b> has been sent to the DTS office.
+                  </p>
+                </div>
+              </div>
+
+              <ul className="apply-receipt-steps">
+                <li>
+                  <Mail size={15} />
+                  <span>
+                    We are emailing your Registration Number and PIN to{' '}
+                    <b>{submitted.email}</b>. Use them on the{' '}
+                    <Link to="/profile">Student Profile</Link> page to follow your training.
+                  </span>
+                </li>
+                <li>
+                  <Smartphone size={15} />
+                  <span>
+                    Pay <b>{submitted.earlyPayment.amount?.toLocaleString('en-US')} {submitted.earlyPayment.currency}</b>{' '}
+                    early to secure your place. {submitted.earlyPayment.detail}
+                  </span>
+                </li>
+                <li>
+                  <CreditCard size={15} />
+                  <span>{submitted.earlyPayment.action}</span>
+                </li>
+              </ul>
+
+              <div className="apply-receipt-actions">
+                <Link to="/profile" className="btn btn-primary btn-sm">
+                  Go to my student profile
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => { setSubmitted(null); setLinkNotice(''); }}
+                >
+                  Apply for another intake
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="intake-grid">
-            {!selected && intakes.map((intake) => {
+            {!selected && !submitted && intakes.map((intake) => {
               const deadlinePassed = isDeadlinePassed(intake);
               const full = isFull(intake);
               const open = canApply(intake);
@@ -506,7 +600,7 @@ export default function Apply() {
 
                     {step === 2 && (
                       <div className="step-body">
-                        <p className="step-hint">How can we reach you? Your campus helps us plan your training.</p>
+                        <p className="step-hint">How can we reach you, and where would you like to study?</p>
                         <div className="grid-2">
                           <div className="form-group">
                             <label>Phone Number</label>
@@ -514,8 +608,45 @@ export default function Apply() {
                           </div>
                           <div className="form-group">
                             <label>Campus / Location</label>
-                            <input name="campus" className="form-control" value={form.campus} onChange={handleChange} placeholder="e.g. UR-Huye" />
+                            <input name="campus" className="form-control" value={form.campus} onChange={handleChange} placeholder="e.g. Huye District" />
+                            <small className="form-hint">Where you are coming from. Optional.</small>
                           </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Place of Learning *</label>
+                          <div className="learning-place-options" role="radiogroup" aria-label="Place of learning">
+                            {LEARNING_PLACES.map((place) => {
+                              const Icon = (LEARNING_PLACE_META[place] || {}).icon || Video;
+                              const hint = (LEARNING_PLACE_META[place] || {}).hint;
+                              const active = form.learningPlace === place;
+                              return (
+                                <label
+                                  key={place}
+                                  className={`learning-place-option${active ? ' is-selected' : ''}`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="learningPlace"
+                                    value={place}
+                                    checked={active}
+                                    onChange={handleChange}
+                                  />
+                                  <span className="learning-place-icon"><Icon size={17} /></span>
+                                  <span className="learning-place-text">
+                                    <b>{place}</b>
+                                    {hint && <small>{hint}</small>}
+                                  </span>
+                                  <span className="learning-place-tick" aria-hidden="true">
+                                    {active && <Check size={13} />}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          {learningPlaceHint && (
+                            <small className="form-error-hint">{learningPlaceHint}</small>
+                          )}
                         </div>
                       </div>
                     )}
@@ -610,6 +741,10 @@ export default function Apply() {
                           <div className="apply-review-row"><span>Email</span><strong>{form.email}</strong></div>
                           <div className="apply-review-row"><span>Phone</span><strong>{form.phone || '—'}</strong></div>
                           <div className="apply-review-row"><span>Campus</span><strong>{form.campus || '—'}</strong></div>
+                          <div className="apply-review-row">
+                            <span>Place of Learning</span>
+                            <strong>{form.learningPlace || '—'}</strong>
+                          </div>
                           <div className="apply-review-row"><span>Level of Study</span><strong>{form.levelOfStudy || '—'}</strong></div>
                           <div className="apply-review-row"><span>Department</span><strong>{form.department || '—'}</strong></div>
                           <div className="apply-review-row"><span>Gender</span><strong>{form.gender || 'Prefer not to say'}</strong></div>

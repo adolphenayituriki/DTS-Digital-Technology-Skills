@@ -91,7 +91,7 @@ export default function Contact() {
                 <div className="icon-wrap"><Mail size={20} /></div>
                 <div>
                   <h4 style={{ marginBottom: '0.25rem' }}>Email</h4>
-                  <a href="mailto:info@dts-rwanda.org" style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>info@dts-rwanda.org</a>
+                  <a href="mailto:digitaltechnologyskills1yahoo@gmail.com" style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>digitaltechnologyskills1yahoo@gmail.com</a>
                 </div>
               </div>
               <div className="contact-info-card">

@@ -1,18 +1,40 @@
 // Shared email normalisation and validation.
 //
-// The rules are shape rules only: one @, a legal local part, a dotted domain
-// with a real TLD. An earlier version also rejected a "www." prefix and any
-// local part ending in a domain-looking label, on the assumption that those
-// were pasted URLs. Real applicants do have such addresses, so those two
-// checks are gone - a person who typed it is the authority on it. A pasted URL
-// is still caught, because "://" and a scheme prefix are never legal in an
-// address.
+// Two levels of strictness, because DTS has two different jobs here:
+//
+//   1. Shape only (accounts, staff, anything already stored). One @, a legal
+//      local part, a dotted domain with a real TLD. A leading "www." and a
+//      dotted local part are both fine - real people use addresses like
+//      www.nayituriki.com@gmail.com. A pasted URL is still caught, because
+//      "://" and a scheme prefix are never legal in an address.
+//
+//   2. Shape + Gmail-only (`requireGmail`), used by the public application form.
+//      DTS is a student-led programme where every applicant is issued a Gmail
+//      address for their student profile, so an application has to be reachable
+//      on one. Applying that rule only to new applications means an existing
+//      account on another domain can still save its own profile.
+//
+// Note the local part is deliberately permissive, so `www.nayituriki.com` before
+// the @ is accepted exactly as the person typed it.
 
 export const normalizeEmail = (value) => String(value ?? "").trim().toLowerCase();
 
+// The only mailbox domain DTS accepts on a new application. Overridable so a
+// deployment can add another without a code change.
+export const APPLICATION_EMAIL_DOMAINS = String(
+  process.env.APPLICATION_EMAIL_DOMAINS || "gmail.com"
+)
+  .split(",")
+  .map((domain) => domain.trim().toLowerCase())
+  .filter(Boolean);
+
+export const GMAIL_EXAMPLE = "name@gmail.com";
+
 // Reasons a value is rejected, so callers can show something specific.
-export const emailProblem = (value) => {
+// `options.requireGmail` tightens the domain check to APPLICATION_EMAIL_DOMAINS.
+export const emailProblem = (value, options = {}) => {
   const email = normalizeEmail(value);
+  const requireGmail = options.requireGmail === true;
 
   if (!email) return "Email address is required";
   if (/\s/.test(email)) return "Email address cannot contain spaces";
@@ -43,10 +65,14 @@ export const emailProblem = (value) => {
     return "That email domain needs a proper ending, e.g. .com";
   }
 
+  if (requireGmail && !APPLICATION_EMAIL_DOMAINS.includes(domain)) {
+    return `Use your Gmail address so DTS can email you your registration number and PIN, e.g. ${GMAIL_EXAMPLE}`;
+  }
+
   return null;
 };
 
-export const isValidEmail = (value) => emailProblem(value) === null;
+export const isValidEmail = (value, options = {}) => emailProblem(value, options) === null;
 
 // Best-effort repair for values already stored before the stricter rule existed.
 // Strips a URL scheme only; a leading www. or a dotted local part is kept as-is

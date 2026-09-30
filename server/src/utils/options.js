@@ -26,6 +26,16 @@ export const DEPARTMENTS = [
   "Other",
 ];
 
+// How the applicant wants to study. Physical training runs at UR-Huye Campus
+// on a fixed timetable; online training is delivered over Zoom or Google Meet.
+// This is a property of the applicant, not of the intake, so it is asked on
+// the application rather than derived from which courses they picked.
+export const LEARNING_PLACES = [
+  "Physical — UR-Huye Campus",
+  "Online — Zoom",
+  "Online — Google Meet",
+];
+
 // "Prefer not to say" is a real answer, not a null - it is stored explicitly so
 // the applicant was actually offered the choice.
 export const GENDERS = [

@@ -203,7 +203,7 @@ export default function Auth({ mode }) {
                 <h2>Digital Technology Skills</h2>
               </div>
               <h1>Log In</h1>
-              <p className="auth-subtitle">Welcome back — access your account</p>
+              <p className="auth-subtitle">Welcome back 🎊! access your account</p>
               <form onSubmit={handleLogin}>
                 <div className="form-group">
                   <label htmlFor="login-email">Email</label>
@@ -230,7 +230,7 @@ export default function Auth({ mode }) {
             {showForgot ? (
               <form onSubmit={handleForgotPin} className="auth-student-forgot">
                 <p className="auth-student-forgot-note">
-                  Forgot your PIN? Enter the Registration Number and the email you applied with — we'll email you a new PIN.
+                  Forgot your PIN? Enter the Registration Number and the email you applied with! we'll email you a new PIN.
                 </p>
                 <div className="form-group">
                   <label htmlFor="stu-freg">Registration Number</label>

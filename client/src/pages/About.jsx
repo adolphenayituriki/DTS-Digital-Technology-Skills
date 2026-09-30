@@ -47,7 +47,7 @@ export default function About() {
               <span className="eyebrow">About the company</span>
               <h2 className="section-title">What is DTS?</h2>
               <p className="lead-text">
-                Digital Technology Skills is a student-led company established in September 2022 at
+                Digital Technology Skills is a student & citizen-led company established in September 2022 at
                 UR-Huye Campus. We promote digital learning, empower members with practical computer skills,
                 encourage innovation, and focus on solving real-life problems with technology.
               </p>
@@ -56,7 +56,7 @@ export default function About() {
                 skills. Through accessible, hands-on training.
               </p>
               <div className="ms-icon-row">
-                <span className="icon-chip"><Users size={15} /> Student-led</span>
+                <span className="icon-chip"><Users size={15} /> student & citizen-led</span>
                 <span className="icon-chip"><Rocket size={15} /> Est. 2022</span>
               </div>
             </FadeIn>

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import auth from "../middleware/auth.js";
@@ -7,8 +8,15 @@ import auth from "../middleware/auth.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const UPLOAD_DIR = path.join(__dirname, "../../uploads");
+
+// On a fresh container the uploads folder is not in the image, and multer fails
+// the request with a bare ENOENT that reads to the user as "Request failed".
+// Creating it up front turns a confusing 500 into a working upload.
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, "../../uploads"),
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
@@ -29,23 +37,29 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
-
 // Admins and editors post news hero images, so they keep the full 5 MB. Every
 // other signed-in user is only uploading their own avatar, which is capped
 // hard - otherwise this endpoint becomes free bulk image hosting.
+const PUBLISHER_MAX = 5 * 1024 * 1024;
 const SELF_SERVICE_MAX = 2 * 1024 * 1024;
 const isPublisher = (user) => user?.role === "admin" || user?.role === "editor";
+
+// Two instances rather than one with a mutable `limits`. Multer copies its
+// options when the middleware is built, so reassigning `upload.limits` at
+// request time was silently doing nothing and every uploader got 5 MB.
+const makeUploader = (maxBytes) =>
+  multer({ storage, fileFilter, limits: { fileSize: maxBytes } });
+
+const publisherUpload = makeUploader(PUBLISHER_MAX);
+const selfServiceUpload = makeUploader(SELF_SERVICE_MAX);
 
 const router = Router();
 
 router.post("/", auth, (req, res) => {
-  const max = isPublisher(req.user) ? 5 * 1024 * 1024 : SELF_SERVICE_MAX;
-  upload.limits = { fileSize: max };
+  const publisher = isPublisher(req.user);
+  const max = publisher ? PUBLISHER_MAX : SELF_SERVICE_MAX;
+  const upload = publisher ? publisherUpload : selfServiceUpload;
+
   upload.single("file")(req, res, (err) => {
     if (err) {
       // multer surfaces its own size error; make it readable and say the limit.
@@ -54,6 +68,9 @@ router.post("/", auth, (req, res) => {
           message: `Image is too large. Maximum size is ${Math.round(max / 1024 / 1024)} MB.`,
         });
       }
+      if (err.code === "LIMIT_UNEXPECTED_FILE") {
+        return res.status(400).json({ message: "Send the image as a file field named \"file\"" });
+      }
       return res.status(400).json({ message: err.message });
     }
 
@@ -61,7 +78,14 @@ router.post("/", auth, (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    res.json({ url: `/uploads/${req.file.filename}` });
+    // `path` is the origin-relative URL for a client served by this same API,
+    // `url` is that prefixed with the API origin for a client hosted elsewhere.
+    res.json({
+      url: `/uploads/${req.file.filename}`,
+      path: `/uploads/${req.file.filename}`,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
   });
 });
 
