@@ -20,7 +20,13 @@ const stepsFor = (isAdvanced) =>
 
 const CERT_MAX_BYTES = 5 * 1024 * 1024;
 const CERT_MAX_MB = CERT_MAX_BYTES / 1024 / 1024;
-const CERT_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+// Extensions as well as types: Windows and some phone galleries report an
+// empty or generic type for a perfectly good photo, and the applicant's own
+// ".png" that is really a JPEG is a valid certificate. The server checks the
+// real bytes, so this only needs to catch the obviously wrong early.
+const CERT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+const CERT_EXTS = /\.(jpe?g|png|pdf)$/i;
+const CERT_MIMES_AMBIGUOUS = ['', 'application/octet-stream', 'binary/octet-stream'];
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const fmtBytes = (bytes) =>
@@ -179,7 +185,12 @@ export default function Apply() {
   // instead of costing the applicant the upload first.
   const acceptCertificate = (file) => {
     if (!file) return;
-    if (!CERT_TYPES.includes(file.type)) {
+    const type = String(file.type || '').toLowerCase();
+    const plausible =
+      CERT_TYPES.includes(type) ||
+      CERT_MIMES_AMBIGUOUS.includes(type) ||
+      CERT_EXTS.test(file.name || '');
+    if (!plausible) {
       setCertificate(null);
       setCertError('Certificate must be a JPG, PNG or PDF file.');
       return;
@@ -368,7 +379,7 @@ export default function Apply() {
                 </button>
 
                 <div className="apply-done-head">
-                  <span className="apply-done-tick"><CheckCircle size={26} /></span>
+                  <span className="apply-done-tick"><CheckCircle size={20} /></span>
                   <h3 id="apply-done-title">Application received</h3>
                   <p>
                     Thank you{submitted.name ? `, ${submitted.name}` : ''}. Your application for{' '}
@@ -386,28 +397,30 @@ export default function Apply() {
                   </li>
                   <li className="is-payment">
                     <Smartphone size={16} />
-                    <span>
-                      Pay <b>{submitted.earlyPayment.amount?.toLocaleString('en-US')} {submitted.earlyPayment.currency}</b>{' '}
-                      early to secure your place.
+                    <span className="apply-done-pay">
+                      <span>
+                        Pay <b>{submitted.earlyPayment.amount?.toLocaleString('en-US')} {submitted.earlyPayment.currency}</b>{' '}
+                        early to secure your place.
+                      </span>
                       <em className="apply-done-plain">{submitted.earlyPayment.detail}</em>
                       {submitted.earlyPayment.certificateFeeExample && (
                         <em className="apply-done-example">{submitted.earlyPayment.certificateFeeExample}</em>
                       )}
+                      <span className="apply-done-how">
+                        <CreditCard size={14} />
+                        <span>{submitted.earlyPayment.action}</span>
+                      </span>
                     </span>
-                  </li>
-                  <li className="is-payment">
-                    <CreditCard size={16} />
-                    <span>{submitted.earlyPayment.action}</span>
                   </li>
                 </ul>
 
                 <div className="apply-done-actions">
-                  <Link to="/profile" className="btn btn-primary">
+                  <Link to="/profile" className="btn btn-primary btn-sm">
                     Go to my student profile
                   </Link>
                   <button
                     type="button"
-                    className="btn btn-outline"
+                    className="btn btn-outline btn-sm"
                     onClick={() => { setSubmitted(null); setLinkNotice(''); }}
                   >
                     Apply for another intake
