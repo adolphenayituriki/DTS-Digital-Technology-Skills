@@ -167,12 +167,26 @@ const noticeCard = (title, lines) => `
         <div style="font-family:${FONT};font-size:15px;color:#142851;font-weight:800;margin:0 0 6px;">${escapeHtml(title)}</div>
         ${lines
           .filter(Boolean)
-          .map(
-            (line) =>
-              `<p style="font-family:${FONT};font-size:13.5px;line-height:1.6;color:#4a5568;margin:0 0 6px;">${line}</p>`
+          .map((line) =>
+            // A block-level line (the worked example) brings its own table.
+            // Wrapping it in the <p> below would nest a table inside a
+            // paragraph, which clients render inconsistently.
+            /^<table/i.test(line)
+              ? line
+              : `<p style="font-family:${FONT};font-size:13.5px;line-height:1.6;color:#4a5568;margin:0 0 6px;">${line}</p>`
           )
           .join("")}
       </td>
+    </tr>
+  </table>`;
+
+// The "it is not an extra fee" arithmetic, shown as a box. An applicant who can
+// check the numbers cannot still believe they are being charged twice, which
+// is the whole point of the notice.
+const feeExampleBox = (text) => `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0;">
+    <tr>
+      <td style="padding:10px 12px;background:#ffffff;border:1px dashed #e2c48a;border-radius:8px;font-family:${FONT};font-size:12.5px;line-height:1.55;color:#8a5a10;">${escapeHtml(text)}</td>
     </tr>
   </table>`;
 
@@ -318,6 +332,9 @@ export async function sendApplicationConfirmation(application, intake, credentia
     ${noticeCard(EARLY_PAYMENT_NOTICE.title, [
       escapeHtml(EARLY_PAYMENT_NOTICE.summary),
       escapeHtml(EARLY_PAYMENT_NOTICE.detail),
+      ...(EARLY_PAYMENT_NOTICE.certificateFeeExample
+        ? [feeExampleBox(EARLY_PAYMENT_NOTICE.certificateFeeExample)]
+        : []),
       escapeHtml(EARLY_PAYMENT_NOTICE.action),
     ])}
     ${sectionLabel("What Happens Next?")}

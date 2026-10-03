@@ -6,14 +6,17 @@ import {
 } from 'lucide-react';
 import apiFetch, { getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import ActionMenu from '../../components/ActionMenu';
 import { useToast } from '../../components/Toast';
 import Avatar from '../../components/Avatar';
 
+// The badge is tinted very lightly, so it carries the status on its own: the
+// label plus a dot reads at a glance without a coloured edge on the row.
 const STATUS_META = {
-  pending: { label: 'Pending', color: 'var(--text-light)', bg: '#f1f5f9' },
-  reviewed: { label: 'Reviewed', color: 'var(--primary)', bg: '#e8f6fd' },
-  accepted: { label: 'Accepted', color: 'var(--success)', bg: '#f0fdf4' },
-  rejected: { label: 'Rejected', color: 'var(--error)', bg: '#fef2f2' },
+  pending: { label: 'Pending', color: '#b45309', bg: '#fff7ed', dot: '#f59e0b' },
+  reviewed: { label: 'Reviewed', color: '#1d4ed8', bg: '#eff6ff', dot: '#3b82f6' },
+  accepted: { label: 'Accepted', color: '#15803d', bg: '#ecfdf5', dot: '#22c55e' },
+  rejected: { label: 'Rejected', color: '#b91c1c', bg: '#fef2f2', dot: '#ef4444' },
 };
 
 const fmtDate = (d) =>
@@ -131,8 +134,6 @@ export default function ApplicationsAdmin() {
     toast.success(`Exported ${filtered.length} application${filtered.length === 1 ? '' : 's'} to Excel.`, { silent: true });
   };
 
-  const renderDetailValue = (value) => (value === null || value === undefined || value === '' ? '—' : value);
-
   if (loading) return <div className="loading"><div className="spinner" />Loading applications...</div>;
 
   return (
@@ -172,7 +173,8 @@ export default function ApplicationsAdmin() {
         </div>
       </div>
 
-      <table className="admin-table app-adm-table">
+      <div className="admin-table-scroll">
+      <table className="admin-table app-adm-table is-modern">
         <thead>
           <tr>
             <th>Applicant</th>
@@ -180,7 +182,7 @@ export default function ApplicationsAdmin() {
             <th>Campus</th>
             <th>Applied</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th className="col-actions" aria-label="Actions" />
           </tr>
         </thead>
         <tbody>
@@ -192,24 +194,29 @@ export default function ApplicationsAdmin() {
           {filtered.map((app) => {
             const meta = STATUS_META[app.status] || STATUS_META.pending;
             return (
-              <tr key={app._id} className="app-adm-row" onClick={() => setSelected(app)} tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') setSelected(app); }}>
+              <tr
+                key={app._id}
+                className="app-adm-row"
+                onClick={() => setSelected(app)}
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') setSelected(app); }}
+              >
                 <td>
                   <div className="app-adm-cell">
                     <Avatar size="sm" name={app.name} />
-                    <div>
-                      <strong>{app.name}</strong>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{app.email}</div>
-                      {app.regNumber && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                          <Hash size={11} /> {app.regNumber}
-                        </div>
-                      )}
-                      {app.phone && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                          <Phone size={11} /> {app.phone}
-                        </div>
-                      )}
+                    {/* Two lines, not four. The name carries the registration
+                        number beside it because that is what an admin scans for,
+                        and the email sits underneath. The phone is deliberately
+                        absent: it is a second contact detail for the same person
+                        and the profile dialog already shows it in full. */}
+                    <div className="app-adm-id">
+                      <div className="app-adm-name">
+                        <strong>{app.name}</strong>
+                        {app.regNumber && (
+                          <span className="app-adm-reg"><Hash size={10} />{app.regNumber}</span>
+                        )}
+                      </div>
+                      <div className="app-adm-email">{app.email}</div>
                     </div>
                   </div>
                 </td>
@@ -218,39 +225,58 @@ export default function ApplicationsAdmin() {
                 <td style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{fmtDate(app.createdAt)}</td>
                 <td>
                   <span className="app-status-badge" style={{ color: meta.color, background: meta.bg }}>
+                    <i className="app-status-dot" style={{ background: meta.dot }} />
                     {meta.label}
                   </span>
                 </td>
-                <td onClick={(e) => e.stopPropagation()}>
-                  <div className="actions">
-                    <button className="btn btn-outline btn-sm" onClick={() => setSelected(app)} title="View details">
-                      <Eye size={14} />
-                    </button>
-                    {app.status === 'pending' && (
-                      <>
-                        <button className="btn btn-success btn-sm" onClick={() => updateStatus(app._id, 'accepted')} title="Accept">
-                          <Check size={14} />
-                        </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => updateStatus(app._id, 'rejected')} title="Reject">
-                          <X size={14} />
-                        </button>
-                      </>
-                    )}
-                    {app.status !== 'pending' && (
-                      <button className="btn btn-outline btn-sm" onClick={() => updateStatus(app._id, 'pending')} title="Reset to pending">
-                        <RefreshCcw size={14} />
-                      </button>
-                    )}
-                    <button className="btn btn-danger btn-sm" onClick={() => setConfirmId(app._id)} title="Delete">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                <td className="col-actions" onClick={(e) => e.stopPropagation()}>
+                  <ActionMenu
+                    label={`Actions for ${app.name}`}
+                    items={[
+                      {
+                        label: 'View profile',
+                        tone: 'info',
+                        icon: <Eye size={14} />,
+                        onSelect: () => setSelected(app),
+                      },
+                      ...(app.status === 'pending'
+                        ? [
+                            {
+                              label: 'Accept',
+                              tone: 'ok',
+                              icon: <Check size={14} />,
+                              onSelect: () => updateStatus(app._id, 'accepted'),
+                            },
+                            {
+                              label: 'Reject',
+                              tone: 'no',
+                              icon: <X size={14} />,
+                              onSelect: () => updateStatus(app._id, 'rejected'),
+                            },
+                          ]
+                        : [
+                            {
+                              label: 'Move to pending',
+                              tone: 'warn',
+                              icon: <RefreshCcw size={14} />,
+                              onSelect: () => updateStatus(app._id, 'pending'),
+                            },
+                          ]),
+                      {
+                        label: 'Delete',
+                        tone: 'danger',
+                        icon: <Trash2 size={14} />,
+                        onSelect: () => setConfirmId(app._id),
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      </div>
 
       {selected && (
         <div className="dialog-overlay app-detail-overlay" onClick={() => setSelected(null)}>
@@ -273,34 +299,30 @@ export default function ApplicationsAdmin() {
             </div>
 
             <div className="app-detail-body">
+                {/* Only fields the applicant actually filled in. The previous
+                    version rendered every field unconditionally, so an
+                    application that left five optional ones blank showed a
+                    column of em dashes that read like missing data. */}
                 <div className="app-detail-grid">
-                  <div className="app-detail-item">
-                    <Phone size={15} /><span>Phone</span><b>{renderDetailValue(selected.phone)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <MapPin size={15} /><span>Campus</span><b>{renderDetailValue(selected.campus)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <MonitorPlay size={15} /><span>Place of Learning</span><b>{renderDetailValue(selected.learningPlace)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <GraduationCap size={15} /><span>Intake</span><b>{selected.intakeTitle}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <CalendarDays size={15} /><span>Applied</span><b>{fmtDateTime(selected.createdAt)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <Hash size={15} /><span>Reg Number</span><b>{renderDetailValue(selected.regNumber)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <User size={15} /><span>Level of Study</span><b>{renderDetailValue(selected.levelOfStudy)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <Building2 size={15} /><span>Department</span><b>{renderDetailValue(selected.department)}</b>
-                  </div>
-                  <div className="app-detail-item">
-                    <User size={15} /><span>Gender</span><b>{renderDetailValue(selected.gender || 'Prefer not to say')}</b>
-                  </div>
+                  {[
+                    { icon: <Phone size={15} />, label: 'Phone', value: selected.phone },
+                    { icon: <MapPin size={15} />, label: 'Campus', value: selected.campus },
+                    { icon: <MonitorPlay size={15} />, label: 'Place of Learning', value: selected.learningPlace },
+                    { icon: <GraduationCap size={15} />, label: 'Intake', value: selected.intakeTitle },
+                    { icon: <CalendarDays size={15} />, label: 'Applied', value: fmtDateTime(selected.createdAt) },
+                    { icon: <Hash size={15} />, label: 'Reg Number', value: selected.regNumber },
+                    { icon: <User size={15} />, label: 'Level of Study', value: selected.levelOfStudy },
+                    { icon: <Building2 size={15} />, label: 'Department', value: selected.department },
+                    { icon: <User size={15} />, label: 'Gender', value: selected.gender },
+                  ]
+                    .filter((field) => String(field.value || '').trim())
+                    .map((field) => (
+                      <div key={field.label} className="app-detail-item">
+                        {field.icon}
+                        <span>{field.label}</span>
+                        <b>{field.value}</b>
+                      </div>
+                    ))}
                 </div>
 
               <div className="app-detail-block">
@@ -318,7 +340,7 @@ export default function ApplicationsAdmin() {
 
               {selected.motivation && (
                 <div className="app-detail-block">
-                  <div className="app-detail-label"><FileText size={15} /> Motivation</div>
+                  <div className="app-detail-label"><FileText size={15} /> Goals After Training</div>
                   <p>{selected.motivation}</p>
                 </div>
               )}

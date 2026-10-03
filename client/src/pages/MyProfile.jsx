@@ -17,6 +17,7 @@ const ROLE_LABEL = {
   editor: 'Editor',
   trainer: 'Trainer',
   finance: 'Finance',
+  secretary: 'Secretary',
   user: 'Member',
 };
 
@@ -210,7 +211,7 @@ export default function MyProfile() {
                 <ul>
                   <li>Your <b>photo</b>, <b>name</b>, <b>email</b> and <b>phone</b> are yours to edit.</li>
                   <li>Your <b>role</b> and account access are set by an administrator and cannot be changed here.</li>
-                  <li>Anything that belongs to your training record — intake, level, campus — is edited by DTS staff so the record stays accurate.</li>
+                  <li>Anything that belongs to your training record, intake, level, campus, is edited by DTS staff so the record stays accurate.</li>
                 </ul>
               </div>
             </aside>

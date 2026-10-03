@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import Application from "../models/Application.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
+import FinanceTransaction from "../models/FinanceTransaction.js";
+import User from "../models/User.js";
 import { createStudentForApplication } from "../services/studentService.js";
 import { gradeForScore } from "../utils/grade.js";
 
@@ -47,9 +49,11 @@ const pickIntake = async () => {
 };
 
 const clean = async () => {
+  const student = await Student.findOne({ email: TEST_EMAIL }).select("_id").lean();
+  if (student) await FinanceTransaction.deleteMany({ studentId: student._id });
   const result = await Student.deleteMany({ email: TEST_EMAIL });
   await Application.deleteMany({ email: TEST_EMAIL });
-  console.log(`Removed ${result.deletedCount} test student(s) and their application(s).`);
+  console.log(`Removed ${result.deletedCount} test student(s), their application(s) and payments.`);
 };
 
 const run = async () => {
@@ -81,6 +85,10 @@ const run = async () => {
     email: TEST_EMAIL,
     phone: "+250788000000",
     campus: "UR-Huye Campus",
+    // Online delivery, so the card credits the course as delivered online
+    // rather than as a physical campus. The two are mutually exclusive claims
+    // and the card reads this field to decide between them.
+    learningPlace: "Online",
     program: intake.program || "Advanced Level",
     preferredCourses: courses,
     motivation: "Automated test record for verifying the achievement card download.",
@@ -88,6 +96,10 @@ const run = async () => {
   });
 
   const { student, pin } = await createStudentForApplication(application);
+
+  // The card reads the student's own learningPlace, not the application's, so
+  // it is set again here in case the promotion step does not copy it across.
+  student.learningPlace = "Online";
 
   // Every course completed, with a staggered completion date and a plausible
   // score so the card renders its score line too. Grades are derived from the
@@ -107,6 +119,37 @@ const run = async () => {
   student.remarks = "Automated test record - safe to delete.";
   await student.save();
 
+  // The certificate is only released once the fee is settled, so the test
+  // record pays in full by default. Pass --unpaid to leave the balance
+  // outstanding and inspect the locked state instead.
+  let paymentRecorded = false;
+  if (!process.argv.includes("--unpaid")) {
+    const fee = Number(intake.tuitionFee || 0);
+    if (fee > 0) {
+      const admin = await User.findOne({ role: { $in: ["admin", "finance", "superadmin"] } })
+        .select("_id")
+        .lean();
+      if (!admin) {
+        throw new Error("No admin/finance user found to attribute the test payment to.");
+      }
+      await FinanceTransaction.create({
+        kind: "payment",
+        amount: fee,
+        currency: intake.currency || "RWF",
+        studentId: student._id,
+        intakeId: intake._id,
+        category: "Tuition",
+        method: "mobile_money",
+        status: "completed",
+        occurredAt: new Date(),
+        reference: "TEST-SEED",
+        notes: "Automated test payment - safe to delete.",
+        recordedById: admin._id,
+      });
+      paymentRecorded = true;
+    }
+  }
+
   console.log("");
   console.log("Test student created with every course completed.");
   console.log("------------------------------------------------");
@@ -114,13 +157,17 @@ const run = async () => {
   console.log(`  PIN          : ${pin}`);
   console.log(`  Email        : ${student.email}`);
   console.log(`  Status       : ${student.status}`);
+  console.log(`  LearningPlace: ${student.learningPlace}`);
   console.log(`  Intake       : ${intake.title}`);
   console.log(`  Completed    : ${courses.length} course(s)`);
   for (const m of student.marks) {
     console.log(`    - ${m.course}  ${m.score}%  ${m.grade}  completed ${m.completedAt.toISOString().slice(0, 10)}`);
   }
+  console.log(`  Fee          : ${intake.tuitionFee || 0} ${intake.currency || "RWF"} (${paymentRecorded ? "PAID IN FULL" : "unpaid"})`);
+  console.log(`  Certificate  : ${paymentRecorded ? "RELEASED" : "LOCKED until paid in full"}`);
   console.log("------------------------------------------------");
   console.log("Sign in at /profile with the registration number and PIN above.");
+  console.log("Inspect the locked state with: node src/scripts/seedTestGraduate.js --unpaid");
   console.log("Remove with: node src/scripts/seedTestGraduate.js --clean");
 
   await mongoose.disconnect();

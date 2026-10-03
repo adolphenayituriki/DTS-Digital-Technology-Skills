@@ -41,6 +41,8 @@ const FinanceDashboard = lazy(() => import('./pages/FinanceDashboard'));
 const FinanceStudentBalances = lazy(() => import('./pages/FinanceStudentBalances'));
 const FinanceRecords = lazy(() => import('./pages/FinanceRecords'));
 const FinanceFees = lazy(() => import('./pages/FinanceFees'));
+const SecretaryLayout = lazy(() => import('./pages/SecretaryLayout'));
+const SecretaryDashboard = lazy(() => import('./pages/SecretaryDashboard'));
 const AccountSettings = lazy(() => import('./pages/AccountSettings'));
 
 const titles = {
@@ -78,6 +80,8 @@ const titles = {
   '/finance/records': 'Finance Records',
   '/finance/fees': 'Finance Intake Fees',
   '/finance/settings': 'Settings',
+  '/secretary': 'Secretary Dashboard',
+  '/secretary/settings': 'Settings',
 };
 
 function TitleManager() {
@@ -105,7 +109,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <RequireRole roles={['admin', 'editor']}>
+            <RequireRole roles={['admin']}>
               <AdminLayout />
             </RequireRole>
           }
@@ -162,6 +166,17 @@ export default function App() {
           <Route path="students" element={<FinanceStudentBalances />} />
           <Route path="records" element={<FinanceRecords />} />
           <Route path="fees" element={<FinanceFees />} />
+          <Route path="settings" element={<AccountSettings />} />
+        </Route>
+        <Route
+          path="/secretary"
+          element={
+            <RequireRole roles={['secretary', 'admin']}>
+              <SecretaryLayout />
+            </RequireRole>
+          }
+        >
+          <Route index element={<SecretaryDashboard />} />
           <Route path="settings" element={<AccountSettings />} />
         </Route>
         <Route

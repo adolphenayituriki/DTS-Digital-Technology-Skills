@@ -12,7 +12,7 @@ const teamImages = [
 function MemberCard({ member }) {
   return (
     <div className="card team-card">
-      <Avatar size="xl" name={member.name} src={member.photo} seed={member.order} />
+      <Avatar size="xl" name={member.name} src={member.photo} />
       <h3>{member.name}</h3>
       <span className="team-role-pill">{member.role}</span>
       {member.bio && <p className="team-card-bio">{member.bio}</p>}

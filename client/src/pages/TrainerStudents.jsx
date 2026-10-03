@@ -66,16 +66,15 @@ export default function TrainerStudents() {
       {loading ? <div className="loading"><div className="spinner" />Loading roster...</div> : (
         <div className="table-scroll">
           <table className="admin-table">
-            <thead><tr><th>Registration</th><th>Student</th><th>Intake</th><th>Courses</th><th>Marks</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Registration</th><th>Student</th><th>Intake</th><th>Courses</th><th>Actions</th></tr></thead>
             <tbody>
-              {students.length === 0 && <tr><td colSpan={6} className="table-empty">No students found for this assignment.</td></tr>}
+              {students.length === 0 && <tr><td colSpan={5} className="table-empty">No students found for this assignment.</td></tr>}
               {students.map((student) => (
                 <tr key={student._id}>
                   <td><span className="student-reg-cell">{student.regNumber}</span></td>
                   <td><strong>{student.name}</strong><small className="table-subtext">{student.email}</small></td>
                   <td>{student.intakeTitle}</td>
                   <td>{(student.preferredCourses || []).join(', ') || student.program || '—'}</td>
-                  <td>{(student.marks || []).length}</td>
                   <td><div className="actions"><Link className="btn btn-outline btn-xs" to={`/trainer/marks?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || student.preferredCourses?.[0] || '')}&studentId=${student._id}`}><BookOpen size={13} /></Link><Link className="btn btn-outline btn-xs" to={`/trainer/attendance?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || '')}`}><ClipboardCheck size={13} /></Link></div></td>
                 </tr>
               ))}

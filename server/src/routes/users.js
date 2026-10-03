@@ -1,5 +1,8 @@
 import { Router } from "express";
 import User from "../models/User.js";
+import Application from "../models/Application.js";
+import Student from "../models/Student.js";
+import TrainerAssignment from "../models/TrainerAssignment.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
 import { emailProblem as checkEmail, normalizeEmail } from "../utils/email.js";
@@ -7,7 +10,7 @@ import { generateTemporaryPassword, passwordProblem } from "../utils/password.js
 import { sendStaffCredentials } from "../utils/mailer.js";
 
 const router = Router();
-const roles = ["admin", "editor", "trainer", "finance", "user"];
+const roles = ["admin", "editor", "trainer", "finance", "secretary", "user"];
 
 const publicUser = (user) => ({
   _id: user._id,
@@ -188,6 +191,56 @@ router.put("/:id", async (req, res) => {
     res.json(publicUser(user));
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "User already exists" });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Removes an account for good, for an account created in error or belonging to
+// someone who has left. Disabling is usually the right answer because it keeps
+// the audit trail intact, so the UI says so and offers delete as the deliberate
+// alternative.
+//
+// Two locks matter here. An admin cannot delete their own account, and the last
+// remaining administrator cannot be deleted either - either would leave the
+// install with no way back in, short of editing the database by hand.
+router.delete("/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (String(user._id) === String(req.user._id)) {
+      return res.status(400).json({ message: "You cannot delete the account you are signed in with" });
+    }
+    if (user.role === "admin") {
+      const otherAdmins = await User.countDocuments({ role: "admin", active: true, _id: { $ne: user._id } });
+      if (otherAdmins === 0) {
+        return res.status(400).json({ message: "This is the only active administrator. Promote another account to Admin first." });
+      }
+    }
+
+    // An assignment is purely an access-control record: the trainer roster is
+    // built from it, while attendance and marks live on their own collections
+    // keyed by student and intake. Removing it therefore takes away access
+    // without touching a single recorded result, and it is what stops the
+    // assignments list filling up with rows that resolve to no trainer at all.
+    const [assignments, students, applications] = await Promise.all([
+      TrainerAssignment.deleteMany({ trainerId: user._id }),
+      // The student keeps their own record and signs in with their registration
+      // number and PIN, so only the link to this account is cleared.
+      Student.updateMany({ userId: user._id }, { $unset: { userId: 1 } }),
+      Application.updateMany({ userId: user._id }, { $unset: { userId: 1 } }),
+    ]);
+    await user.deleteOne();
+
+    res.json({
+      message: `${user.name} was deleted.`,
+      removed: {
+        assignments: assignments.deletedCount || 0,
+        students: students.modifiedCount || 0,
+        applications: applications.modifiedCount || 0,
+      },
+    });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });

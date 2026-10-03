@@ -14,7 +14,7 @@ import User from "../models/User.js";
 
 const router = Router();
 
-router.use(auth, requireRole("admin", "editor"));
+router.use(auth, requireRole("admin", "secretary"));
 
 // Real counts straight from the database, so a dashboard can never show a
 // number that was guessed locally or silently defaulted to 0 on a failed call.

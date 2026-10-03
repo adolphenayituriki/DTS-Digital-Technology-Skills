@@ -31,9 +31,9 @@ export const DEPARTMENTS = [
 // This is a property of the applicant, not of the intake, so it is asked on
 // the application rather than derived from which courses they picked.
 export const LEARNING_PLACES = [
-  "Physical — UR-Huye Campus",
-  "Online — Zoom",
-  "Online — Google Meet",
+  "Physical Class: UR-Huye Campus",
+  "Online Class: Zoom",
+  "Online Class: Google Meet",
 ];
 
 // "Prefer not to say" is a real answer, not a null - it is stored explicitly so
@@ -44,6 +44,45 @@ export const GENDERS = [
   "Other",
   "Prefer not to say",
 ];
+
+// The kinds of assessment a trainer can record, each numbered in sequence
+// (Quiz 1, Quiz 2, ...). Stored as a slug plus a separate number rather than as
+// one free-text string, so a course can be summarised per type ("average of
+// three quizzes") and the mark grid can build its own columns. `weight` is a
+// default only: the trainer overrides it per assessment when a course does not
+// weight every kind equally.
+export const ASSESSMENT_TYPES = [
+  { value: "quiz", label: "Quiz" },
+  { value: "exercise", label: "Exercise" },
+  { value: "assignment", label: "Assignment" },
+  { value: "cat", label: "CAT" },
+  { value: "exam", label: "Exam" },
+  { value: "other", label: "Other" },
+];
+
+export const assessmentTypeProblem = (value) => {
+  const slug = String(value ?? "").trim().toLowerCase();
+  if (!slug) return "Choose an assessment type";
+  if (!ASSESSMENT_TYPES.some((item) => item.value === slug)) return "That assessment type is not recognised";
+  return "";
+};
+
+export const assessmentTypeLabel = (value) =>
+  ASSESSMENT_TYPES.find((item) => item.value === String(value || "").trim().toLowerCase())?.label || "Assessment";
+
+// The number is the 1 in "Quiz 1". Bounded so a pasted value cannot become an
+// unbounded column count in the marks grid.
+export const assessmentNoProblem = (value) => {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1 || n > 50) return "Number must be between 1 and 50";
+  return "";
+};
+
+// Marks predating this change have no assessment type. They are treated as a
+// single unnamed assessment per course rather than being hidden, so existing
+// records keep showing in the grid and on the student's results table.
+export const DEFAULT_ASSESSMENT_TYPE = "";
+export const DEFAULT_ASSESSMENT_NO = 1;
 
 // University Registration (UR) numbers are numeric, e.g. 225020019.
 // They are distinct from the DTS-issued Registration Number (DTS-YYYY-NNNN)

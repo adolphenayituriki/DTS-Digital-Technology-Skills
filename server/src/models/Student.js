@@ -8,6 +8,28 @@ const markSchema = new mongoose.Schema(
       required: [true, "Course is required"],
       trim: true,
     },
+    // A mark is one assessment of one course, not one course. Quiz 1, Quiz 2
+    // and Exam 1 are three marks on the same course, identified by
+    // course + assessmentType + assessmentNo. Both new fields are optional so
+    // marks recorded before this existed keep loading; they read as a single
+    // unnamed assessment on the course.
+    assessmentType: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    assessmentNo: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 50,
+    },
+    // The day the assessment was given, which is not necessarily the day the
+    // mark was typed up.
+    assessmentDate: {
+      type: Date,
+      default: Date.now,
+    },
     score: {
       type: Number,
       required: [true, "Score is required"],
@@ -104,6 +126,13 @@ const studentSchema = new mongoose.Schema(
       trim: true,
     },
     campus: {
+      type: String,
+      trim: true,
+    },
+    // How the student was taught, copied from the application. Needed because
+    // the downloadable achievement card has to name the right delivery mode:
+    // an online learner must not be credited with the UR-Huye campus.
+    learningPlace: {
       type: String,
       trim: true,
     },

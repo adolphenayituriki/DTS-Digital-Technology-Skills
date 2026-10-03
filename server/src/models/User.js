@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["admin", "editor", "trainer", "finance", "user"],
+    enum: ["admin", "editor", "trainer", "finance", "secretary", "user"],
     default: "user",
   },
   // Self-service profile fields. The photo is an absolute URL returned by

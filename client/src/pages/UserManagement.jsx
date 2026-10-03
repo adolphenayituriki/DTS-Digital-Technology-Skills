@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, Check, Copy, KeyRound, Mail, RotateCcw, Save, ShieldAlert, UserPlus,
+  AlertTriangle, Check, Copy, KeyRound, RotateCcw, Save, ShieldAlert, Trash2,
+  UserPlus, Users, UserX, UserCheck,
 } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
+import ActionMenu from '../components/ActionMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { PASSWORD_MIN_LENGTH } from '../utils/password';
 import { emailProblem, normalizeEmail } from '../utils/email';
 
@@ -18,12 +21,6 @@ const ROLES = [
 
 const emptyForm = { name: '', email: '', role: 'trainer' };
 
-const fmtDate = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-GB');
-};
-
 export default function UserManagement() {
   const toast = useToast();
   const [users, setUsers] = useState([]);
@@ -35,6 +32,9 @@ export default function UserManagement() {
   // shown once, here, because otherwise the account exists but nobody can
   // ever reach it.
   const [fallback, setFallback] = useState(null);
+  const [query, setQuery] = useState('');
+  const [confirmUser, setConfirmUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadUsers = () =>
     apiFetch('/users')
@@ -45,6 +45,16 @@ export default function UserManagement() {
     loadUsers().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const visibleUsers = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    if (!search) return users;
+    return users.filter((user) =>
+      [user.name, user.email, user.role]
+        .filter(Boolean)
+        .some((value) => value.toString().toLowerCase().includes(search)),
+    );
+  }, [users, query]);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -136,6 +146,30 @@ export default function UserManagement() {
     }
   };
 
+  const deleteUser = async () => {
+    if (!confirmUser) return;
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`/users/${confirmUser._id}`, { method: 'DELETE' });
+      setUsers((current) => current.filter((item) => item._id !== confirmUser._id));
+      setConfirmUser(null);
+      // The cascade count matters: an admin who deletes a trainer needs to know
+      // their intake access went with the account.
+      const { assignments = 0 } = res?.removed || {};
+      toast.success(
+        assignments > 0
+          ? `${res.message} ${assignments} intake assignment${assignments === 1 ? '' : 's'} removed.`
+          : res.message,
+        { celebrate: false, duration: 5000 },
+      );
+      await loadUsers();
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete user.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="loading"><div className="spinner" />Loading users...</div>;
 
   return (
@@ -143,7 +177,7 @@ export default function UserManagement() {
       <div className="workspace-intro">
         <div>
           <h2>User Access</h2>
-          <p>Create trainer and finance accounts and control staff access.</p>
+          <p>Create staff accounts and control who can sign in.</p>
         </div>
       </div>
 
@@ -151,11 +185,8 @@ export default function UserManagement() {
         <div className="alert alert-error fallback-credentials">
           <AlertTriangle size={18} />
           <div>
-            <b>{fallback.name} could not be emailed {fallback.password ? '' : ''}</b>
-            <p>
-              The credentials email did not go out. Pass this on yourself, or ask an administrator to
-              re-send it. The password is shown only here and never again.
-            </p>
+            <b>{fallback.name} could not be emailed</b>
+            <p>The email did not go out. Pass this password on yourself — it is shown only here.</p>
             <div className="fallback-credentials-row">
               <span><small>Email</small><b>{fallback.email}</b></span>
               <span><small>Temporary password</small><b className="mono">{fallback.password}</b></span>
@@ -170,8 +201,8 @@ export default function UserManagement() {
         </div>
       )}
 
-      <div className="finance-layout">
-        <form className="dash-panel finance-record-form" onSubmit={createUser}>
+      <div className="user-access-layout">
+        <form className="dash-panel user-access-form" onSubmit={createUser}>
           <div className="dash-panel-head">
             <h3><UserPlus size={17} /> Create staff account</h3>
           </div>
@@ -200,25 +231,15 @@ export default function UserManagement() {
             </div>
           </div>
 
-          <div className="alert alert-info create-user-note">
-            <Mail size={17} />
-            <p>
-              A strong random password is generated and emailed to the address above. The user must
-              replace it themselves the first time they sign in, so nobody else ever knows their
-              password — not even you.
-            </p>
-          </div>
+          <p className="form-hint create-user-hint">
+            A random password is emailed to the address above. They must replace it at first sign-in.
+          </p>
 
           {form.role === 'trainer' && (
-            <div className="alert alert-info create-user-note">
-              <UserPlus size={17} />
-              <p>
-                This account will have the <b>Trainer</b> role and can sign in to the trainer
-                dashboard. Next, give them the intakes they teach on{' '}
-                <Link to="/admin/trainer-assignments">Trainer Assignments</Link> — a trainer only
-                sees the students of the intakes assigned to them.
-              </p>
-            </div>
+            <p className="form-hint create-user-hint">
+              Trainers only see students from the intakes given to them on{' '}
+              <Link to="/admin/trainer-assignments">Trainer Assignments</Link>.
+            </p>
           )}
 
           <button className="btn btn-primary" type="submit" disabled={saving}>
@@ -228,28 +249,47 @@ export default function UserManagement() {
 
         <div className="dash-panel finance-ledger-panel">
           <div className="dash-panel-head">
-            <h3>Accounts</h3>
+            <h3><Users size={17} /> Accounts <span className="dash-pill">{users.length}</span></h3>
+            <input
+              className="form-control assignment-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, email or role"
+              aria-label="Search accounts"
+            />
           </div>
-          <div className="table-scroll">
-            <table className="admin-table compact-table">
+          <div className="admin-table-scroll">
+            <table className="admin-table compact-table user-access-table">
               <thead>
                 <tr>
                   <th>User</th>
                   <th>Role</th>
                   <th>Password</th>
-                  <th>Access</th>
+                  <th className="col-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user._id}>
+                {visibleUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="table-empty">
+                      {users.length === 0 ? 'No accounts yet.' : 'No accounts match that search.'}
+                    </td>
+                  </tr>
+                )}
+                {visibleUsers.map((user) => (
+                  <tr key={user._id} className={user.active ? undefined : 'is-disabled'}>
                     <td>
                       <strong>{user.name}</strong>
                       <small className="table-subtext">{user.email}</small>
-                      {user.createdAt && <small className="table-subtext">Added {fmtDate(user.createdAt)}</small>}
                     </td>
                     <td>
-                      <select className="form-control" value={user.role} onChange={(e) => updateUser(user, { role: e.target.value })}>
+                      <select
+                        className="form-control"
+                        value={user.role}
+                        aria-label={`Role for ${user.name}`}
+                        onChange={(e) => updateUser(user, { role: e.target.value })}
+                      >
                         {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                       </select>
                     </td>
@@ -263,24 +303,42 @@ export default function UserManagement() {
                           <Check size={12} /> Own password
                         </span>
                       )}
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-xs pw-reset-btn"
-                        onClick={() => resetPassword(user)}
-                        disabled={resetingId === user._id}
-                        title={`Email ${user.name} a new temporary password`}
-                      >
-                        <RotateCcw size={12} /> {resetingId === user._id ? 'Sending...' : 'Reset'}
-                      </button>
                     </td>
-                    <td>
-                      <button
-                        type="button"
-                        className={`btn btn-xs ${user.active ? 'btn-danger' : 'btn-success'}`}
-                        onClick={() => updateUser(user, { active: !user.active })}
-                      >
-                        {user.active ? 'Disable' : 'Enable'}
-                      </button>
+                    <td className="col-actions">
+                      {/* Disable keeps the audit trail and is the right default;
+                          delete is the deliberate alternative, so it is the
+                          quieter of the two and sits behind a confirmation. */}
+                      <ActionMenu
+                        label={`Actions for ${user.name}`}
+                        items={[
+                          {
+                            label: 'Email a new password',
+                            tone: 'info',
+                            icon: <RotateCcw size={14} />,
+                            disabled: resetingId === user._id,
+                            onSelect: () => resetPassword(user),
+                          },
+                          user.active
+                            ? {
+                                label: 'Disable account',
+                                tone: 'warn',
+                                icon: <UserX size={14} />,
+                                onSelect: () => updateUser(user, { active: false }),
+                              }
+                            : {
+                                label: 'Enable account',
+                                tone: 'ok',
+                                icon: <UserCheck size={14} />,
+                                onSelect: () => updateUser(user, { active: true }),
+                              },
+                          {
+                            label: 'Delete permanently',
+                            tone: 'danger',
+                            icon: <Trash2 size={14} />,
+                            onSelect: () => setConfirmUser(user),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -291,13 +349,26 @@ export default function UserManagement() {
           <div className="admin-table-foot">
             <KeyRound size={14} />
             <p>
-              Passwords are stored as bcrypt hashes and are never visible to anyone, including you.
-              Use <b>Reset</b> to email a new temporary password to a locked-out user; they will be
-              required to change it before the dashboard opens. Minimum {PASSWORD_MIN_LENGTH} characters.
+              Passwords are bcrypt-hashed and never shown again. <b>Reset</b> emails a new one;
+              minimum {PASSWORD_MIN_LENGTH} characters.
             </p>
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(confirmUser)}
+        title={`Delete ${confirmUser?.name || 'this account'}?`}
+        message={
+          confirmUser?.role === 'trainer'
+            ? 'This removes the account, their sign-in and every intake assigned to them. Attendance and marks already recorded are kept. This cannot be undone.'
+            : 'This removes the account and its sign-in for good. This cannot be undone.'
+        }
+        confirmLabel="Delete account"
+        loading={deleting}
+        onConfirm={deleteUser}
+        onCancel={() => setConfirmUser(null)}
+      />
     </div>
   );
 }

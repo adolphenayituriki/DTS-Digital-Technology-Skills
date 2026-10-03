@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info, UploadCloud, FileCheck2, Trash2, CreditCard, Smartphone, Building2, Video, Mail } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, Check, ArrowRight, ArrowLeft, XCircle, GraduationCap, CheckCircle2, Share2, Info, UploadCloud, FileCheck2, Trash2, CreditCard, Smartphone, Building2, Mail } from 'lucide-react';
 import apiFetch from '../api';
 import FadeIn from '../components/FadeIn';
 import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
 import { emailProblem, normalizeEmail } from '../utils/email';
-import { LEVELS_OF_STUDY, GENDERS, LEARNING_PLACES, REG_NUMBER_PATTERN } from '../utils/options';
+import { LEVELS_OF_STUDY, GENDERS, REG_NUMBER_PATTERN } from '../utils/options';
 import { EARLY_PAYMENT_NOTICE } from '../utils/fees';
 
 const BASE_STEPS = ['Personal Info', 'Contact', 'Studies'];
@@ -21,12 +21,6 @@ const stepsFor = (isAdvanced) =>
 const CERT_MAX_BYTES = 5 * 1024 * 1024;
 const CERT_MAX_MB = CERT_MAX_BYTES / 1024 / 1024;
 const CERT_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-
-const LEARNING_PLACE_META = {
-  'Physical — UR-Huye Campus': { icon: Building2, hint: 'Come to the DTS office at UR-Huye Campus for scheduled sessions.' },
-  'Online — Zoom': { icon: Video, hint: 'Live sessions on Zoom. The joining link is shared after you are registered.' },
-  'Online — Google Meet': { icon: Video, hint: 'Live sessions on Google Meet. The joining link is shared after you are registered.' },
-};
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const fmtBytes = (bytes) =>
@@ -46,7 +40,6 @@ export default function Apply() {
     email: user?.email || '',
     phone: '',
     campus: '',
-    learningPlace: '',
     regNumber: '',
     levelOfStudy: '',
     department: '',
@@ -61,6 +54,30 @@ export default function Apply() {
   // Held after a successful submit so the applicant reads the next step
   // instead of being dropped straight back onto an empty intake list.
   const [submitted, setSubmitted] = useState(null);
+
+  // The wizard, the intake grid and the receipt all swap in place inside one
+  // long page, so the browser keeps whatever scroll offset the applicant had
+  // reached. Advancing to step 2 would then open halfway down, hiding its own
+  // heading and first fields - which reads as the form having skipped a page.
+  // This anchor survives every one of those swaps, so it is the only thing that
+  // has to be tracked. It is the top of the section rather than the top of the
+  // form card, because after a submit the form is gone and the receipt - which
+  // the applicant needs to read - sits at that same position.
+  const anchorRef = useRef(null);
+  // The anchor is on screen from the first paint, so without this the effect
+  // would jump the page past its own header before the applicant had scrolled
+  // anywhere. Only transitions the applicant caused should move them.
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [step, selected?._id, submitted]);
 
   // The level is a property of the intake the applicant picked, not something
   // they fill in - which is also what decides whether a certificate is needed.
@@ -157,9 +174,6 @@ export default function Apply() {
   const regHint = form.regNumber.trim() && !REG_NUMBER_PATTERN.test(form.regNumber.trim())
     ? 'Use the format 225020019, or leave blank if this is your first intake.'
     : '';
-  const learningPlaceHint = form.learningPlace && !LEARNING_PLACES.includes(form.learningPlace)
-    ? 'Choose one of the listed places of learning.'
-    : '';
 
   // Checked before the file is ever sent, so a 5 MB rejection is instant
   // instead of costing the applicant the upload first.
@@ -190,14 +204,6 @@ export default function Apply() {
     }
     if (step === 1 && regHint) {
       toast.error(regHint, { title: 'Check your registration number' });
-      return;
-    }
-    if (step === 2 && !form.learningPlace) {
-      toast.error('Choose where you want to study: on campus at UR-Huye, or online.');
-      return;
-    }
-    if (learningPlaceHint) {
-      toast.error(learningPlaceHint, { title: 'Check your place of learning' });
       return;
     }
     if (step === 3 && form.preferred.length === 0) {
@@ -238,14 +244,6 @@ export default function Apply() {
       toast.error(regHint, { title: 'Check your registration number' });
       return;
     }
-    if (!form.learningPlace) {
-      toast.error('Choose where you want to study: on campus at UR-Huye, or online.');
-      return;
-    }
-    if (learningPlaceHint) {
-      toast.error(learningPlaceHint, { title: 'Check your place of learning' });
-      return;
-    }
     if (isAdvanced && !certificate) {
       toast.error('Advanced applicants must attach their Basic certificate.');
       return;
@@ -258,7 +256,6 @@ export default function Apply() {
         email: normalizeEmail(form.email),
         phone: form.phone,
         campus: form.campus,
-        learningPlace: form.learningPlace,
         regNumber: form.regNumber,
         levelOfStudy: form.levelOfStudy,
         department: form.department,
@@ -301,7 +298,6 @@ export default function Apply() {
         email: isLoggedIn ? user.email : '',
         phone: '',
         campus: '',
-        learningPlace: '',
         regNumber: '',
         levelOfStudy: '',
         department: '',
@@ -330,7 +326,7 @@ export default function Apply() {
       </section>
 
       <section className="section">
-        <div className="container">
+        <div className="container apply-anchor" ref={anchorRef}>
           {loading && <div className="loading"><div className="spinner" />Loading intakes...</div>}
 
           {!loading && intakes.length === 0 && (
@@ -350,52 +346,73 @@ export default function Apply() {
             </div>
           )}
 
+          {/* Confirmation is a modal, not an inline card: the applicant has
+              just spent several steps on this form and must not have to scroll
+              to discover whether it worked, or miss the PIN instructions. */}
           {submitted && (
-            <div className="card apply-receipt" role="status">
-              <div className="apply-receipt-head">
-                <span className="apply-receipt-tick"><CheckCircle size={22} /></span>
-                <div>
-                  <h3>Application received</h3>
+            <div
+              className="apply-done-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="apply-done-title"
+              onClick={() => { setSubmitted(null); setLinkNotice(''); }}
+            >
+              <div className="apply-done" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="apply-done-close"
+                  aria-label="Close"
+                  onClick={() => { setSubmitted(null); setLinkNotice(''); }}
+                >
+                  <XCircle size={19} />
+                </button>
+
+                <div className="apply-done-head">
+                  <span className="apply-done-tick"><CheckCircle size={26} /></span>
+                  <h3 id="apply-done-title">Application received</h3>
                   <p>
                     Thank you{submitted.name ? `, ${submitted.name}` : ''}. Your application for{' '}
                     <b>{submitted.intakeTitle}</b> has been sent to the DTS office.
                   </p>
                 </div>
-              </div>
 
-              <ul className="apply-receipt-steps">
-                <li>
-                  <Mail size={15} />
-                  <span>
-                    We are emailing your Registration Number and PIN to{' '}
-                    <b>{submitted.email}</b>. Use them on the{' '}
-                    <Link to="/profile">Student Profile</Link> page to follow your training.
-                  </span>
-                </li>
-                <li>
-                  <Smartphone size={15} />
-                  <span>
-                    Pay <b>{submitted.earlyPayment.amount?.toLocaleString('en-US')} {submitted.earlyPayment.currency}</b>{' '}
-                    early to secure your place. {submitted.earlyPayment.detail}
-                  </span>
-                </li>
-                <li>
-                  <CreditCard size={15} />
-                  <span>{submitted.earlyPayment.action}</span>
-                </li>
-              </ul>
+                <ul className="apply-done-steps">
+                  <li>
+                    <Mail size={16} />
+                    <span>
+                      We are emailing your Registration Number and PIN to{' '}
+                      <b>{submitted.email}</b>. Use them on the Student Profile page to follow your training.
+                    </span>
+                  </li>
+                  <li className="is-payment">
+                    <Smartphone size={16} />
+                    <span>
+                      Pay <b>{submitted.earlyPayment.amount?.toLocaleString('en-US')} {submitted.earlyPayment.currency}</b>{' '}
+                      early to secure your place.
+                      <em className="apply-done-plain">{submitted.earlyPayment.detail}</em>
+                      {submitted.earlyPayment.certificateFeeExample && (
+                        <em className="apply-done-example">{submitted.earlyPayment.certificateFeeExample}</em>
+                      )}
+                    </span>
+                  </li>
+                  <li className="is-payment">
+                    <CreditCard size={16} />
+                    <span>{submitted.earlyPayment.action}</span>
+                  </li>
+                </ul>
 
-              <div className="apply-receipt-actions">
-                <Link to="/profile" className="btn btn-primary btn-sm">
-                  Go to my student profile
-                </Link>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => { setSubmitted(null); setLinkNotice(''); }}
-                >
-                  Apply for another intake
-                </button>
+                <div className="apply-done-actions">
+                  <Link to="/profile" className="btn btn-primary">
+                    Go to my student profile
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => { setSubmitted(null); setLinkNotice(''); }}
+                  >
+                    Apply for another intake
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -600,7 +617,7 @@ export default function Apply() {
 
                     {step === 2 && (
                       <div className="step-body">
-                        <p className="step-hint">How can we reach you, and where would you like to study?</p>
+                        <p className="step-hint">How can we reach you, and where are you coming from?</p>
                         <div className="grid-2">
                           <div className="form-group">
                             <label>Phone Number</label>
@@ -611,42 +628,6 @@ export default function Apply() {
                             <input name="campus" className="form-control" value={form.campus} onChange={handleChange} placeholder="e.g. Huye District" />
                             <small className="form-hint">Where you are coming from. Optional.</small>
                           </div>
-                        </div>
-
-                        <div className="form-group">
-                          <label>Place of Learning *</label>
-                          <div className="learning-place-options" role="radiogroup" aria-label="Place of learning">
-                            {LEARNING_PLACES.map((place) => {
-                              const Icon = (LEARNING_PLACE_META[place] || {}).icon || Video;
-                              const hint = (LEARNING_PLACE_META[place] || {}).hint;
-                              const active = form.learningPlace === place;
-                              return (
-                                <label
-                                  key={place}
-                                  className={`learning-place-option${active ? ' is-selected' : ''}`}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="learningPlace"
-                                    value={place}
-                                    checked={active}
-                                    onChange={handleChange}
-                                  />
-                                  <span className="learning-place-icon"><Icon size={17} /></span>
-                                  <span className="learning-place-text">
-                                    <b>{place}</b>
-                                    {hint && <small>{hint}</small>}
-                                  </span>
-                                  <span className="learning-place-tick" aria-hidden="true">
-                                    {active && <Check size={13} />}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                          {learningPlaceHint && (
-                            <small className="form-error-hint">{learningPlaceHint}</small>
-                          )}
                         </div>
                       </div>
                     )}
@@ -682,8 +663,19 @@ export default function Apply() {
                           </div>
                         </div>
                         <div className="form-group">
-                          <label>Why do you want to join? (optional)</label>
-                          <textarea name="motivation" className="form-control" rows={3} value={form.motivation} onChange={handleChange} placeholder="Tell us a bit about your goals and motivation..." />
+                          <label>What do you want to be able to do after this training? (optional)</label>
+                          <textarea
+                            name="motivation"
+                            className="form-control"
+                            rows={3}
+                            value={form.motivation}
+                            onChange={handleChange}
+                            placeholder="After this training I want to be able to... "
+                          />
+                          <small className="form-hint">
+                            A sentence or two is plenty. Naming the specific thing you want to do — a job, a
+                            business, a skill you have always wanted — helps us place you on the right course.
+                          </small>
                         </div>
                       </div>
                     )}
@@ -741,10 +733,6 @@ export default function Apply() {
                           <div className="apply-review-row"><span>Email</span><strong>{form.email}</strong></div>
                           <div className="apply-review-row"><span>Phone</span><strong>{form.phone || '—'}</strong></div>
                           <div className="apply-review-row"><span>Campus</span><strong>{form.campus || '—'}</strong></div>
-                          <div className="apply-review-row">
-                            <span>Place of Learning</span>
-                            <strong>{form.learningPlace || '—'}</strong>
-                          </div>
                           <div className="apply-review-row"><span>Level of Study</span><strong>{form.levelOfStudy || '—'}</strong></div>
                           <div className="apply-review-row"><span>Department</span><strong>{form.department || '—'}</strong></div>
                           <div className="apply-review-row"><span>Gender</span><strong>{form.gender || 'Prefer not to say'}</strong></div>
@@ -758,7 +746,7 @@ export default function Apply() {
                               <strong>{certificate ? certificate.name : '—'}</strong>
                             </div>
                           )}
-                          {form.motivation && <div className="apply-review-row"><span>Motivation</span><strong>{form.motivation}</strong></div>}
+                          {form.motivation && <div className="apply-review-row"><span>Goals</span><strong>{form.motivation}</strong></div>}
                         </div>
                       </div>
                     )}

@@ -177,7 +177,7 @@ export default function MembersAdmin() {
             <tr key={m._id}>
               <td>
                 <div className="app-adm-cell">
-                  <Avatar size="sm" name={m.name} src={m.photo} seed={m.order} />
+                  <Avatar size="sm" name={m.name} src={m.photo} />
                   <strong>{m.name}</strong>
                 </div>
               </td>

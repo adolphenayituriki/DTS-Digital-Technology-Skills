@@ -8,6 +8,9 @@ import Student from "../models/Student.js";
 import TrainerAssignment from "../models/TrainerAssignment.js";
 import Attendance from "../models/Attendance.js";
 import { gradeForScore } from "../utils/grade.js";
+import {
+  ASSESSMENT_TYPES, DEFAULT_ASSESSMENT_NO, assessmentTypeProblem, assessmentNoProblem,
+} from "../utils/options.js";
 
 const router = Router();
 router.use(auth, requireRole("trainer", "admin"));
@@ -125,17 +128,76 @@ router.get("/dashboard", async (req, res) => {
     const marksRecorded = students.reduce((total, student) => total + (student.marks?.length || 0), 0);
     const sessionKeys = new Set(records.map((record) => `${record.sessionDate.toISOString().slice(0, 10)}:${record.course || ""}`));
     const present = records.filter((record) => record.status === "present" || record.status === "late").length;
+
+    // A day-by-day rate, oldest first, so the dashboard can show whether
+    // attendance is improving rather than only the lifetime average. Without
+    // this the trainer sees one number that never changes and cannot tell a
+    // good month from a bad one.
+    const byDate = new Map();
+    for (const record of records) {
+      const key = String(record.sessionDate).slice(0, 10);
+      const bucket = byDate.get(key) || { date: key, total: 0, present: 0 };
+      bucket.total += 1;
+      if (record.status === "present" || record.status === "late") bucket.present += 1;
+      byDate.set(key, bucket);
+    }
+    const trend = [...byDate.values()]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((bucket) => ({
+        date: bucket.date,
+        rate: bucket.total ? Math.round((bucket.present / bucket.total) * 100) : 0,
+        marked: bucket.total,
+      }));
+
+    // Worst-attending students, which is the list a trainer actually acts on.
+    // Names come from the roster, not from `records`: that query is a plain
+    // lean() find with no populate, so studentId is a bare id there.
+    const nameById = new Map(students.map((student) => [String(student._id), student]));
+    const perStudent = new Map();
+    for (const record of records) {
+      const id = String(record.studentId?._id || record.studentId);
+      if (!id) continue;
+      const person = nameById.get(id);
+      const bucket = perStudent.get(id) || {
+        id,
+        name: person?.name || "Student",
+        regNumber: person?.regNumber || "",
+        total: 0,
+        present: 0,
+      };
+      bucket.total += 1;
+      if (record.status === "present" || record.status === "late") bucket.present += 1;
+      perStudent.set(id, bucket);
+    }
+    const atRisk = [...perStudent.values()]
+      .filter((entry) => entry.total >= 2)
+      .map((entry) => ({ ...entry, rate: Math.round((entry.present / entry.total) * 100) }))
+      .filter((entry) => entry.rate < 75)
+      .sort((a, b) => a.rate - b.rate)
+      .slice(0, 6);
+
     res.json({
       studentCount: students.length,
       assignmentCount: (await getAssignments(req.user)).length,
       attendanceRate: records.length ? Math.round((present / records.length) * 100) : 0,
       sessionCount: sessionKeys.size,
       marksRecorded,
+      // A course counts as done when every assessment on it is scored, which is
+      // a truer measure of coverage than "has any mark at all".
       studentsWithoutMarks: students.filter((student) => !student.marks?.length).length,
-      recentAttendance: records.slice(0, 8).map((record) => ({
-        ...record,
-        student: record.studentId,
-      })),
+      trend,
+      atRisk,
+      recentAttendance: records.slice(0, 8).map((record) => {
+        const id = String(record.studentId?._id || record.studentId);
+        const person = nameById.get(id);
+        return {
+          _id: record._id,
+          sessionDate: record.sessionDate,
+          course: record.course,
+          status: record.status,
+          student: { _id: id, name: person?.name || "Student", regNumber: person?.regNumber || "" },
+        };
+      }),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -229,14 +291,66 @@ router.post("/attendance", async (req, res) => {
   }
 });
 
+/**
+ * Clears one session day for a class.
+ *
+ * A day that was saved by mistake has to be retractable, otherwise the register
+ * is permanently wrong and the trainer has no way to re-record it. Scoped to
+ * the trainer's own roster, so this can only ever touch students they teach.
+ */
+router.delete("/attendance", async (req, res) => {
+  try {
+    const { intakeId, sessionDate: rawDate, course: rawCourse } = req.body || {};
+    const course = cleanCourse(rawCourse);
+    const sessionDate = normalizeDate(rawDate);
+    if (!validId(intakeId) || !sessionDate) {
+      return res.status(400).json({ message: "A valid intake and session date are required" });
+    }
+    const students = await getRoster(req.user, { intakeId, course });
+    const studentIds = students.map((student) => student._id);
+    if (!studentIds.length) return res.json({ message: "Nothing to clear", removed: 0 });
+
+    const filter = { studentId: { $in: studentIds }, intakeId, sessionDate };
+    if (course) filter.course = course;
+    const result = await Attendance.deleteMany(filter);
+    res.json({
+      message: `Cleared ${result.deletedCount} record${result.deletedCount === 1 ? "" : "s"} for ${sessionDate.toISOString().slice(0, 10)}`,
+      removed: result.deletedCount || 0,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 const markPayload = (body, user) => {
   const course = cleanCourse(body.course);
   const score = Number(body.score);
   if (!course || !Number.isFinite(score) || score < 0 || score > 100) {
     return { error: "A course and a score between 0 and 100 are required" };
   }
+  // An absent type is allowed: that is how a mark saved before assessment types
+  // existed is re-submitted without being forced into a category. A type that is
+  // present but unrecognised is rejected, so a crafted request cannot invent
+  // categories the reports would then have to handle.
+  const assessmentType = String(body.assessmentType ?? "").trim().toLowerCase();
+  if (assessmentType) {
+    const typeProblem = assessmentTypeProblem(assessmentType);
+    if (typeProblem) return { error: typeProblem };
+  }
+  const assessmentNo = body.assessmentNo === undefined || body.assessmentNo === null || body.assessmentNo === ""
+    ? DEFAULT_ASSESSMENT_NO
+    : Number(body.assessmentNo);
+  const noProblem = assessmentNoProblem(assessmentNo);
+  if (noProblem) return { error: noProblem };
+
+  const assessmentDate = body.assessmentDate ? normalizeDate(body.assessmentDate) : null;
+  if (body.assessmentDate && !assessmentDate) return { error: "Invalid assessment date" };
+
   const payload = {
     course,
+    assessmentType,
+    assessmentNo,
+    assessmentDate: assessmentDate || new Date(),
     score,
     grade: gradeForScore(score),
     remarks: String(body.remarks || "").trim(),
@@ -253,6 +367,163 @@ const markPayload = (body, user) => {
   }
   return payload;
 };
+
+// The identity of an assessment within a course, used to match an incoming mark
+// to the one already stored. An absent type has to be matched on absence too,
+// not on a falsy value that would also match a missing field on a different one.
+const markMatchesAssessment = (mark, course, assessmentType, assessmentNo) =>
+  String(mark.course || "").toLowerCase() === course.toLowerCase()
+  && String(mark.assessmentType || "") === assessmentType
+  && Number(mark.assessmentNo || DEFAULT_ASSESSMENT_NO) === assessmentNo;
+
+/**
+ * Records one assessment for a whole class in a single request.
+ *
+ * The per-student routes below write one mark at a time, which meant a trainer
+ * with thirty students pressed Save thirty times and any one failure left the
+ * class half-marked. This upserts every student in one go: students left blank
+ * are skipped rather than recorded as a zero, so a partially filled sheet saves
+ * only what was actually entered.
+ */
+router.post("/marks/bulk", async (req, res) => {
+  try {
+    const course = cleanCourse(req.body.course);
+    if (!course) return res.status(400).json({ message: "A course is required" });
+    const assessmentType = String(req.body.assessmentType ?? "").trim().toLowerCase();
+    if (assessmentType) {
+      const typeProblem = assessmentTypeProblem(assessmentType);
+      if (typeProblem) return res.status(400).json({ message: typeProblem });
+    }
+    const assessmentNo = req.body.assessmentNo === undefined || req.body.assessmentNo === null || req.body.assessmentNo === ""
+      ? DEFAULT_ASSESSMENT_NO
+      : Number(req.body.assessmentNo);
+    const noProblem = assessmentNoProblem(assessmentNo);
+    if (noProblem) return res.status(400).json({ message: noProblem });
+    const assessmentDate = req.body.assessmentDate ? normalizeDate(req.body.assessmentDate) : new Date();
+    if (!assessmentDate) return res.status(400).json({ message: "Invalid assessment date" });
+
+    const entries = Array.isArray(req.body.entries) ? req.body.entries : [];
+    if (!entries.length || entries.length > 500) {
+      return res.status(400).json({ message: "Enter a score for at least one student" });
+    }
+
+    const saved = [];
+    let skipped = 0;
+    for (const entry of entries) {
+      // A blank cell is "not entered", not zero. Treating it as zero would put
+      // a mark on a student the trainer deliberately skipped.
+      if (entry.score === "" || entry.score === null || entry.score === undefined) {
+        skipped += 1;
+        continue;
+      }
+      const score = Number(entry.score);
+      if (!Number.isFinite(score) || score < 0 || score > 100) {
+        return res.status(400).json({ message: "Scores must be between 0 and 100" });
+      }
+      const result = await getScopedStudent(req.user, entry.studentId, course);
+      if (result.error) return res.status(403).json({ message: result.error });
+
+      const remarks = String(entry.remarks || "").trim();
+      const existing = (result.student.marks || []).find((mark) =>
+        markMatchesAssessment(mark, course, assessmentType, assessmentNo),
+      );
+      if (existing) {
+        existing.score = score;
+        existing.grade = gradeForScore(score);
+        existing.remarks = remarks;
+        existing.assessmentDate = assessmentDate;
+        existing.recordedBy = req.user.name || req.user.email;
+        existing.recordedById = req.user._id;
+        existing.assessedAt = new Date();
+      } else {
+        result.student.marks.push({
+          course,
+          assessmentType,
+          assessmentNo,
+          assessmentDate,
+          score,
+          grade: gradeForScore(score),
+          remarks,
+          recordedBy: req.user.name || req.user.email,
+          recordedById: req.user._id,
+          assessedAt: new Date(),
+          // Defaults to not complete: completing a course is a separate,
+          // deliberate act, and a trainer typing up Quiz 1 has not finished it.
+          completed: false,
+        });
+      }
+      await result.student.save();
+      saved.push(String(result.student._id));
+    }
+
+    if (!saved.length) {
+      return res.status(400).json({ message: "Enter a score for at least one student" });
+    }
+    res.status(201).json({
+      message: `${saved.length} mark${saved.length === 1 ? "" : "s"} saved`,
+      saved: saved.length,
+      skipped,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * Every assessment recorded for a class, so the entry grid can build its
+ * columns and a trainer can see at a glance which quizzes and exams already
+ * exist for the course they are about to mark.
+ */
+router.get("/assessments", async (req, res) => {
+  try {
+    const students = await getRoster(req.user, req.query);
+    const buckets = new Map();
+    for (const student of students) {
+      for (const mark of student.marks || []) {
+        if (req.query.course && cleanCourse(req.query.course)
+          && String(mark.course || "").toLowerCase() !== cleanCourse(req.query.course).toLowerCase()) {
+          continue;
+        }
+        const type = String(mark.assessmentType || "");
+        const no = Number(mark.assessmentNo || DEFAULT_ASSESSMENT_NO);
+        const key = `${type}:${no}:${String(mark.course || "").toLowerCase()}`;
+        const bucket = buckets.get(key) || {
+          course: mark.course,
+          assessmentType: type,
+          assessmentNo: no,
+          assessmentDate: mark.assessmentDate || mark.assessedAt || null,
+          recorded: 0,
+          average: 0,
+          _sum: 0,
+        };
+        bucket.recorded += 1;
+        bucket._sum += Number(mark.score || 0);
+        // Keep the earliest assessment date, which is the day it was actually
+        // given even if marks were typed up days later.
+        const date = mark.assessmentDate || mark.assessedAt;
+        if (date) {
+          const when = new Date(date);
+          if (!bucket.assessmentDate || when < new Date(bucket.assessmentDate)) {
+            bucket.assessmentDate = when;
+          }
+        }
+        buckets.set(key, bucket);
+      }
+    }
+    const list = [...buckets.values()].map(({ _sum, ...bucket }) => ({
+      ...bucket,
+      average: bucket.recorded ? Math.round((_sum / bucket.recorded) * 10) / 10 : 0,
+    }));
+    list.sort((a, b) => {
+      if (String(a.course).localeCompare(String(b.course))) return String(a.course).localeCompare(String(b.course));
+      if (a.assessmentType !== b.assessmentType) return String(a.assessmentType).localeCompare(String(b.assessmentType));
+      return a.assessmentNo - b.assessmentNo;
+    });
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 router.post("/students/:id/marks", async (req, res) => {
   try {

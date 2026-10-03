@@ -45,6 +45,9 @@ export async function createStudentForApplication(application, { userId } = {}) 
         email: application.email,
         phone: application.phone,
         campus: application.campus,
+        // Carried over so the achievement card can state the delivery mode
+        // instead of assuming everyone studied on campus.
+        learningPlace: application.learningPlace,
         program: application.program,
         preferredCourses: Array.isArray(application.preferredCourses)
           ? application.preferredCourses

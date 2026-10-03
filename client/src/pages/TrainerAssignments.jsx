@@ -3,27 +3,24 @@ import { Link } from 'react-router-dom';
 import { ClipboardCheck, Plus, Trash2, Users, BookOpen } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
+import ActionMenu from '../components/ActionMenu';
 
 const emptyForm = { trainerId: '', intakeIds: [], course: '' };
 
-// The same assignment can exist once per intake, so the table is grouped by
-// trainer: an admin reads "this trainer teaches these intakes" at a glance
-// instead of scanning one row per pair.
-const groupByTrainer = (assignments) =>
-  assignments.reduce((groups, assignment) => {
-    const trainer = assignment.trainerId || {};
-    const key = trainer._id || assignment.trainerId;
-    const group = groups.get(key) || {
-      key,
-      trainer,
-      rows: [],
-      active: 0,
-    };
-    group.rows.push(assignment);
-    if (assignment.active) group.active += 1;
-    groups.set(key, group);
-    return groups;
-  }, new Map());
+// One row per assignment, in a single table. This was a card per trainer with a
+// nested table, which meant a separate header block and a nested scroll region
+// for every trainer on the page; a flat list scans faster and sorts, and it is
+// the same shape as the other admin tables.
+const matches = (assignment, search) =>
+  [
+    assignment.trainerId?.name,
+    assignment.trainerId?.email,
+    assignment.intakeId?.title,
+    assignment.intakeId?.program,
+    assignment.course,
+  ]
+    .filter(Boolean)
+    .some((value) => value.toString().toLowerCase().includes(search));
 
 export default function TrainerAssignments() {
   const toast = useToast();
@@ -125,18 +122,17 @@ export default function TrainerAssignments() {
 
   if (loading) return <div className="loading"><div className="spinner" />Loading assignments...</div>;
 
-  const groups = [...groupByTrainer(assignments).values()];
   const search = query.trim().toLowerCase();
-  const visibleGroups = search
-    ? groups.filter((group) =>
-        [group.trainer?.name, group.trainer?.email, ...group.rows.map((row) => row.intakeId?.title)]
-          .filter(Boolean)
-          .some((value) => value.toString().toLowerCase().includes(search))
-      )
-    : groups;
+  const visibleAssignments = search
+    ? assignments.filter((assignment) => matches(assignment, search))
+    : assignments;
+  const activeCount = assignments.filter((assignment) => assignment.active).length;
 
+  // A trainer with an assignment row is assigned, whether or not the account
+  // behind that row still resolves - the alternative is telling an admin to
+  // "Assign" someone who is already assigned.
   const unassigned = trainers.filter(
-    (trainer) => !groups.some((group) => (group.trainer?._id || group.key) === trainer._id)
+    (trainer) => !assignments.some((assignment) => String(assignment.trainerId?._id || assignment.trainerId) === String(trainer._id)),
   );
 
   return (
@@ -144,7 +140,7 @@ export default function TrainerAssignments() {
       <div className="workspace-intro">
         <div>
           <h2>Trainer Assignments</h2>
-          <p>Give each trainer access only to the students of the intakes they teach.</p>
+          <p>Give each trainer access to the students of the intakes they teach.</p>
         </div>
         <ClipboardCheck size={24} className="workspace-header-icon" />
       </div>
@@ -201,7 +197,7 @@ export default function TrainerAssignments() {
           </div>
 
           <div className="form-group" style={{ gridColumn: form.intakeIds.length ? '1 / -1' : undefined }}>
-            <label>Intakes / levels taught <small className="label-hint">(select one or more)</small></label>
+            <label>Intakes / levels taught</label>
             {intakes.length === 0 ? (
               <p className="form-hint">No intakes have been created yet.</p>
             ) : (
@@ -225,9 +221,7 @@ export default function TrainerAssignments() {
           </div>
 
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label>
-              Course <small className="label-hint">(optional — leave blank for the whole intake)</small>
-            </label>
+            <label>Course <small className="label-hint">(optional — blank covers the whole intake)</small></label>
             <input
               className="form-control"
               list="assignment-course-options"
@@ -258,80 +252,90 @@ export default function TrainerAssignments() {
 
       <div className="dash-panel">
         <div className="dash-panel-head">
-          <h3>Assignments by trainer</h3>
+          <h3>
+            Assignments
+            {assignments.length > 0 && (
+              <span className="dash-pill">{activeCount} active · {assignments.length} total</span>
+            )}
+          </h3>
           <input
             className="form-control assignment-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search trainer or intake"
+            placeholder="Search trainer, intake or course"
             aria-label="Search assignments"
           />
         </div>
 
-        {visibleGroups.length === 0 ? (
-          <p className="table-empty">No assignments yet.</p>
-        ) : (
-          visibleGroups.map((group) => (
-            <div key={group.key} className="assignment-group">
-              <div className="assignment-group-head">
-                <div>
-                  <strong>{group.trainer?.name || 'Unknown trainer'}</strong>
-                  <small className="table-subtext">{group.trainer?.email || ''}</small>
-                </div>
-                <span className="finance-status status-paid">
-                  {group.active} active · {group.rows.length} total
-                </span>
-              </div>
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Intake / level</th>
-                    <th>Course</th>
-                    <th>Status</th>
-                    <th aria-label="Actions" />
+        <div className="admin-table-scroll">
+          <table className="admin-table compact-table assignment-table">
+            <thead>
+              <tr>
+                <th>Trainer</th>
+                <th>Intake / level</th>
+                <th>Course</th>
+                <th>Status</th>
+                <th className="col-actions" aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {visibleAssignments.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="table-empty">
+                    {assignments.length === 0 ? 'No assignments yet.' : 'No assignments match that search.'}
+                  </td>
+                </tr>
+              )}
+              {visibleAssignments.map((assignment) => {
+                // Populate leaves these null when the referenced account or
+                // intake is gone, so the row is labelled rather than left blank.
+                const trainerName = assignment.trainerId?.name;
+                const intakeTitle = assignment.intakeId?.title;
+                return (
+                  <tr key={assignment._id} className={assignment.active ? undefined : 'is-disabled'}>
+                    <td>
+                      <strong>{trainerName || 'Deleted trainer'}</strong>
+                      {assignment.trainerId?.email && (
+                        <small className="table-subtext">{assignment.trainerId.email}</small>
+                      )}
+                    </td>
+                    <td>
+                      <strong>{intakeTitle || 'Deleted intake'}</strong>
+                      {assignment.intakeId?.program && (
+                        <small className="table-subtext">{assignment.intakeId.program}</small>
+                      )}
+                    </td>
+                    <td>{assignment.course || <span className="table-subtext">All courses</span>}</td>
+                    <td>
+                      <span className={`finance-status ${assignment.active ? 'status-paid' : 'status-neutral'}`}>
+                        {assignment.active ? 'Active' : 'Ended'}
+                      </span>
+                    </td>
+                    <td className="col-actions">
+                      <ActionMenu
+                        label={`Actions for ${trainerName || 'this trainer'}`}
+                        items={[
+                          {
+                            label: 'End this assignment',
+                            tone: 'danger',
+                            icon: <Trash2 size={14} />,
+                            onSelect: () => remove(assignment._id),
+                          },
+                        ]}
+                      />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {group.rows.map((assignment) => (
-                    <tr key={assignment._id}>
-                      <td>
-                        <strong>{assignment.intakeId?.title || '—'}</strong>
-                        {assignment.intakeId?.program && (
-                          <div className="table-subtext">{assignment.intakeId.program}</div>
-                        )}
-                      </td>
-                      <td>{assignment.course || <span className="table-subtext">All courses</span>}</td>
-                      <td>
-                        <span
-                          className={`finance-status ${assignment.active ? 'status-paid' : 'status-neutral'}`}
-                        >
-                          {assignment.active ? 'Active' : 'Ended'}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-danger btn-xs"
-                          type="button"
-                          onClick={() => remove(assignment._id)}
-                          title={`Remove ${group.trainer?.name || 'this trainer'} from ${assignment.intakeId?.title || 'this intake'}`}
-                          aria-label="Remove assignment"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))
-        )}
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <p className="settings-footnote">
-        <BookOpen size={13} /> An assignment ends rather than deletes: attendance and marks already
-        recorded against it keep resolving.
+        <BookOpen size={13} /> Removing an assignment ends access only. Attendance and marks already
+        recorded are kept.
       </p>
     </div>
   );

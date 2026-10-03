@@ -21,14 +21,3 @@ export const initials = (name = '', count = 2) => {
   const last = words[words.length - 1][0];
   return (first + last).toUpperCase();
 };
-
-// Stable numeric key for a name, so a person keeps the same gradient colour
-// everywhere in the app instead of being re-rolled per render.
-export const seedFrom = (value) => {
-  const text = String(value || '');
-  let hash = 0;
-  for (let i = 0; i < text.length; i += 1) {
-    hash = (hash * 31 + text.charCodeAt(i)) % 100000;
-  }
-  return hash;
-};

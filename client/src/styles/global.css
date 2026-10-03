@@ -1,5 +1,5 @@
-﻿/* ============================================================
-   TAILWIND v4 â€” additive setup (gradual migration)
+/* ============================================================
+   TAILWIND v4 — additive setup (gradual migration)
    ------------------------------------------------------------
    Preflight is deliberately NOT imported. The stylesheet already
    ships its own reset (see `*, *::before, *::after` below), so
@@ -53,7 +53,7 @@
   --breakpoint-xs: 25rem;    /* 400px */
   --breakpoint-sm: 40rem;    /* 640px */
   --breakpoint-md: 48rem;    /* 768px */
-  --breakpoint-nav: 56.25rem;/* 900px â€” navbar overlay switch */
+  --breakpoint-nav: 56.25rem;/* 900px — navbar overlay switch */
   --breakpoint-lg: 64rem;    /* 1024px */
   --breakpoint-tablet: 68.75rem; /* 1100px */
 }
@@ -110,7 +110,7 @@ input, textarea, select { font-family: inherit; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
 
-/* â”€â”€ Navbar â”€â”€ */
+/* ── Navbar ── */
 .navbar {
   position: sticky; top: 0; z-index: 100;
   --nav-top: 100%;
@@ -202,7 +202,7 @@ input, textarea, select { font-family: inherit; }
 
 .navbar-right { display: flex; align-items: center; gap: 0.9rem; }
 
-/* â”€â”€ Navbar search bar â”€â”€ */
+/* ── Navbar search bar ── */
 .navbar-searchbar { width: 100%; padding: 0 0 0.65rem; display: flex; justify-content: center; }
 .navbar-searchbox { position: relative; width: min(620px, 100%); }
 .navbar-searchbox > svg {
@@ -391,7 +391,7 @@ input, textarea, select { font-family: inherit; }
   .navbar-title { display: none; }
 }
 
-/* â”€â”€ Hero â”€â”€ */
+/* ── Hero ── */
 .hero {
   position: relative; overflow: hidden;
   background: linear-gradient(135deg, #0d1b38 0%, #142851 55%, #1a3570 100%);
@@ -488,7 +488,7 @@ input, textarea, select { font-family: inherit; }
   .hero-fact { padding-right: 1.1rem; margin-right: 1.1rem; }
 }
 
-/* â”€â”€ Buttons â”€â”€ */
+/* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 0.5rem;
   padding: 0.7rem 1.4rem; border-radius: 8px; font-weight: 600;
@@ -507,7 +507,77 @@ input, textarea, select { font-family: inherit; }
 .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
 .btn-outline:hover { background: var(--primary); color: #fff; }
 
-/* â”€â”€ Sections â”€â”€ */
+/* The actions column shrink-wraps instead of taking a share of the table width.
+   Without this the browser hands it the leftover space, which squeezed three
+   buttons onto two lines. */
+.admin-table th.col-actions,
+.admin-table td.col-actions { width: 1%; white-space: nowrap; }
+
+/* ---- Row action menu ----
+   One trigger per row instead of three or four buttons, which is what keeps a
+   row a single line tall. The panel itself is portalled to the body and
+   positioned fixed by ActionMenu, so nothing here may clip it. */
+.action-menu-trigger {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex: 0 0 32px;
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  background: #fff; color: var(--text-light, #6b7280);
+  cursor: pointer;
+  transition: background var(--transition, 0.2s ease), border-color var(--transition, 0.2s ease),
+              color var(--transition, 0.2s ease);
+}
+.action-menu-trigger:hover { background: #f1f5f9; border-color: #cbd5e1; color: var(--text, #1a1a2e); }
+.action-menu-trigger:focus-visible { outline: 2px solid var(--primary, #23a8de); outline-offset: 1px; }
+.action-menu-trigger[aria-expanded='true'] {
+  background: #eff6ff; border-color: #93c5fd; color: #1d4ed8;
+}
+
+.action-menu-panel {
+  position: fixed;
+  z-index: 400;
+  padding: 0.3rem;
+  display: flex; flex-direction: column; gap: 1px;
+  background: #fff;
+  border: 1px solid #e6ebf1;
+  border-radius: 10px;
+  box-shadow: 0 14px 32px -10px rgba(15, 23, 42, 0.28), 0 2px 6px rgba(15, 23, 42, 0.06);
+  animation: action-menu-in 0.14s ease both;
+}
+@keyframes action-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.action-menu-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.48rem 0.55rem;
+  border: 0; border-radius: 7px; background: none;
+  font: inherit; font-size: 0.79rem; font-weight: 600;
+  text-align: left; white-space: nowrap; color: var(--text, #1a1a2e);
+  cursor: pointer;
+  transition: background var(--transition, 0.15s ease);
+}
+.action-menu-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.action-menu-item:focus-visible { outline: 2px solid var(--primary, #23a8de); outline-offset: -2px; }
+.action-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Same hue language as the .act buttons, so an action keeps its colour when it
+   moves from a button into the menu. */
+.action-menu-item.tone-info:hover:not(:disabled) { background: #eff6ff; }
+.action-menu-item.tone-info svg { color: #1d4ed8; }
+.action-menu-item.tone-ok:hover:not(:disabled) { background: #ecfdf5; }
+.action-menu-item.tone-ok svg { color: #15803d; }
+.action-menu-item.tone-no:hover:not(:disabled) { background: #fff1f2; }
+.action-menu-item.tone-no svg { color: #be123c; }
+.action-menu-item.tone-warn:hover:not(:disabled) { background: #fffbeb; }
+.action-menu-item.tone-warn svg { color: #b45309; }
+.action-menu-item.tone-slate:hover:not(:disabled) { background: #f1f5f9; }
+.action-menu-item.tone-slate svg { color: #475569; }
+.action-menu-item.tone-danger { color: #b91c1c; }
+.action-menu-item.tone-danger:hover:not(:disabled) { background: #fef2f2; }
+.action-menu-item.tone-danger svg { color: #dc2626; }
+
+/* ── Sections ── */
 .section { padding: 5rem 0; }
 .section-compact { padding: 1.5rem 0 3.5rem; }
 .section-alt { background: #eef2f7; }
@@ -515,7 +585,7 @@ input, textarea, select { font-family: inherit; }
 .section-header h2 { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text); letter-spacing: -0.03em; }
 .section-header p { color: var(--text-light); max-width: 560px; margin: 0 auto; font-size: 1rem; }
 
-/* â”€â”€ Cards â”€â”€ */
+/* ── Cards ── */
 .card {
   background: var(--surface); border-radius: var(--radius-lg); padding: 1.75rem;
   box-shadow: var(--shadow); transition: transform var(--transition), box-shadow var(--transition);
@@ -554,7 +624,7 @@ input, textarea, select { font-family: inherit; }
   .hero { padding: 4rem 0; }
 }
 
-/* â”€â”€ Testimonials â”€â”€ */
+/* ── Testimonials ── */
 .testimonial-wrap {
   position: relative; max-width: 700px; margin: 0 auto;
 }
@@ -621,7 +691,7 @@ input, textarea, select { font-family: inherit; }
   .testimonial-bigquote { top: 0.7rem; left: 0.9rem; }
 }
 
-/* â”€â”€ CTA Banner â”€â”€ */
+/* ── CTA Banner ── */
 .cta-banner {
   background: linear-gradient(120deg, var(--primary-dark) 0%, #1a3570 100%);
   color: #fff; border-radius: var(--radius-lg); padding: 2.5rem 2.75rem;
@@ -639,7 +709,7 @@ input, textarea, select { font-family: inherit; }
   .cta-banner { flex-direction: column; text-align: center; padding: 2rem 1.5rem; }
 }
 
-/* â”€â”€ Footer â”€â”€ */
+/* ── Footer ── */
 .footer { background: #0f1f3d; color: #94a3b8; padding: 3rem 0 0; }
 .footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1.2fr 1.2fr; gap: 2rem; margin-bottom: 2.25rem; }
 .footer h4 { color: #fff; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -740,7 +810,7 @@ input, textarea, select { font-family: inherit; }
   .footer-links-2 { column-gap: 1rem; }
 }
 
-/* â”€â”€ Page Header â”€â”€ */
+/* ── Page Header ── */
 .page-header {
   background: var(--primary-dark);
   color: #fff; padding: 4.5rem 0 3.5rem; text-align: center;
@@ -751,7 +821,7 @@ input, textarea, select { font-family: inherit; }
 .page-header-compact h1 { font-size: 1.35rem; }
 .page-header-compact p { margin-top: 0.2rem; font-size: 0.78rem; }
 
-/* â”€â”€ Forms â”€â”€ */
+/* ── Forms ── */
 .form-group { margin-bottom: 1.25rem; }
 .form-group label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.85rem; color: var(--text); }
 .form-control {
@@ -763,7 +833,7 @@ input, textarea, select { font-family: inherit; }
 textarea.form-control { resize: vertical; min-height: 120px; }
 select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2.5rem; }
 
-/* â”€â”€ Contact Page â”€â”€ */
+/* ── Contact Page ── */
 .contact-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; }
 .contact-info-card { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
 .contact-info-card .icon-wrap {
@@ -782,7 +852,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 
 @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr; } }
 
-/* ── Gallery ── */
+/* -- Gallery -- */
 .gallery-section { padding-top: 2.25rem; }
 
 /* One control bar: search on the left, category pills on the right. */
@@ -876,7 +946,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .gallery-card figcaption { padding: 0.45rem 0.5rem; gap: 0.35rem; }
 }
 
-/* â”€â”€ Lightbox â”€â”€ */
+/* ── Lightbox ── */
 .lightbox {
   position: fixed; inset: 0; background: rgba(5,10,22,0.92); z-index: 200;
   display: flex; align-items: center; justify-content: center;
@@ -928,7 +998,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .lightbox-nav.next { right: 0.8rem; }
 }
 
-/* â”€â”€ Team â”€â”€ */
+/* ── Team ── */
 .leadership-soon {
   display: flex; align-items: center; justify-content: center; gap: 0.7rem;
   background: var(--surface); border: 1.5px dashed #c8d8e6; border-radius: 999px;
@@ -996,7 +1066,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .leadership-soon { flex-wrap: wrap; text-align: center; padding: 0.6rem 1rem; max-width: 100%; }
 }
 
-/* â”€â”€ News â”€â”€ */
+/* ── News ── */
 .news-card { display: flex; flex-direction: column; }
 .news-card .image-placeholder {
   height: 180px; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -1027,7 +1097,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .news-empty h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; letter-spacing: -0.01em; }
 .news-empty p { color: var(--text-light); font-size: 0.88rem; line-height: 1.7; margin: 0; }
 
-/* â”€â”€ Toast Notifications â”€â”€ */
+/* ── Toast Notifications ── */
 .toast-viewport {
   position: fixed; top: 88px; right: 1.25rem; z-index: 400;
   display: flex; flex-direction: column; gap: 0.7rem;
@@ -1076,7 +1146,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 @keyframes toastBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
-/* â”€â”€ Celebration (fires after a completed action) â”€â”€ */
+/* ── Celebration (fires after a completed action) ── */
 .celebration {
   position: fixed; inset: 0; z-index: 400; pointer-events: none;
   overflow: hidden; contain: strict;
@@ -1133,7 +1203,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .confetti-piece, .celebration-emoji { display: none; }
 }
 
-/* â”€â”€ Confirm Dialog â”€â”€ */
+/* ── Confirm Dialog ── */
 .dialog-overlay {
   position: fixed; inset: 0; background: rgba(10, 20, 40, 0.55); z-index: 300;
   display: flex; align-items: center; justify-content: center; padding: 1rem;
@@ -1164,7 +1234,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .dialog-close:hover { background: #f1f5f9; color: var(--text); }
 
-/* â”€â”€ Admin â”€â”€ */
+/* ── Admin ── */
 .admin-layout { display: flex; min-height: 100vh; }
 .admin-sidebar {
   width: 240px; background: var(--primary-dark); color: #fff; padding: 1.25rem 0.9rem;
@@ -1219,7 +1289,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .admin-user-chip b { font-size: 0.8rem; font-weight: 700; }
 .admin-user-chip small { font-size: 0.68rem; color: var(--text-light); text-transform: capitalize; }
 
-/* â”€â”€ Dashboard / workspace mobile navigation â”€â”€ */
+/* ── Dashboard / workspace mobile navigation ── */
 /* The sidebar is a fixed drawer on small screens, so the drawer toggle, the
    drawer itself, the backdrop and the sticky bar only exist below 769px. */
 .admin-mobile-bar { display: none; }
@@ -1291,8 +1361,8 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .admin-sidebar { transition: none; }
 }
 
-/* â”€â”€ Admin Dashboard â”€â”€ */
-/* â”€â”€ Shared dashboard surface (admin, finance, trainer) â”€â”€ */
+/* ── Admin Dashboard ── */
+/* ── Shared dashboard surface (admin, finance, trainer) ── */
 /* One tone drives the accent rail, the chip and the meter so a card only ever
    needs a single `tone-*` class. */
 .tone-sky    { --tone: #0e7fb5; --tone-soft: #e6f6fb; }
@@ -1307,6 +1377,46 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   display: grid; gap: 0.5rem; margin-bottom: 0.9rem;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
+
+/* Section headings split the wall of tiles into "act here" and "take note".
+   Without them eight equal cards read as one undifferentiated block and the
+   queues an admin must actually work through look identical to totals. */
+.dash-section { margin-bottom: 1rem; }
+.dash-section:last-of-type { margin-bottom: 0.9rem; }
+.dash-section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 0.5rem 1rem; flex-wrap: wrap; margin-bottom: 0.45rem;
+}
+.dash-section-head h2 {
+  display: flex; align-items: center; gap: 0.35rem;
+  margin: 0; font-size: 0.82rem; font-weight: 800;
+  letter-spacing: 0.01em; color: var(--text, #1a1a2e);
+}
+.dash-section-head h2.is-attention { color: #b45309; }
+.dash-section-head h2 svg { width: 15px; height: 15px; }
+.dash-section-head p {
+  margin: 0; font-size: 0.68rem; color: var(--text-light, #6b7280);
+}
+
+/* A queue tile carries a warm left rail so the actionable figures are
+   findable without reading every number on the page. */
+.stat-card-attention { border-color: #f0dcb4; background: #fffdf7; }
+.stat-card-attention::after {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--warning, #f59e0b); border-radius: 3px 0 0 3px;
+}
+.stat-card-attention:hover { border-color: var(--warning, #f59e0b); }
+
+/* Shown instead of the queue section when nothing is outstanding. */
+.dash-clear {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.8rem; margin-bottom: 1rem;
+  background: #f2fbf4; border: 1px solid #c7e9cf; border-radius: 12px;
+  color: #1d6b2c;
+}
+.dash-clear svg { flex-shrink: 0; }
+.dash-clear p { margin: 0; font-size: 0.78rem; line-height: 1.4; }
+
 .stat-card {
   position: relative; overflow: hidden;
   background: var(--surface); border: 1px solid #e3e8ef; border-radius: 12px;
@@ -1340,9 +1450,9 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .stat-chip-amber  { background: rgba(245, 158, 11, 0.12);  color: #f59e0b; }
 .stat-chip-violet { background: rgba(139, 92, 246, 0.12);  color: #8b5cf6; }
 .stat-chip-rose   { background: rgba(244, 114, 182, 0.12); color: #f4719e; }
-.stat-label { font-size: 0.62rem; color: var(--text-light); font-weight: 600; letter-spacing: 0.03em; line-height: 1.3; text-transform: uppercase; }
+.stat-label { font-size: 0.66rem; color: var(--text-light); font-weight: 600; letter-spacing: 0.03em; line-height: 1.3; text-transform: uppercase; }
 .stat-sub {
-  font-size: 0.54rem; color: var(--text-light); opacity: 0.85;
+  font-size: 0.64rem; color: var(--text-light); opacity: 0.9;
   display: inline-flex; align-items: center; gap: 0.18rem;
 }
 .stat-sub-label { font-weight: 600; }
@@ -1363,7 +1473,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   margin-top: 0.1rem;
 }
 .stat-view {
-  font-size: 0.52rem; font-weight: 700; color: var(--text-light);
+  font-size: 0.62rem; font-weight: 700; color: var(--text-light);
   opacity: 0.6; transition: opacity 0.15s ease, color 0.15s ease;
   display: inline-flex; align-items: center; gap: 0.15rem;
 }
@@ -1391,12 +1501,12 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .dash-panel-head h3 svg { color: var(--primary); width: 14px; height: 14px; }
 .dash-pill {
-  font-size: 0.56rem; font-weight: 700; color: var(--primary); background: #e7f1fb;
+  font-size: 0.62rem; font-weight: 700; color: var(--primary); background: #e7f1fb;
   padding: 0.06rem 0.35rem; border-radius: 999px; margin-left: 0.2rem;
 }
 .dash-panel-link {
   display: inline-flex; align-items: center; gap: 0.18rem;
-  font-size: 0.6rem; font-weight: 700; color: var(--text-light);
+  font-size: 0.66rem; font-weight: 700; color: var(--text-light);
 }
 .dash-panel-link:hover { color: var(--primary); }
 .dash-list { display: flex; flex-direction: column; }
@@ -1447,7 +1557,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .dash-action-icon-amber  { background: rgba(245, 158, 11, 0.12);  color: #f59e0b; }
 .dash-action-icon-violet { background: rgba(139, 92, 246, 0.12);  color: #8b5cf6; }
 .dash-action-icon-rose   { background: rgba(244, 114, 182, 0.12); color: #f4719e; }
-.dash-tip { margin: 0.3rem 0 0; font-size: 0.56rem; color: var(--text-light); line-height: 1.4; }
+.dash-tip { display: flex; align-items: center; gap: 0.25rem; margin: 0.3rem 0 0; font-size: 0.65rem; color: var(--text-light); line-height: 1.4; }
 
 /* Inline ratio meter for table cells. */
 .meter-cell { display: flex; align-items: center; gap: 0.4rem; min-width: 96px; }
@@ -1500,6 +1610,35 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .admin-table .unread { background: #f0f7fb; }
 .admin-table .actions { display: flex; gap: 0.5rem; }
 
+/* ---- Modern data table ----
+   A denser treatment for the applicant and student lists, which are read by
+   scanning a column rather than by reading a row. Tighter rows, a pinned header
+   so the column meanings survive a scroll, and hairline row separators instead
+   of full borders. The zebra stripe is deliberately very faint: on a list of
+   people it aids tracking across a wide row, and anything stronger turns the
+   table into a stripe pattern that fights the status badges. */
+.admin-table.is-modern th,
+.admin-table.is-modern td { padding: 0.55rem 0.75rem; }
+.admin-table.is-modern th {
+  position: sticky; top: 0; z-index: 2;
+  background: #f8fafc;
+  font-size: 0.66rem; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text-light, #6b7280);
+  white-space: nowrap;
+  /* The underline is an inset shadow rather than a border on purpose: under
+     border-collapse a stuck cell's own border stays behind instead of moving
+     with it, which leaves a hairline gap under the pinned header. */
+  box-shadow: inset 0 -1px 0 #e3e8ef;
+}
+.admin-table.is-modern tbody tr td { border-bottom-color: #eef1f6; }
+.admin-table.is-modern tbody tr:nth-child(even) td { background: #fcfdfe; }
+.admin-table.is-modern tbody tr:hover td { background: #f0f7fb; }
+.admin-table.is-modern tbody tr:last-child td { border-bottom: 0; }
+/* Inside the horizontal scroller the container never scrolls vertically, so a
+   sticky header has nothing to stick to and would just leave a z-indexed cell
+   floating over the rows. */
+.admin-table-scroll .admin-table.is-modern th { position: static; }
+
 .img-upload-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 0.3rem; padding: 2rem 1rem; cursor: pointer;
@@ -1517,7 +1656,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .img-upload-preview img { width: 140px; height: 90px; object-fit: cover; border-radius: 8px; }
 .img-upload-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
-/* â”€â”€ Applications Admin â”€â”€ */
+/* ── Applications Admin ── */
 .app-adm-head {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
   margin-bottom: 0.35rem;
@@ -1526,16 +1665,46 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .app-adm-row { cursor: pointer; transition: background var(--transition); }
 .app-adm-row td { transition: background var(--transition); }
 .app-adm-row:hover td { background: #f0f7fb; }
-.app-adm-cell { display: flex; align-items: center; gap: 0.75rem; }
-.app-adm-cell .avatar { box-shadow: 0 4px 10px -3px rgba(35, 168, 222, 0.45); }
+.app-adm-cell { display: flex; align-items: center; gap: 0.6rem; }
+
+/* Applicant identity on two lines. The registration number rides beside the
+   name rather than under the email, because it is short, it is what an admin
+   scans a column for, and a third line is what made these rows tall. */
+.app-adm-id { min-width: 0; }
+.app-adm-name { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+.app-adm-name strong {
+  font-size: 0.85rem; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app-adm-reg {
+  display: inline-flex; align-items: center; gap: 0.15rem;
+  flex-shrink: 0;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.01em;
+  padding: 0.1rem 0.35rem; border-radius: 5px;
+  background: #eef4fb; color: #1a5b83;
+}
+.app-adm-reg svg { width: 10px; height: 10px; opacity: 0.75; }
+.app-adm-email {
+  font-size: 0.74rem; color: var(--text-light, #6b7280); line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* A status dot inside the badge, so the state is legible from the colour alone
+   and does not depend on reading the word. */
+.app-status-badge { display: inline-flex; align-items: center; gap: 0.35rem; }
+.app-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.app-adm-cell .avatar { letter-spacing: 0.01em; }
 .app-status-badge {
   display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: capitalize;
   padding: 0.24rem 0.7rem; border-radius: 999px;
 }
 
-.app-detail-overlay { z-index: 320; align-items: center; }
+.app-detail-overlay { z-index: 320; align-items: center; padding: 24px 20px; overflow-y: auto; }
 .app-detail {
-  position: relative; width: 100%; max-width: 560px; max-height: min(88vh, 640px);
+  position: relative; width: 100%; max-width: 600px;
+  /* Height is capped against the viewport so the body always has somewhere to
+     scroll on a short screen, instead of the action buttons being pushed off. */
+  max-height: min(88vh, 680px);
   background: var(--surface); border-radius: 18px; overflow: hidden;
   box-shadow: 0 30px 80px rgba(10, 20, 40, 0.35);
   display: flex; flex-direction: column;
@@ -1575,20 +1744,37 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .app-detail-close:hover { background: rgba(255, 255, 255, 0.32); color: #fff; }
 .app-detail-body { padding: 1.25rem 1.6rem 1.4rem; overflow-y: auto; }
+/* Two columns, but only as many as comfortably fit: a long intake title or
+   reg number needs real width, and squeezing nine tiles into a fixed pair is
+   what made the label and value run together. */
 .app-detail-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
 }
+/* Grid, not flex: the label and value each get a track, so a long value wraps
+   underneath its label instead of colliding with it. */
 .app-detail-item {
   background: #f8fafc; border: 1px solid #eef1f5; border-radius: 10px;
-  padding: 0.5rem 0.7rem; display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem 0.5rem;
 }
 .app-detail-item svg { color: var(--primary); flex-shrink: 0; }
 .app-detail-item span {
-  font-size: 0.72rem; font-weight: 600; color: var(--text); white-space: nowrap;
+  font-size: 0.7rem; font-weight: 600; color: var(--text-light);
+  line-height: 1.3;
 }
 .app-detail-item b {
-  font-size: 0.78rem; font-weight: 600; color: var(--text); margin-left: auto;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%;
+  font-size: 0.78rem; font-weight: 600; color: var(--text);
+  line-height: 1.35;
+  /* A long value (an intake title, a reg number) drops to its own full-width
+     line rather than being clipped mid-word. */
+  grid-column: 3;
+  overflow-wrap: anywhere;
 }
 .app-detail-block { margin-bottom: 0.8rem; }
 .app-detail-label {
@@ -1610,6 +1796,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .app-detail-body { padding: 1.25rem 1.25rem 1.3rem; }
   .app-detail-head { padding: 1.3rem 1.25rem 1.1rem; }
   .app-detail-del { margin-left: 0; }
+  .app-detail-actions .btn { width: 100%; }
 }
 
 .login-page {
@@ -1623,13 +1810,13 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .login-card h2 { text-align: center; font-weight: 800; margin-bottom: 0.5rem; font-size: 1.25rem; letter-spacing: -0.02em; }
 .login-card .subtitle { text-align: center; color: var(--text-light); margin-bottom: 2rem; font-size: 0.85rem; }
 
-/* â”€â”€ Alert â”€â”€ */
+/* ── Alert ── */
 .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; }
 .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 .alert-info { background: #f0f7fb; color: #1464a6; border: 1px solid #bde4f4; }
 
-/* â”€â”€ Loading â”€â”€ */
+/* ── Loading ── */
 .loading { text-align: center; padding: 3rem; color: var(--text-light); font-size: 0.9rem; }
 .spinner {
   width: 36px; height: 36px; border: 3px solid #e5e7eb;
@@ -1663,7 +1850,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .about-slide { transition: none; }
 }
 
-/* â”€â”€ Section logo watermark â”€â”€ */
+/* ── Section logo watermark ── */
 .wm-section { position: relative; overflow: hidden; }
 .wm-section::before {
   content: ''; position: absolute; inset: 0;
@@ -1678,7 +1865,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .wm-section .container { position: relative; z-index: 1; }
 
-/* â”€â”€ About page â”€â”€ */
+/* ── About page ── */
 .about-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
 .photo-fill {
   border-radius: var(--radius-lg); overflow: hidden;
@@ -1699,7 +1886,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .about-intro .photo-placeholder svg { opacity: 0.3; }
 .mission-vision { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
-/* â”€â”€ Info strip â”€â”€ */
+/* ── Info strip ── */
 .info-strip {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
   margin-top: 2.25rem; padding: 1.25rem;
@@ -1718,7 +1905,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .info-strip-item b { display: block; font-size: 0.95rem; color: var(--text); letter-spacing: -0.01em; }
 .info-strip-item small { color: var(--text-light); font-size: 0.76rem; line-height: 1.4; }
 
-/* â”€â”€ About page (modern) â”€â”€ */
+/* ── About page (modern) ── */
 .eyebrow {
   display: inline-flex; align-items: center; gap: 0.4rem;
   font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
@@ -1817,7 +2004,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .mv-panel.vision .mv-panel-body::before { background: var(--accent); }
 
-/* â”€â”€ About page (compact) â”€â”€ */
+/* ── About page (compact) ── */
 .about-page .section { padding: 3.25rem 0; }
 .about-page .page-header { padding: 3rem 0 2.5rem; }
 .about-page .page-header p { margin-top: 0.3rem; }
@@ -1857,7 +2044,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .feature-num { font-size: 1.8rem; }
 }
 
-/* â”€â”€ 404 â”€â”€ */
+/* ── 404 ── */
 .notfound { padding: 6rem 0; }
 .notfound-card {
   max-width: 520px; margin: 0 auto; text-align: center; padding: 3rem 2.5rem;
@@ -1872,7 +2059,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .notfound-card p { color: var(--text-light); margin-bottom: 2rem; line-height: 1.7; font-size: 0.95rem; }
 .notfound-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 
-/* â”€â”€ Search box â”€â”€ */
+/* ── Search box ── */
 .search-box { position: relative; }
 .search-box svg {
   position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%);
@@ -1897,7 +2084,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   font-size: 0.82rem; font-weight: 600; color: var(--text-light);
 }
 
-/* â”€â”€ Intake Cards â”€â”€ */
+/* ── Intake Cards ── */
 .intake-grid {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem;
   max-width: 1000px; margin: 0 auto;
@@ -2141,7 +2328,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .apply-form-card { max-width: 720px; margin: 2.5rem auto 0; }
 
-/* â”€â”€ Water Form Animation â”€â”€ */
+/* ── Water Form Animation ── */
 .apply-form-border {
   position: relative;
   max-width: 728px; margin: 2.5rem auto 0;
@@ -2176,7 +2363,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   50%      { transform: scale(0.985) translateY(3px); }
 }
 
-/* â”€â”€ Apply Wizard â”€â”€ */
+/* ── Apply Wizard ── */
 .apply-steps {
   list-style: none; display: flex; gap: 0.5rem;
   margin: 0 0 1.4rem; padding: 0.9rem 0 1.1rem;
@@ -2234,85 +2421,123 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .course-option.is-selected .course-checkbox { background: var(--accent); border-color: var(--accent); }
 
-/* Place of learning. Wider and with an icon per option than a course checkbox,
-   because the two choices a first-time applicant makes - on campus or online -
-   carry the most weight on the whole form. */
-.learning-place-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 0.6rem;
-}
-.learning-place-option {
-  display: flex; align-items: center; gap: 0.7rem;
-  padding: 0.8rem 0.9rem; border: 1.5px solid #e6eaf0; border-radius: 12px;
-  background: #fff; cursor: pointer; user-select: none;
-  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-}
-.learning-place-option:hover { border-color: var(--primary); background: #f7fbff; }
-.learning-place-option.is-selected {
-  border-color: var(--primary); background: rgba(35, 168, 222, 0.08);
-  box-shadow: 0 0 0 3px rgba(35, 168, 222, 0.12);
-}
-.learning-place-option input { position: absolute; opacity: 0; width: 0; height: 0; }
-.learning-place-icon {
-  width: 34px; height: 34px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 10px; color: var(--primary);
-  background: rgba(35, 168, 222, 0.12);
-}
-.learning-place-option.is-selected .learning-place-icon {
-  background: var(--primary); color: #fff;
-}
-.learning-place-text { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; flex: 1 1 auto; }
-.learning-place-text b { font-size: 0.86rem; color: var(--text); font-weight: 700; }
-.learning-place-text small { font-size: 0.7rem; color: var(--text-light); line-height: 1.35; }
-.learning-place-tick {
-  width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%;
-  border: 2px solid #cfd6e0; background: #fff; color: #fff;
-  display: flex; align-items: center; justify-content: center;
-}
-.learning-place-option.is-selected .learning-place-tick {
-  background: var(--accent); border-color: var(--accent);
-}
 .label-hint { font-weight: 500; color: var(--text-light); text-transform: none; letter-spacing: 0; }
 
-/* Post-application receipt. Deliberately not a toast: the applicant has to be
-   able to re-read the 2,000 RWF instruction after the toast has gone. */
-.apply-receipt {
-  border: 1px solid #d9e9f2;
-  border-left: 4px solid var(--accent);
-  background: linear-gradient(180deg, #f7fcff 0%, #ffffff 100%);
-  padding: 1.5rem 1.6rem;
-  margin-bottom: 1.75rem;
+/* Post-application confirmation. A modal rather than a toast or an inline
+   card: after several form steps the applicant must not have to scroll to find
+   out whether it worked, and the 2,000 RWF instruction has to stay on screen
+   until it is dismissed. */
+.apply-done-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(10, 16, 30, 0.66);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 20px;
+  overflow-y: auto;
+  animation: applyDoneFade 0.18s ease;
 }
-.apply-receipt-head { display: flex; gap: 0.85rem; align-items: flex-start; }
-.apply-receipt-tick {
-  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%;
+.apply-done {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  margin: auto;
+  background: linear-gradient(180deg, #f7fcff 0%, #ffffff 100%);
+  border: 1px solid #d9e9f2;
+  border-radius: 18px;
+  padding: 1.6rem 1.7rem 1.4rem;
+  box-shadow: 0 24px 60px rgba(6, 18, 38, 0.35);
+  animation: applyDoneRise 0.22s ease;
+}
+@keyframes applyDoneFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes applyDoneRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.apply-done-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.apply-done-close:hover { background: #eef4f9; color: var(--text); }
+
+.apply-done-head { text-align: center; padding: 0 1.5rem; }
+.apply-done-tick {
+  width: 52px; height: 52px; margin: 0 auto 0.7rem;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: #e7f7ec; color: #237a34;
 }
-.apply-receipt h3 { margin: 0 0 0.25rem; font-size: 1.15rem; }
-.apply-receipt p { margin: 0; color: var(--text-light); font-size: 0.88rem; line-height: 1.55; }
-.apply-receipt-steps { list-style: none; margin: 1.1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
-.apply-receipt-steps li {
-  display: flex; gap: 0.6rem; align-items: flex-start;
-  padding: 0.75rem 0.9rem; border-radius: 10px;
-  background: #fff; border: 1px solid #eef2f7;
-  font-size: 0.85rem; line-height: 1.55; color: var(--text);
+.apply-done h3 { margin: 0 0 0.35rem; font-size: 1.3rem; }
+.apply-done-head p {
+  margin: 0; color: var(--text-light);
+  font-size: 0.92rem; line-height: 1.6;
 }
-.apply-receipt-steps svg { flex-shrink: 0; margin-top: 0.18rem; color: var(--primary); }
-.apply-receipt-steps b { color: var(--primary); }
-.apply-receipt-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1.15rem; }
+.apply-done-head b { color: var(--text); }
 
-/* Assignments are grouped per trainer, so the panel head carries the search box
-   and each group has its own header row above its own table. */
-.assignment-group { border-top: 1px solid #eef1f5; padding: 0.85rem 0.25rem 0.25rem; }
-.assignment-group:first-of-type { border-top: none; }
-.assignment-group-head {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+.apply-done-steps {
+  list-style: none; margin: 1.2rem 0 0; padding: 0;
+  display: grid; gap: 0.55rem;
 }
-.assignment-group-head strong { font-size: 0.9rem; color: var(--text); }
+.apply-done-steps li {
+  display: flex; gap: 0.65rem; align-items: flex-start;
+  padding: 0.8rem 0.9rem; border-radius: 11px;
+  background: #fff; border: 1px solid #eef2f7;
+  font-size: 0.87rem; line-height: 1.6; color: var(--text);
+}
+.apply-done-steps svg { flex-shrink: 0; margin-top: 0.16rem; color: var(--primary); }
+.apply-done-steps b { color: var(--primary); }
+/* The fee instruction gets emphasis: it is the part applicants act on and the
+   part most likely to be misread as a second charge. */
+.apply-done-steps .is-payment { border-color: #fde3b0; background: #fffaf0; }
+.apply-done-steps .is-payment svg { color: #b45309; }
+.apply-done-steps .is-payment b { color: #b45309; }
+/* "Not an extra fee" is the line applicants misread, so it gets its own
+   block rather than running on as another sentence. */
+.apply-done-plain {
+  display: block;
+  margin-top: 0.3rem;
+  font-style: normal;
+  font-weight: 600;
+  color: #7c4a03;
+}
+.apply-done-example {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 7px;
+  background: #fff;
+  border: 1px dashed #e2c48a;
+  font-style: normal;
+  font-size: 0.8rem;
+  color: #8a5a10;
+}
+
+.apply-done-actions {
+  display: flex; gap: 0.6rem; flex-wrap: wrap;
+  margin-top: 1.25rem; justify-content: center;
+}
+
+@media (max-width: 560px) {
+  .apply-done { padding: 1.35rem 1.15rem 1.2rem; }
+  .apply-done h3 { font-size: 1.15rem; }
+  .apply-done-actions .btn { width: 100%; }
+}
+
+/* The assignment list is a single table, so the panel head only carries the
+   search box. */
 .assignment-search { max-width: 230px; padding: 0.4rem 0.7rem; font-size: 0.8rem; }
 .dash-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .apply-review { border: 1px solid #eef0f4; border-radius: 14px; overflow: hidden; margin-bottom: 1.25rem; }
@@ -2363,16 +2588,6 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .apply-form-card .course-option { padding: 0.45rem 0.65rem; gap: 0.55rem; font-size: 0.82rem; }
 .apply-form-card .course-checkbox { width: 17px; height: 17px; border-radius: 5px; }
 
-.apply-form-card .learning-place-options {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-}
-.apply-form-card .learning-place-option { padding: 0.5rem 0.6rem; gap: 0.5rem; }
-.learning-place-icon { width: 28px; height: 28px; border-radius: 8px; }
-.learning-place-icon svg { width: 15px; height: 15px; }
-.learning-place-text b { font-size: 0.78rem; }
-.learning-place-text small { font-size: 0.65rem; line-height: 1.3; }
-.learning-place-tick { width: 17px; height: 17px; border-radius: 50%; }
 .apply-form-card textarea.form-control { min-height: 74px; }
 
 .apply-review { margin-bottom: 0.9rem; }
@@ -2390,20 +2605,15 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .apply-form-card .alert svg { width: 15px; height: 15px; flex-shrink: 0; }
 .apply-form-card .alert p { margin: 0; line-height: 1.45; }
 
-.apply-receipt { padding: 1.2rem 1.35rem; margin-bottom: 1.25rem; }
-.apply-receipt-steps { gap: 0.4rem; margin-top: 0.85rem; }
-.apply-receipt-steps li { padding: 0.6rem 0.75rem; font-size: 0.8rem; }
-.apply-receipt-actions { margin-top: 0.9rem; }
 
 /* Three across only fits once the option text is allowed to wrap; below the
    card width it falls back to one column rather than squeezing three labels
    into unreadable slivers. */
 @media (max-width: 700px) {
-  .apply-form-card .learning-place-options { grid-template-columns: 1fr; }
   .apply-form-card { padding: 1.1rem 1.15rem; }
 }
 
-/* â”€â”€ Steps Flow â”€â”€ */
+/* ── Steps Flow ── */
 .news-steps { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #eef0f4; }
 .news-steps h3 { font-size: 1.15rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
 .steps-flow { display: flex; flex-direction: column; }
@@ -2428,7 +2638,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .step-title { font-size: 0.98rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; letter-spacing: -0.01em; }
 .step-desc { font-size: 0.88rem; color: var(--text-light); line-height: 1.65; margin: 0; }
 
-/* â”€â”€ Auth Pages (flip-swap) â”€â”€ */
+/* ── Auth Pages (flip-swap) ── */
 .auth-page {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   padding: 4rem 1.25rem;
@@ -2438,7 +2648,11 @@ main:has(.auth-page) { flex: 1; }
 main:has(.auth-page) + footer { display: none; }
 main:has(.auth-page) .auth-page { min-height: calc(100vh - 72px); }
 main:has(.apply-page) + footer { display: none; }
-main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-height: calc(100vh - 72px); }
+main:has(.apply-page) /* The wizard re-anchors here on every step change, intake switch and receipt,
+   so the target has to clear the sticky site header rather than land under it. */
+.apply-anchor { scroll-margin-top: 76px; }
+
+.apply-page { display: flex; flex-direction: column; min-height: calc(100vh - 72px); }
 .apply-page .page-header { padding: 2.6rem 0 2.2rem; }
 .apply-page .page-header h1 { font-size: 1.7rem; }
 .apply-page .page-header p { margin-top: 0.3rem; font-size: 0.85rem; opacity: 0.65; }
@@ -2624,7 +2838,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .auth-row { grid-template-columns: 1fr; }
 }
 
-/* â”€â”€ Dashboard â”€â”€ */
+/* ── Dashboard ── */
 .dash-app-item {
   display: flex; align-items: flex-start; gap: 0.75rem;
   padding: 1rem 0; border-bottom: 1px solid #f1f5f9;
@@ -2635,7 +2849,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   padding: 0.18rem 0.55rem; border-radius: 999px;
 }
 
-/* â”€â”€ Student (user) dashboard â”€â”€ */
+/* ── Student (user) dashboard ── */
 .user-dash-grid {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 0.6rem; align-items: start;
@@ -2678,7 +2892,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .dash-count-ok { color: var(--success); background: #e7f7ec; }
 .dash-count-wait { color: var(--warning); background: #fdf3e1; }
 
-/* â”€â”€ Navbar auth â”€â”€ */
+/* ── Navbar auth ── */
 .navbar-links .dash-link { font-weight: 600; }
 .navbar-cta {
   display: none; align-items: center; justify-content: center;
@@ -2702,7 +2916,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .navbar-links .dash-link-logout { display: flex; }
 }
 
-/* â”€â”€ Admin Filter Tabs â”€â”€ */
+/* ── Admin Filter Tabs ── */
 .admin-filter-tabs {
   display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
 }
@@ -2722,7 +2936,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .info-strip-item + .info-strip-item { border-left: none; padding-left: 0.5rem; }
 }
 
-/* â”€â”€ Scroll Animations â”€â”€ */
+/* ── Scroll Animations ── */
 .fade-in {
   opacity: 0;
   transition: opacity 0.65s ease, transform 0.65s ease;
@@ -2741,7 +2955,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .intake-status .intake-status-dot { animation: none; }
 }
 
-/* â”€â”€ Utilities â”€â”€ */
+/* ── Utilities ── */
 .text-center { text-align: center; }
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
@@ -2753,15 +2967,20 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
 
-/* â”€â”€ Avatar (shared, all surfaces) â”€â”€ */
-/* Rendered by components/Avatar.jsx. The gradient comes from an inline style
-   set by the component, so this only handles shape, size and the photo. */
+/* ── Avatar (shared, all surfaces) ── */
+/* Rendered by components/Avatar.jsx. The initials fallback is deliberately
+   colourless: no fill, a hairline ring, and the letters themselves. It used to
+   hash the name onto one of five gradients, which gave a roster of applicants a
+   random bag of colours that distinguished nobody and competed with the status
+   badges beside it. */
 .avatar {
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0; overflow: hidden; position: relative;
-  border-radius: 50%; color: #fff; font-weight: 700;
+  border-radius: 50%; font-weight: 700;
   line-height: 1; text-transform: uppercase; user-select: none;
-  background: var(--avatar-bg, linear-gradient(135deg, #23A8DE 0%, #5CC7F0 100%));
+  color: var(--text-light, #64748b);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px #dfe5ec;
 }
 .avatar-initials { pointer-events: none; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -2780,7 +2999,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-/* â”€â”€ My Profile (/account) â”€â”€ */
+/* ── My Profile (/account) ── */
 .account-section { padding-top: 2.25rem; }
 .account-layout {
   display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
@@ -2925,15 +3144,15 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; white-space: nowrap;
 }
 .pw-badge.is-pending { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
-.pw-reset-btn { margin-top: 0.4rem; width: 100%; }
 .fallback-credentials { align-items: flex-start; }
 .fallback-credentials-row { display: flex; align-items: flex-end; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.6rem; }
 .fallback-credentials-row span { display: flex; flex-direction: column; }
 .fallback-credentials-row small { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
 .fallback-credentials-row b { font-size: 0.88rem; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-.create-user-note { align-items: flex-start; margin: 0 0 1rem; }
-.create-user-note p { font-size: 0.8rem; line-height: 1.6; }
+/* A quiet line under the create form. This was a full alert box with a heading
+   per role, which pushed the submit button well below the three fields. */
+.create-user-hint { margin: 0 0 0.7rem; line-height: 1.5; }
 .admin-table-foot {
   display: flex; gap: 0.5rem; align-items: flex-start;
   padding: 0.9rem 1rem 0; border-top: 1px solid #eef1f6; margin-top: 0.5rem;
@@ -2961,7 +3180,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .account-aside { position: static; }
 }
 
-/* â”€â”€ Student Profile (public /profile) â”€â”€ */
+/* ── Student Profile (public /profile) ── */
 .profile-key-icon {
   margin: 0 auto;
   color: var(--primary); display: flex; align-items: center; justify-content: center;
@@ -2993,7 +3212,9 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 
 /* Compact panel rhythm for the student profile. Replaces the page's former
    inline paddings/margins so every section lines up at the same density. */
-.profile-shell { max-width: 1180px; }
+/* The page header band is gone, so the board supplies its own breathing room
+   under the site navbar rather than inheriting the header's offset. */
+.profile-shell { max-width: 1180px; padding-top: 1rem; }
 .profile-auth { padding: 1.5rem; max-width: 480px; margin: 0 auto; }
 .profile-auth-head { text-align: center; margin-bottom: 1.1rem; }
 .profile-auth-head h3 { margin: 0.7rem 0 0.25rem; font-size: 1rem; }
@@ -3077,11 +3298,11 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .profile-safe svg { flex-shrink: 0; margin-top: 0.1rem; }
 
 @media (max-width: 560px) {
-  .profile-head { gap: 0.6rem; padding: 0.9rem; }
+  .profile-top { gap: 0.6rem; padding: 0.9rem; }
   .profile-head .avatar { width: 42px; height: 42px; font-size: 0.95rem; }
 }
 
-/* â”€â”€ Admin Students â”€â”€ */
+/* ── Admin Students ── */
 .app-adm-toolbar {
   display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
   margin-bottom: 1.25rem;
@@ -3146,20 +3367,473 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .table-subtext { display: block; color: var(--text-light); font-size: 0.68rem; margin-top: 0.1rem; }
 .attendance-toolbar { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
 .attendance-toolbar .form-control { min-width: 170px; padding: 0.45rem 0.7rem; font-size: 0.8rem; }
-.attendance-course-label { color: var(--text-light); font-size: 0.72rem; font-weight: 600; padding: 0.45rem 0.15rem; }
-.attendance-options { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-.attendance-choice { border: 1px solid #dbe3ec; background: #f8fafc; color: var(--text-light); border-radius: 5px; padding: 0.28rem 0.42rem; font-size: 0.64rem; font-weight: 700; transition: all var(--transition); }
-.attendance-choice:hover { border-color: var(--primary); color: var(--primary); }
-.attendance-choice.active.present { background: #e7f7ec; border-color: #86d79a; color: #237a34; }
-.attendance-choice.active.absent { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
-.attendance-choice.active.late { background: #fff7ed; border-color: #fdba74; color: #c2410c; }
-.attendance-choice.active.excused { background: #f0f7fb; border-color: #93c5d8; color: #1464a6; }
-.mark-score-input { max-width: 85px; }
+
+/* ---- Attendance register (spreadsheet grid) ----
+   Students run down the side and session dates across the top, the way the
+   paper register is laid out. Sticky on both axes: a class can run to forty
+   students and a term to twenty sessions, and losing either axis name while
+   scrolling makes the grid unreadable. The old per-row Present/Absent/Late/
+   Excused buttons are gone - each cell is now the control. */
+.register-wrap {
+  overflow: auto;
+  max-height: 62vh;
+  border: 1px solid #e4e9f0;
+  border-radius: 14px;
+  background: #fff;
+}
+.register-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.78rem;
+}
+.register-grid th,
+.register-grid td { padding: 0; border-bottom: 1px solid #eef1f6; }
+
+.register-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+  border-bottom: 1px solid #e3e8ef;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-light, #6b7280);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.register-grid thead th button {
+  display: flex; align-items: center; gap: 0.2rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
+}
+.register-grid thead th button:hover { color: var(--primary, #23a8de); }
+.register-grid thead th.is-active { background: #eaf6fd; color: #16688f; }
+.register-grid thead th.is-new button { color: var(--primary, #23a8de); }
+
+.register-corner {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  min-width: 190px;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  background: #f8fafc;
+}
+.register-student {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 190px;
+  text-align: left;
+  font-weight: 400;
+  padding: 0.45rem 0.7rem;
+  background: #fff;
+  border-right: 1px solid #eef1f6;
+}
+.register-grid tbody tr:nth-child(even) .register-student { background: #fcfdfe; }
+.register-grid tbody tr:hover .register-student { background: #f0f7fb; }
+.register-student strong { display: block; font-size: 0.8rem; line-height: 1.25; }
+.register-student small { display: block; font-size: 0.68rem; color: var(--text-light, #6b7280); }
+
+/* The cell is the whole control, and it has to be a comfortable target: a
+   trainer taps across a whole row without looking closely. */
+.register-cell {
+  width: 44px;
+  height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 0.8rem; font-weight: 800;
+  color: #9aa5b1;
+  transition: background var(--transition, 0.15s ease), box-shadow var(--transition, 0.15s ease);
+}
+.register-cell:hover { background: #f1f5f9; }
+.register-cell:focus-visible { outline: 2px solid var(--primary, #23a8de); outline-offset: -2px; }
+.register-cell.is-active { box-shadow: inset 2px 0 0 var(--primary, #23a8de); }
+.register-cell.is-present { background: #ecfdf5; color: #15803d; }
+.register-cell.is-absent { background: #fef2f2; color: #b91c1c; }
+.register-cell.is-late { background: #fff7ed; color: #c2410c; }
+.register-cell.is-excused { background: #eff6ff; color: #1d4ed8; }
+.register-cell.is-empty { color: #c2c9d2; }
+
+.register-unsaved-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning, #f59e0b); }
+
+/* The day being worked on is summarised in the toolbar itself, so there is no
+   separate summary card repeating the date and saved state a second time. */
+
+.attendance-bulk { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+/* Live counts sit in the toolbar beside the date, so the day summary is read
+   once instead of being repeated in a card above the grid. */
+.attendance-tally { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-left: auto; }
+.attendance-tally-chip {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.7rem; font-weight: 600; color: #5b6b7f;
+  background: #f1f5f9; border-radius: 999px; padding: 0.16rem 0.55rem;
+}
+.attendance-tally-chip b { font-size: 0.78rem; }
+.attendance-tally-chip.is-present { background: #ecfdf5; color: #15803d; }
+.attendance-tally-chip.is-absent { background: #fef2f2; color: #b91c1c; }
+.attendance-tally-chip.is-late { background: #fff7ed; color: #c2410c; }
+.attendance-tally-chip.is-excused { background: #eff6ff; color: #1d4ed8; }
+.attendance-tally-chip.is-total { background: #eaf6fd; color: #16688f; }
+
+.register-legend {
+  display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;
+  margin-top: 0.5rem; font-size: 0.72rem; color: var(--text-light, #6b7280);
+}
+.register-legend > span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.register-swatch {
+  width: 16px; height: 16px; border-radius: 4px; display: inline-block;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+}
+.register-swatch.is-present { background: #ecfdf5; border-color: #a7f3d0; }
+.register-swatch.is-absent { background: #fef2f2; border-color: #fecaca; }
+.register-swatch.is-late { background: #fff7ed; border-color: #fed7aa; }
+.register-swatch.is-excused { background: #eff6ff; border-color: #bfdbfe; }
+
+.attendance-notes { margin-top: 1rem; }
+.attendance-notes h3 { margin: 0 0 0.45rem; font-size: 0.82rem; font-weight: 700; }
+.attendance-note-row {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 0.5rem;
+  align-items: center; margin-bottom: 0.35rem;
+}
+.attendance-note-row > span {
+  font-size: 0.78rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.workspace-intro-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+/* Profile header: identity, study and standing on one horizontal line.
+   Previously these were split between the sidebar and the overview tiles, so
+   answering "who am I and where do I stand" meant reading two different parts
+   of the page. */
+.profile-top {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem 1.1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--primary-dark), #1f3f75);
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(12, 30, 62, 0.18);
+  color: #fff;
+}
+/* min-width:0 lets the name and the facts shrink instead of pushing the
+   certificate status off the right-hand edge on a narrow screen. */
+.profile-top-identity { flex: 1 1 260px; min-width: 0; }
+.profile-top h1 {
+  margin: 0 0 0.3rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.profile-top-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+.profile-top-facts span { display: inline-flex; align-items: center; gap: 0.28rem; min-width: 0; }
+.profile-top-facts svg { flex-shrink: 0; opacity: 0.8; }
+
+.profile-top-side {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.profile-top-status { font-weight: 700; }
+.profile-top-cert {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+}
+.profile-top-cert.is-ready {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #15803d;
+}
+
+@media (max-width: 720px) {
+  .profile-top { padding: 1rem 1.1rem; gap: 0.75rem 0.9rem; }
+  .profile-top h1 { font-size: 1.12rem; }
+  .profile-top-side { margin-left: 0; }
+  .profile-top-facts { font-size: 0.74rem; gap: 0.25rem 0.7rem; }
+}
+
+/* The two release conditions for the certificate, shown as a checklist so the
+   student can see exactly what is still outstanding. */
+.certificate-status {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.certificate-status > div {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #e6ebf1;
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+.certificate-status > div svg { flex-shrink: 0; margin-top: 1px; }
+.certificate-status b { display: block; font-size: 0.79rem; line-height: 1.3; }
+.certificate-status small { display: block; font-size: 0.7rem; color: var(--text-light, #6b7280); }
+.certificate-status .is-done {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+.certificate-status .is-pending {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+.certificate-status .is-pending small { color: #b45309; }
+
+@media (max-width: 620px) {
+  .certificate-status { grid-template-columns: 1fr; }
+}
+
+/* ---- Trainer dashboard ---- */
+.at-risk-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.at-risk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 44px;
+  align-items: center;
+  gap: 0.6rem;
+}
+.at-risk-name { min-width: 0; }
+.at-risk-name strong {
+  display: block; font-size: 0.8rem; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.at-risk-name small { display: block; font-size: 0.68rem; color: var(--text-light, #6b7280); }
+.at-risk-meter {
+  height: 6px; border-radius: 999px; background: #fee2e2; overflow: hidden;
+}
+.at-risk-meter i { display: block; height: 100%; background: #ef4444; border-radius: 999px; }
+.at-risk-rate {
+  font-size: 0.78rem; font-weight: 800; text-align: right;
+  color: #b91c1c; font-variant-numeric: tabular-nums;
+}
+
+.readiness-list strong.is-warn { color: #b45309; }
+.readiness-list strong.is-ok { color: #15803d; }
+
+/* Attendance trend: a plain bar per session, labelled, so a falling rate is
+   visible without reading a single number. */
+.trend {
+  display: flex; align-items: flex-end; gap: 0.4rem;
+  height: 168px; padding-top: 0.5rem;
+}
+.trend-col {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+  height: 100%;
+}
+.trend-bar-wrap {
+  flex: 1 1 auto; width: 100%;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.trend-bar {
+  width: 100%; max-width: 34px;
+  border-radius: 5px 5px 0 0;
+  transition: height var(--transition, 0.3s ease);
+}
+.trend-bar.is-ok { background: linear-gradient(180deg, #4ade80, #22c55e); }
+.trend-bar.is-mid { background: linear-gradient(180deg, #fbbf24, #f59e0b); }
+.trend-bar.is-low { background: linear-gradient(180deg, #f87171, #ef4444); }
+.trend-value {
+  font-size: 0.66rem; font-weight: 700; color: #5b6b7f;
+  font-variant-numeric: tabular-nums;
+}
+.trend-label {
+  font-size: 0.62rem; color: var(--text-light, #6b7280);
+  white-space: nowrap;
+}
+
+.recent-status {
+  display: inline-flex; align-items: center;
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px; padding: 0.14rem 0.5rem;
+  white-space: nowrap;
+}
+.recent-status.is-present { background: #ecfdf5; color: #15803d; }
+.recent-status.is-late { background: #fff7ed; color: #c2410c; }
+.recent-status.is-absent { background: #fef2f2; color: #b91c1c; }
+.recent-status.is-excused { background: #eff6ff; color: #1d4ed8; }
+
+@media (max-width: 700px) {
+  .at-risk-row { grid-template-columns: minmax(0, 1fr) 56px 40px; }
+  .trend { height: 140px; gap: 0.25rem; }
+  .trend-label { display: none; }
+}
+
+/* ---- Marks entry ----
+   The assessment being marked is chosen once at the top, then the class is
+   scored in a single grid. Previously every mark was "the" score for a course,
+   so a second quiz silently overwrote the first. */
+.marks-builder {
+  border: 1px solid #e4e9f0;
+  border-radius: 14px;
+  background: #fff;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.6rem;
+}
+.marks-builder-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem 1rem; flex-wrap: wrap; margin-bottom: 0.6rem;
+}
+.marks-builder-head h3 {
+  display: flex; align-items: center; gap: 0.35rem;
+  margin: 0; font-size: 0.82rem; font-weight: 700;
+}
+.marks-builder-head h3 svg { color: var(--primary, #23a8de); }
+
+.marks-type-chip {
+  padding: 0.28rem 0.6rem;
+  border: 1px solid #dbe3ec;
+  border-radius: 999px;
+  background: #f8fafc;
+  font: inherit; font-size: 0.73rem; font-weight: 700;
+  color: var(--text-light, #6b7280);
+  cursor: pointer;
+  transition: all var(--transition, 0.2s ease);
+}
+.marks-type-chip:hover { border-color: var(--primary, #23a8de); color: var(--primary, #23a8de); }
+.marks-type-chip.is-active {
+  background: var(--primary, #23a8de);
+  border-color: var(--primary, #23a8de);
+  color: #fff;
+}
+
+.marks-builder-fields {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) 90px 160px;
+  gap: 0.5rem;
+  align-items: end;
+}
+.marks-builder-fields .form-group { margin-bottom: 0; }
+.marks-builder-fields label {
+  display: block; margin-bottom: 0.2rem;
+  font-size: 0.68rem; font-weight: 700; color: var(--text-light, #6b7280);
+}
+.marks-builder-name {
+  margin: 0.6rem 0 0;
+  font-size: 0.75rem; color: var(--text-light, #6b7280);
+}
+.marks-builder-name b { color: var(--text, #1a1a2e); }
+
+/* Assessments already recorded, so a trainer can reopen Quiz 1 rather than
+   typing the scores a second time. */
+.marks-existing { margin-bottom: 0.7rem; }
+.marks-existing h3 {
+  display: flex; align-items: center; gap: 0.35rem;
+  margin: 0 0 0.4rem; font-size: 0.8rem; font-weight: 700;
+}
+.marks-existing h3 svg { color: var(--primary, #23a8de); }
+.marks-existing-list { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.marks-existing-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #e6ebf1;
+  border-radius: 9px;
+  background: #fff;
+  font: inherit; cursor: pointer;
+  transition: all var(--transition, 0.2s ease);
+}
+.marks-existing-chip:hover { border-color: var(--primary, #23a8de); }
+.marks-existing-chip.is-active {
+  border-color: var(--primary, #23a8de);
+  background: #eaf6fd;
+}
+.marks-existing-chip b { font-size: 0.76rem; font-weight: 700; }
+.marks-existing-chip span { font-size: 0.7rem; color: var(--text-light, #6b7280); }
+.marks-existing-chip i {
+  font-style: normal; font-size: 0.7rem; font-weight: 700;
+  padding: 0.05rem 0.35rem; border-radius: 999px;
+  background: #f1f5f9; color: #5b6b7f;
+}
+
+.marks-entry-table th.is-narrow, .marks-entry-table td.is-narrow { width: 1%; white-space: nowrap; }
+.marks-student { text-align: left; font-weight: 400; }
+.marks-student strong { display: block; font-size: 0.82rem; }
+.marks-student small { display: block; font-size: 0.68rem; color: var(--text-light, #6b7280); }
+.marks-entry-table tr.is-marked .marks-student strong { color: var(--primary-dark, #16688f); }
+.mark-score-input.is-invalid { border-color: var(--error, #ef4444); background: #fef2f2; }
+.grade-badge.is-invalid { background: #fef2f2; color: var(--error, #ef4444); }
+
+.marks-summary {
+  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.marks-summary-chip {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.73rem; font-weight: 600; color: #5b6b7f;
+  background: #f1f5f9; border-radius: 999px; padding: 0.2rem 0.6rem;
+}
+.marks-summary-chip b { font-size: 0.8rem; }
+.marks-summary-chip.is-average { background: #eaf6fd; color: #16688f; }
+.marks-summary-chip.is-bad { background: #fef2f2; color: #b91c1c; }
+.marks-summary-chip.is-ready { background: #ecfdf5; color: #15803d; }
+.marks-summary .btn { margin-left: auto; }
+
+@media (max-width: 700px) {
+  .marks-builder-fields { grid-template-columns: 1fr 1fr; }
+  .marks-builder-fields .form-group:first-child { grid-column: 1 / -1; }
+  .marks-summary .btn { margin-left: 0; }
+}
+
+@media (max-width: 700px) {
+  .register-wrap { max-height: 55vh; }
+  .register-corner, .register-student { min-width: 130px; }
+  .attendance-note-row { grid-template-columns: 1fr; gap: 0.2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .register-cell { transition: none; }
+}
+.mark-score-input { max-width: 120px; width: 100%; }
 .grade-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.8rem; height: 1.8rem; border-radius: 50%; background: #e7f1fb; color: var(--primary); font-weight: 800; font-size: 0.75rem; }
 .finance-layout { display: grid; grid-template-columns: minmax(260px, 350px) minmax(0, 1fr); gap: 0.75rem; align-items: start; }
 .finance-record-form, .assignment-form { position: sticky; top: 0.75rem; }
 .finance-ledger-panel { min-width: 0; }
+
+/* User Access stacks: the create form first, then the accounts table. It used
+   to be the two-column finance layout, which put the accounts list beside the
+   form - so on a laptop the thing you most often came to read was off to the
+   right of the thing you only use occasionally. */
+.user-access-layout { display: flex; flex-direction: column; gap: 0.75rem; }
+.user-access-form .student-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 260px));
+  justify-content: start;
+}
+.user-access-form > .btn { align-self: flex-start; }
+
+/* A disabled or ended row is dimmed rather than hidden: the record still
+   explains who had access and when it ended. */
+.admin-table tr.is-disabled td,
+.admin-table tr.is-disabled strong { opacity: 0.55; }
+.admin-table tr.is-disabled:hover td { opacity: 1; }
+
 .ledger-filter { width: auto; min-width: 115px; padding: 0.35rem 0.7rem; font-size: 0.78rem; }
+
 .finance-status, .finance-kind { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.18rem 0.48rem; font-size: 0.62rem; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
 .status-paid { background: #e7f7ec; color: #237a34; }
 .status-partial { background: #fff7ed; color: #c2410c; }
@@ -3217,13 +3891,37 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .admin-table th { font-size: 0.65rem; }
   .workspace-page .table-scroll .admin-table { min-width: 620px; }
   .dialog-card { padding: 1.2rem 1.1rem 1rem; max-height: 90vh; }
+
+  /* A search box capped at 230px leaves most of a phone's width empty while
+     still forcing the panel head onto two lines. */
+  .assignment-search { width: 100%; max-width: none; }
+
+  /* Tap targets. A row action trigger was sized for a pointer and landed well
+     under the 44px comfortable minimum on a phone. */
+  .admin-table .actions { flex-wrap: wrap; gap: 0.3rem; }
+
+  /* A role <select> at full table width leaves a huge dead area and pushes the
+     action cell off screen. */
+  .user-access-table .form-control,
+  .assignment-table .form-control { max-width: 150px; padding: 0.35rem 0.5rem; font-size: 0.78rem; }
+
+  /* Labelled row actions need real width. The tables scroll sideways rather
+     than wrapping the buttons, so a row always reads as one line of actions. */
+  .user-access-table { min-width: 520px; }
+  .assignment-table { min-width: 660px; }
+  .app-adm-table { min-width: 800px; }
+
+  /* The action menu is portalled and fixed, so it is not clipped by the table -
+     but it does need a bigger touch target on a phone. */
+  .action-menu-trigger { width: 38px; height: 38px; flex-basis: 38px; }
+  .action-menu-item { padding: 0.62rem 0.6rem; font-size: 0.82rem; }
 }
 @media (max-width: 400px) {
   .workspace-page .table-scroll .admin-table { min-width: 560px; }
   .dialog-card { padding: 1rem 0.9rem 0.85rem; }
 }
 
-/* â”€â”€ Section header / Team grid â”€â”€ */
+/* ── Section header / Team grid ── */
 .section-header {
   text-align: center; margin-bottom: 2rem;
 }
@@ -3256,7 +3954,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .team-grid { grid-template-columns: 1fr; max-width: 280px; }
 }
 
-/* â”€â”€ Image Carousel â”€â”€ */
+/* ── Image Carousel ── */
 .image-carousel {
   position: relative;
   border-radius: var(--radius-lg);
@@ -3362,7 +4060,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .image-carousel .carousel-dot { width: 8px; height: 8px; }
 }
 
-/* â”€â”€ Image Row Carousel (horizontal scroll) â”€â”€ */
+/* ── Image Row Carousel (horizontal scroll) ── */
 .image-row-carousel {
   position: relative;
   max-width: 100%;
@@ -3444,7 +4142,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .row-carousel-item { width: 240px; }
 }
 
-/* â”€â”€ Graduation Layout â”€â”€ */
+/* ── Graduation Layout ── */
 .graduation-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3511,7 +4209,7 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
   .grad-stat-value { font-size: 1.5rem; }
 }
 
-/* â”€â”€ Student Profile Compact â”€â”€ */
+/* ── Student Profile Compact ── */
 .profile-reg { font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 0.3rem; }
 .app-status-badge {
   font-size: 0.68rem; font-weight: 700; padding: 0.3rem 0.7rem;
@@ -3787,9 +4485,10 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 /* ---- Student profile: compact dashboard ----
    The profile used to be a single 780px column of stacked cards, then a
    two-column layout with a sticky rail. Both were tall, because every panel
-   took a full row. This is a dense board: one identity strip, one status
-   line, a stat row, then a 3-up and a 2-up card grid. Everything fits a
-   laptop screen without scrolling. */
+   took a full row. It is now a sticky rail plus a dense content board: the
+   rail holds identity, status, section navigation and page actions, and the
+   content column carries one status line, a stat row, then a 3-up and a 2-up
+   card grid. Everything fits a laptop screen without much scrolling. */
 .profile-dash {
   display: flex;
   flex-direction: column;
@@ -3797,73 +4496,209 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 }
 .profile-dash > * { margin-top: 0; }
 
-/* Anchor targets must clear the sticky site header. */
-#profile-overview,
-#profile-fees,
-#profile-attendance,
-#profile-sessions,
-#profile-results,
-#profile-achievements,
-#profile-note { scroll-margin-top: 84px; }
+/* Only the top of the content column is ever scrolled to now, so only it needs
+   to clear the sticky site header. */
+#profile-rail-top { scroll-margin-top: 84px; }
 
-/* Identity strip: name, section jumps and the two actions, on one line. */
-.profile-hero {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem 0.9rem;
-  flex-wrap: wrap;
-  padding: 0.6rem 0.8rem;
+/* Two-column board: a sticky rail that owns identity, status, section
+   navigation and page actions, and a content column for the panels. The rail
+   is the single place those four things appear, so the content never repeats
+   them. */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
 }
-.profile-hero-id {
+.profile-rail { position: sticky; top: 84px; min-width: 0; }
+.profile-rail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.7rem 0.7rem 0.75rem;
+}
+
+.profile-rail-id {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   min-width: 0;
 }
-.profile-hero-text { min-width: 0; }
-.profile-hero-text h2 {
+.profile-rail-text { min-width: 0; }
+.profile-rail-text h2 {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
-.profile-hero .app-status-badge { margin-left: 0; }
-.profile-hero .profile-reg { margin-top: 0.1rem; }
+.profile-rail-id .profile-reg { margin-top: 0.15rem; }
+.profile-rail-status { align-self: flex-start; margin-top: 0; }
 
-.profile-jump {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-left: auto;
+/* Grouped section list. The left rail marks the active entry the same way the
+   admin sidebar does, so the two sidebars in this app read the same way. */
+.profile-rail-nav { display: flex; flex-direction: column; gap: 0.5rem; }
+.profile-rail-group { display: flex; flex-direction: column; gap: 0.1rem; }
+.profile-rail-group-name {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light, #6b7280);
+  padding: 0 0.5rem 0.15rem;
 }
-.profile-jump a {
-  display: inline-flex;
+.profile-rail-nav button {
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.55rem;
-  border: 1px solid #e8edf2;
-  border-radius: 999px;
-  background: #f8fafc;
-  font-size: 0.72rem;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text, #1a1a2e);
   text-decoration: none;
+  transition: background var(--transition, 0.2s ease), color var(--transition, 0.2s ease);
+}
+.profile-rail-nav button::before {
+  content: ''; position: absolute; left: 0; top: 50%; translate: 0 -50%;
+  width: 3px; height: 0; border-radius: 3px; background: var(--primary, #23a8de);
+  transition: height var(--transition, 0.2s ease);
+}
+.profile-rail-nav button:hover { background: #f2f8fd; }
+.profile-rail-nav button.active { background: #eaf6fd; color: #16688f; }
+.profile-rail-nav button.active::before { height: 60%; }
+.profile-rail-nav button svg { flex-shrink: 0; color: var(--text-light, #6b7280); }
+.profile-rail-nav button.active svg,
+.profile-rail-nav button:hover svg { color: var(--primary, #23a8de); }
+.profile-rail-label {
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* The badge carries the figure the section leads with, so the rail reads as a
+   summary as well as a map. */
+.profile-rail-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #5b6b7f;
+  max-width: 5.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  transition: border-color var(--transition, 0.15s), color var(--transition, 0.15s), background var(--transition, 0.15s);
 }
-.profile-jump a:hover {
+.profile-rail-badge.is-ok { background: rgba(57, 178, 76, 0.14); color: #1e8b4c; }
+.profile-rail-badge.is-warn { background: rgba(239, 68, 68, 0.12); color: #c33a5f; }
+
+/* Rail items are buttons now that a click swaps panels instead of scrolling,
+   so the browser's button chrome has to be taken back off. */
+.profile-rail-nav button {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 0;
+  width: 100%;
+  background: none;
+}
+.profile-rail-nav button:focus-visible {
+  outline: 2px solid var(--primary, #23a8de);
+  outline-offset: 1px;
+}
+
+.profile-rail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #eef0f4;
+}
+.profile-rail-actions .btn { justify-content: center; }
+
+/* ---- Content column: one section at a time ----
+   The rail picks the section and the column shows only that one, so the heading
+   is what tells the reader where they are once a panel is on screen. */
+.profile-dash { gap: 0.6rem; }
+.profile-panel-head {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  padding: 0 0.1rem;
+}
+.profile-panel-head h2 {
+  display: flex; align-items: center; gap: 0.4rem;
+  margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.01em;
+  line-height: 1.25; color: var(--text, #1a1a2e);
+}
+.profile-panel-head h2 svg { color: var(--primary, #23a8de); flex-shrink: 0; }
+/* The rail badge is reused here so the figure beside the heading matches the one
+   in the rail by construction rather than by a second formatting rule. */
+.profile-panel-head .profile-rail-badge { font-size: 0.66rem; padding: 0.1rem 0.45rem; }
+
+.profile-panel { animation: profile-panel-in 0.22s ease both; }
+@keyframes profile-panel-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+.profile-overview { display: flex; flex-direction: column; gap: 0.6rem; }
+
+/* Jump cards on the overview. They are shortcuts, not a second navigation, so
+   they stay out of the Account group and never duplicate the rail's roles. */
+.profile-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+.profile-quick-grid button {
+  display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  background: var(--surface, #fff);
+  border: 1px solid #e6ebf1;
+  border-radius: var(--radius-md, 10px);
+  font: inherit; text-align: left; cursor: pointer;
+  transition: border-color var(--transition, 0.2s ease), box-shadow var(--transition, 0.2s ease);
+}
+.profile-quick-grid button:hover {
   border-color: var(--primary, #23a8de);
-  background: #f2f8fd;
-  color: var(--primary, #23a8de);
+  box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.1);
 }
-.profile-jump a svg { width: 13px; height: 13px; color: var(--text-light, #6b7280); }
-.profile-jump a:hover svg { color: var(--primary, #23a8de); }
+.profile-quick-grid button:focus-visible {
+  outline: 2px solid var(--primary, #23a8de);
+  outline-offset: 1px;
+}
+.profile-quick-icon {
+  width: 30px; height: 30px; flex: 0 0 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; background: rgba(35, 168, 222, 0.12); color: var(--primary, #23a8de);
+}
+.profile-quick-icon svg { width: 15px; height: 15px; }
+.profile-quick-body { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.profile-quick-body b { font-size: 0.8rem; font-weight: 700; color: var(--text, #1a1a2e); }
+.profile-quick-body small {
+  font-size: 0.68rem; color: var(--text-light, #6b7280);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.profile-quick-grid button > svg { flex-shrink: 0; color: var(--text-light, #6b7280); }
+.profile-quick-grid button:hover > svg { color: var(--primary, #23a8de); }
 
-.profile-hero-actions { display: flex; gap: 0.35rem; }
+/* A whole section with nothing in it. The inline variant hugs a sentence inside
+   a populated card; this one fills the panel so an empty section does not look
+   like a card that failed to render. */
+.profile-empty.is-block {
+  display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+  padding: 1.4rem 1rem; text-align: center;
+}
+.profile-empty.is-block p {
+  margin: 0; font-size: 0.8rem; line-height: 1.5;
+  color: var(--text-light, #6b7280); max-width: 42ch;
+}
 
-/* Status banner: one line, never a separate panel. */
+/* Status banner: one line, never a separate panel.
+   Targets .profile-banner, which is the class Profile.jsx actually renders.
+   It was written as .profile-head, so the flex layout and padding were dead
+   and the banner was showing its colours with no box around it. */
 .profile-banner {
   display: flex;
   align-items: center;
@@ -3970,16 +4805,6 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .upcoming-session-title { font-size: 0.75rem; }
 .upcoming-session-meta { font-size: 0.66rem; }
 
-/* Empty states: icon beside the sentence, not stacked above it. */
-.profile-empty.is-inline {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0;
-  text-align: left;
-}
-.profile-empty.is-inline p { margin: 0; font-size: 0.76rem; }
-
 /* Results table */
 .profile-marks { font-size: 0.72rem; }
 .profile-marks th, .profile-marks td { padding: 0.32rem 0.45rem; }
@@ -4003,15 +4828,8 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 .profile-achievement-body .muted { font-size: 0.66rem; }
 .profile-achievement .btn { padding: 0.2rem 0.45rem; font-size: 0.66rem; }
 
-/* Note and safety line: label inline with the text, so both stay one line. */
-.profile-note.is-inline {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-}
-.profile-note.is-inline .app-detail-label { margin-bottom: 0; flex: 0 0 auto; }
-.profile-note.is-inline p { font-size: 0.78rem; }
+/* Note and safety line: the safety line sits under the PIN form with no card of
+   its own, so it reads as a footnote rather than another panel. */
 .profile-safe.is-inline {
   margin-top: 0;
   padding: 0.1rem 0.15rem;
@@ -4023,14 +4841,45 @@ main:has(.apply-page) .apply-page { display: flex; flex-direction: column; min-h
 @media (max-width: 1080px) {
   .profile-cols.is-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* Rail and content no longer fit side by side: the rail becomes a card above
+   the panels, and the section list turns into a horizontally scrollable strip
+   so every section stays one tap away without a tall vertical list. */
+@media (max-width: 900px) {
+  .profile-layout { grid-template-columns: 1fr; }
+  .profile-rail { position: static; }
+  .profile-rail-card { gap: 0.55rem; }
+  .profile-rail-nav {
+    flex-direction: row;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 0.15rem;
+    scrollbar-width: thin;
+  }
+  .profile-rail-group { flex-direction: row; gap: 0.25rem; }
+  .profile-rail-group-name { display: none; }
+  .profile-rail-nav button {
+    border: 1px solid #e8edf2;
+    background: #f8fafc;
+    border-radius: 999px;
+    padding: 0.32rem 0.6rem;
+    white-space: nowrap;
+  }
+  .profile-rail-nav button::before { display: none; }
+  .profile-rail-nav button.active { border-color: var(--primary, #23a8de); }
+  .profile-rail-label { flex: 0 0 auto; }
+  .profile-rail-actions { flex-direction: row; }
+  .profile-rail-actions .btn { flex: 1 1 auto; }
+}
 @media (max-width: 860px) {
   .profile-cols.is-3, .profile-cols.is-2 { grid-template-columns: 1fr; }
-  .profile-jump { margin-left: 0; width: 100%; }
-  .profile-hero-actions { width: 100%; }
-  .profile-hero-actions .btn { flex: 1 1 auto; justify-content: center; }
 }
 @media (max-width: 480px) {
   .profile-achievements { grid-template-columns: 1fr; }
-  .profile-note.is-inline { flex-direction: column; gap: 0.15rem; }
+  .profile-quick-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-panel { animation: none; }
+  .profile-rail-nav button, .profile-quick-grid button { transition: none; }
 }
 
