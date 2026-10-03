@@ -7,7 +7,7 @@ import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
 import { emailProblem, normalizeEmail } from '../utils/email';
 import { LEVELS_OF_STUDY, GENDERS, REG_NUMBER_PATTERN } from '../utils/options';
-import { EARLY_PAYMENT_NOTICE } from '../utils/fees';
+import { EARLY_PAYMENT_NOTICE, EARLY_PAYMENT_NOTICE_COMPACT } from '../utils/fees';
 
 const BASE_STEPS = ['Personal Info', 'Contact', 'Studies'];
 
@@ -297,11 +297,12 @@ export default function Apply() {
       const result = await apiFetch('/applications', { method: 'POST', body, headers });
       // The 2,000 RWF early-payment notice comes back with the response, so the
       // card quotes the same amount the confirmation email does.
+      const notice = result?.earlyPayment || EARLY_PAYMENT_NOTICE;
       setSubmitted({
         intakeTitle: selected.title,
         name: form.name.trim(),
         email: normalizeEmail(form.email),
-        earlyPayment: result?.earlyPayment || EARLY_PAYMENT_NOTICE,
+        earlyPayment: notice,
       });
       toast.success('Application submitted!', { title: 'Check your email for your PIN 🎉', duration: 6000, grand: true });
       setForm((f) => ({
@@ -325,6 +326,17 @@ export default function Apply() {
     } finally {
       setSending(false);
     }
+  };
+
+  // Short wording for the confirmation dialog, with the full sentences as the
+  // fallback so a response from an older server (or a failed one) still reads.
+  const short = {
+    detail: submitted?.earlyPayment?.shortDetail || submitted?.earlyPayment?.detail || EARLY_PAYMENT_NOTICE_COMPACT.detail,
+    certificateFeeExample:
+      submitted?.earlyPayment?.shortExample ||
+      submitted?.earlyPayment?.certificateFeeExample ||
+      EARLY_PAYMENT_NOTICE_COMPACT.certificateFeeExample,
+    action: submitted?.earlyPayment?.shortAction || submitted?.earlyPayment?.action || EARLY_PAYMENT_NOTICE_COMPACT.action,
   };
 
   return (
@@ -379,36 +391,36 @@ export default function Apply() {
                 </button>
 
                 <div className="apply-done-head">
-                  <span className="apply-done-tick"><CheckCircle size={20} /></span>
+                  <span className="apply-done-tick"><CheckCircle size={18} /></span>
                   <h3 id="apply-done-title">Application received</h3>
                   <p>
-                    Thank you{submitted.name ? `, ${submitted.name}` : ''}. Your application for{' '}
-                    <b>{submitted.intakeTitle}</b> has been sent to the DTS office.
+                    Thank you{submitted.name ? `, ${submitted.name}` : ''}.{' '}
+                    <b>{submitted.intakeTitle}</b> is with the DTS office.
                   </p>
                 </div>
 
                 <ul className="apply-done-steps">
                   <li>
-                    <Mail size={16} />
+                    <Mail size={15} />
                     <span>
-                      We are emailing your Registration Number and PIN to{' '}
-                      <b>{submitted.email}</b>. Use them on the Student Profile page to follow your training.
+                      Your <b>Registration Number</b> and <b>PIN</b> are on the way to{' '}
+                      <b>{submitted.email}</b>. Sign in with them on your profile.
                     </span>
                   </li>
                   <li className="is-payment">
-                    <Smartphone size={16} />
+                    <Smartphone size={15} />
                     <span className="apply-done-pay">
                       <span>
                         Pay <b>{submitted.earlyPayment.amount?.toLocaleString('en-US')} {submitted.earlyPayment.currency}</b>{' '}
-                        early to secure your place.
+                        now to secure your place.
                       </span>
-                      <em className="apply-done-plain">{submitted.earlyPayment.detail}</em>
-                      {submitted.earlyPayment.certificateFeeExample && (
-                        <em className="apply-done-example">{submitted.earlyPayment.certificateFeeExample}</em>
+                      <em className="apply-done-plain">{short.detail}</em>
+                      {short.certificateFeeExample && (
+                        <em className="apply-done-example">{short.certificateFeeExample}</em>
                       )}
                       <span className="apply-done-how">
-                        <CreditCard size={14} />
-                        <span>{submitted.earlyPayment.action}</span>
+                        <CreditCard size={13} />
+                        <span>{short.action}</span>
                       </span>
                     </span>
                   </li>

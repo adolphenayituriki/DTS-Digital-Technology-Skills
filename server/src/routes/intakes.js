@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
+import TrainerAssignment from "../models/TrainerAssignment.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
 
@@ -86,7 +87,14 @@ router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
         message: `Cannot delete: ${attached} student${attached === 1 ? "" : "s"} still registered under this intake. Move or remove those students first.`,
       });
     }
-    const intake = await Intake.findByIdAndDelete(req.params.id);
+    // Take the trainer assignments with it. Populate leaves a dangling row as
+    // null, so an orphaned assignment shows as "Deleted intake" forever and
+    // pads the assignment list with rows that grant nothing. Attendance and
+    // marks keep their own intake reference and are unaffected.
+    const [intake] = await Promise.all([
+      Intake.findByIdAndDelete(req.params.id),
+      TrainerAssignment.deleteMany({ intakeId: req.params.id }),
+    ]);
     if (!intake) return res.status(404).json({ message: "Intake not found" });
     res.json({ message: "Intake deleted" });
   } catch (error) {

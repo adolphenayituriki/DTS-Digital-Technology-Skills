@@ -38,6 +38,27 @@ router.get("/assignments", async (req, res) => {
   }
 });
 
+// Clears assignment rows whose trainer or intake no longer exists. Deleting an
+// account cascades these, and deleting an intake now does too, but rows written
+// before that was fixed are still on disk and only ever render as "Deleted
+// trainer" / "Deleted intake". They grant no access, so removing them loses
+// nothing - attendance and marks reference students and intakes, not these.
+// Declared before "/assignments/:id" so "orphans" is not read as an id.
+router.delete("/assignments/orphans", async (req, res) => {
+  try {
+    const [trainerIds, intakeIds] = await Promise.all([
+      User.find({ role: "trainer" }).distinct("_id"),
+      Intake.distinct("_id"),
+    ]);
+    const result = await TrainerAssignment.deleteMany({
+      $or: [{ trainerId: { $nin: trainerIds } }, { intakeId: { $nin: intakeIds } }],
+    });
+    res.json({ removed: result.deletedCount || 0 });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Assigns one trainer to one intake or to several at once. The form sends
 // `intakeIds`; a single `intakeId` is still accepted so an older client keeps
 // working. Each pairing is its own assignment row, which is what the trainer's

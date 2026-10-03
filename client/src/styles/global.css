@@ -2548,9 +2548,87 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .apply-done-actions .btn { width: 100%; }
 }
 
-/* The assignment list is a single table, so the panel head only carries the
-   search box. */
+/* Trainer assignments are grouped into one card per trainer rather than one
+   table row per trainer/intake pairing: the question this screen answers is
+   "who teaches what", and repeating each trainer's name down a flat table
+   buried the answer. */
 .assignment-search { max-width: 230px; padding: 0.4rem 0.7rem; font-size: 0.8rem; }
+.assign-cleanup { align-items: center; }
+
+.assign-form-foot {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  margin-top: 0.85rem;
+}
+.assign-form-foot .form-hint { margin: 0; }
+
+/* The intake picker spans the full grid and lays its options out in columns, so
+   a long list of intakes stays compact without becoming a nested scroll region
+   that hides half the options behind an inner scrollbar. */
+.assign-intakes { grid-column: 1 / -1; }
+.assign-intakes > label { display: flex; align-items: center; gap: 0.3rem; }
+.assign-intake-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.4rem;
+}
+.assign-intake-options .course-option { align-items: flex-start; }
+.assign-intake-options .course-option > span:last-child { display: block; min-width: 0; }
+.assign-intake-options .course-option strong { display: block; font-weight: 600; }
+.assign-intake-options .course-option small { display: block; color: var(--text-light); font-size: 0.72rem; }
+
+.assign-grid {
+  display: grid; gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+.assign-card {
+  border: 1px solid #e8eef4; border-radius: 12px; background: #fff;
+  padding: 0.75rem 0.8rem; display: flex; flex-direction: column; gap: 0.6rem;
+}
+.assign-card.is-empty { background: #fbfcfe; border-style: dashed; }
+.assign-card.is-orphan { border-color: #f3d9b0; background: #fffdf8; }
+
+.assign-card-head { display: flex; align-items: center; gap: 0.55rem; }
+.assign-avatar {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; font-weight: 700; font-size: 0.82rem;
+}
+.assign-card.is-orphan .assign-avatar { background: #b45309; }
+.assign-card-id { min-width: 0; flex: 1; }
+.assign-card-id strong { display: block; font-size: 0.86rem; line-height: 1.3; }
+.assign-card-id small { display: block; color: var(--text-light); font-size: 0.7rem; word-break: break-all; }
+.assign-card-flag { color: #b45309 !important; font-weight: 600; }
+
+.assign-tag {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.18rem 0.45rem; border-radius: 999px;
+  font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+  background: rgba(34, 197, 94, 0.12); color: #15803d;
+}
+.assign-tag.is-none, .assign-tag.is-off { background: #f1f5f9; color: #64748b; }
+.assign-tag.is-on { background: rgba(34, 197, 94, 0.12); color: #15803d; }
+.assign-card.is-orphan .assign-tag.is-off { background: rgba(180, 83, 9, 0.12); color: #b45309; }
+
+.assign-card-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.assign-card-list li {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.42rem 0.5rem; border-radius: 9px;
+  background: #f8fafc; border: 1px solid #eef2f7;
+}
+.assign-card-list li.is-ended { opacity: 0.72; }
+.assign-intake-icon { color: var(--primary); display: flex; flex-shrink: 0; }
+.assign-card-body { min-width: 0; flex: 1; }
+.assign-card-body strong { display: block; font-size: 0.8rem; font-weight: 600; line-height: 1.3; }
+.assign-card-body small { display: block; color: var(--text-light); font-size: 0.71rem; }
+.assign-card-end { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+
+.assign-card-empty { margin: 0; font-size: 0.78rem; color: var(--text-light); }
+.assign-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--primary); font: inherit; font-weight: 600; text-decoration: underline;
+}
+.assign-link:hover { color: var(--primary-dark); }
+
 .dash-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .apply-review { border: 1px solid #eef0f4; border-radius: 14px; overflow: hidden; margin-bottom: 1.25rem; }
 .apply-review-row {
@@ -3824,7 +3902,12 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .mark-score-input { max-width: 120px; width: 100%; }
 .grade-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.8rem; height: 1.8rem; border-radius: 50%; background: #e7f1fb; color: var(--primary); font-weight: 800; font-size: 0.75rem; }
 .finance-layout { display: grid; grid-template-columns: minmax(260px, 350px) minmax(0, 1fr); gap: 0.75rem; align-items: start; }
-.finance-record-form, .assignment-form { position: sticky; top: 0.75rem; }
+/* Sticky only works while the panel is shorter than the viewport. The finance
+   record form is a short column beside a long ledger, so it holds. The
+   assignment form carries a trainer picker and an intake list and is taller
+   than a laptop screen, and a sticky box taller than the viewport pins over the
+   assignment cards below it instead of scrolling away with them. */
+.finance-record-form { position: sticky; top: 0.75rem; }
 .finance-ledger-panel { min-width: 0; }
 
 /* User Access stacks: the create form first, then the accounts table. It used
@@ -3887,7 +3970,7 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 
 @media (max-width: 1100px) {
   .finance-layout { grid-template-columns: 1fr; }
-  .finance-record-form, .assignment-form { position: static; }
+  .finance-record-form { position: static; }
 }
 @media (max-width: 900px) {
   .workspace-page .table-scroll .admin-table { min-width: 680px; }
@@ -3908,19 +3991,25 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
      still forcing the panel head onto two lines. */
   .assignment-search { width: 100%; max-width: none; }
 
+  /* A 320px-wide card cannot hold the avatar, the intake name and a status
+     pill on one line, so the status drops below the row instead of squeezing
+     the intake title into two words per line. */
+  .assign-grid { grid-template-columns: 1fr; }
+  .assign-intake-options { grid-template-columns: 1fr; }
+  .assign-card-list li { flex-wrap: wrap; }
+  .assign-card-end { width: 100%; justify-content: flex-end; }
+
   /* Tap targets. A row action trigger was sized for a pointer and landed well
      under the 44px comfortable minimum on a phone. */
   .admin-table .actions { flex-wrap: wrap; gap: 0.3rem; }
 
   /* A role <select> at full table width leaves a huge dead area and pushes the
      action cell off screen. */
-  .user-access-table .form-control,
-  .assignment-table .form-control { max-width: 150px; padding: 0.35rem 0.5rem; font-size: 0.78rem; }
+  .user-access-table .form-control { max-width: 150px; padding: 0.35rem 0.5rem; font-size: 0.78rem; }
 
   /* Labelled row actions need real width. The tables scroll sideways rather
      than wrapping the buttons, so a row always reads as one line of actions. */
   .user-access-table { min-width: 520px; }
-  .assignment-table { min-width: 660px; }
   .app-adm-table { min-width: 800px; }
 
   /* The action menu is portalled and fixed, so it is not clipped by the table -
