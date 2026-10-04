@@ -3,6 +3,7 @@ import Student from "../models/Student.js";
 import Application from "../models/Application.js";
 import Attendance from "../models/Attendance.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roles.js";
 import studentSession from "../middleware/studentSession.js";
 import { parseAvatarUpload, storeAvatar, removeAvatar } from "../utils/imageUpload.js";
 import {
@@ -21,13 +22,6 @@ import { normalizeEmail } from "../utils/email.js";
 const router = Router();
 
 const PUBLIC_FIELDS = "-pinHash";
-
-const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== "admin") {
-    return res.status(403).json({ message: "Admin access required" });
-  }
-  next();
-};
 
 const publicStudent = (student) => {
   const data = student.toObject();
@@ -278,9 +272,14 @@ router.post("/mine/photo", studentSession, parseAvatarUpload, async (req, res) =
   }
 });
 
-router.use(auth, requireAdmin);
+// Everything below is the staff area, so it needs a signed-in user - but no
+// longer admin-only. The secretary is given read access to the student records
+// so the office dashboard can drill into them, so the blanket admin gate is
+// replaced by per-endpoint roles: a secretary can list and view students, and
+// every write below still requires admin.
+router.use(auth);
 
-router.get("/", async (req, res) => {
+router.get("/", requireRole("admin", "secretary"), async (req, res) => {
   try {
     const { status, intakeId, q } = req.query;
     const filter = {};
@@ -299,7 +298,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireRole("admin", "secretary"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id).select(PUBLIC_FIELDS);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -309,7 +308,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireRole("admin"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -346,7 +345,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/marks", async (req, res) => {
+router.post("/:id/marks", requireRole("admin"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -375,7 +374,7 @@ router.post("/:id/marks", async (req, res) => {
   }
 });
 
-router.put("/:id/marks/:markId", async (req, res) => {
+router.put("/:id/marks/:markId", requireRole("admin"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -406,7 +405,7 @@ router.put("/:id/marks/:markId", async (req, res) => {
   }
 });
 
-router.delete("/:id/marks/:markId", async (req, res) => {
+router.delete("/:id/marks/:markId", requireRole("admin"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -422,7 +421,7 @@ router.delete("/:id/marks/:markId", async (req, res) => {
   }
 });
 
-router.post("/:id/reset-pin", async (req, res) => {
+router.post("/:id/reset-pin", requireRole("admin"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id).select("+pinHash");
     if (!student) return res.status(404).json({ message: "Student not found" });

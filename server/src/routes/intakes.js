@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/all", auth, requireRole("admin", "finance"), async (req, res) => {
+router.get("/all", auth, requireRole("admin", "finance", "secretary"), async (req, res) => {
   try {
     const intakes = await Intake.find().sort({ createdAt: -1 });
     res.json(await withEnrollment(intakes));

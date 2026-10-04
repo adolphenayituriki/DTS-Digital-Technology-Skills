@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/all", auth, requireRole("admin", "editor"), async (req, res) => {
+router.get("/all", auth, requireRole("admin", "editor", "secretary"), async (req, res) => {
   try {
     const testimonials = await Testimonial.find().sort({ createdAt: -1 });
     res.json(testimonials);

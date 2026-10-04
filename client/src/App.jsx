@@ -113,7 +113,10 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <RequireRole roles={['admin']}>
+            // The secretary is read-only across these pages, so it may enter the
+            // area to view records. Staff accounts and trainer assignments keep
+            // their own admin-only guard below.
+            <RequireRole roles={['admin', 'secretary']}>
               <AdminLayout />
             </RequireRole>
           }

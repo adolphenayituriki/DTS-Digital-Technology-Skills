@@ -12,6 +12,7 @@ import { PASSWORD_MIN_LENGTH } from '../utils/password';
 import { emailProblem, normalizeEmail } from '../utils/email';
 
 const ROLES = [
+  { value: 'secretary', label: 'Secretary' },
   { value: 'trainer', label: 'Trainer' },
   { value: 'finance', label: 'Finance' },
   { value: 'editor', label: 'Editor' },
@@ -239,6 +240,14 @@ export default function UserManagement() {
             <p className="form-hint create-user-hint">
               Trainers only see students from the intakes given to them on{' '}
               <Link to="/admin/trainer-assignments">Trainer Assignments</Link>.
+            </p>
+          )}
+
+          {form.role === 'secretary' && (
+            <p className="form-hint create-user-hint">
+              Secretaries get the office dashboard and can read applications, students, intakes,
+              messages, members, posts and testimonials across the whole site. They cannot create
+              staff accounts or change any record.
             </p>
           )}
 

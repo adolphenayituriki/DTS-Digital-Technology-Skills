@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", auth, requireRole("admin", "editor"), async (req, res) => {
+router.get("/", auth, requireRole("admin", "editor", "secretary"), async (req, res) => {
   try {
     const messages = await Message.find().sort({ createdAt: -1 });
     res.json(messages);

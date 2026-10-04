@@ -245,7 +245,7 @@ router.get("/mine", auth, async (req, res) => {
   }
 });
 
-router.get("/", auth, requireRole("admin"), async (req, res) => {
+router.get("/", auth, requireRole("admin", "secretary"), async (req, res) => {
   try {
     const applications = await Application.find().sort({ createdAt: -1 });
     res.json(applications);

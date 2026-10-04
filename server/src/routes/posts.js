@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/all", auth, requireRole("admin", "editor"), async (req, res) => {
+router.get("/all", auth, requireRole("admin", "editor", "secretary"), async (req, res) => {
   try {
     const posts = await Post.find()
       .populate("author", "name")
