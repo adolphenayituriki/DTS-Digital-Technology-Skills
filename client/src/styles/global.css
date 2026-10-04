@@ -732,6 +732,49 @@ input, textarea, select { font-family: inherit; }
 }
 .footer-bottom p { margin: 0; }
 .footer-campus-note { color: #7c8db0; font-size: 0.76rem; }
+/* Two links between the copyright and the campus note. .footer-bottom is already
+   a wrapping flex row, so this only needs to stop the links running together. */
+.footer-legal { display: flex; gap: 1.1rem; }
+.footer-legal a { color: #7c8db0; }
+.footer-legal a:hover { color: #fff; text-decoration: underline; }
+
+/* Legal documents (privacy policy, terms of service). There was no prose styling
+   in this stylesheet, so the article typography is defined here rather than
+   leaning on the card and lead-text rules, which carry borders and shadows that
+   would make a wall of clauses look like a stack of panels. */
+.legal-intro {
+  max-width: 760px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--text-light);
+}
+.legal-sections {
+  max-width: 780px;
+  margin: 0 auto;
+  display: grid;
+  gap: 2rem;
+}
+.legal-section h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  color: var(--text);
+}
+.legal-section p {
+  line-height: 1.75;
+  margin-bottom: 0.75rem;
+  color: #475569;
+}
+.legal-section ul {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+}
+.legal-section li { line-height: 1.7; color: #475569; }
+.legal-section li::marker { color: var(--primary); }
 
 /* A logo inside a fixed circle. Both mark files are non-square, so the circle is
    a fixed square box with `cover` - the circle is drawn by the box, not by the

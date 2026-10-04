@@ -93,6 +93,13 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} Digital Technology Skills (DTS). All rights reserved.</p>
+          {/* Reachable from every page rather than buried in the Quick Links list:
+              these are the two documents applicants are asked to accept, so they
+              need to be findable from anywhere on the site. */}
+          <div className="footer-legal">
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
+          </div>
           <span className="footer-campus-note">Training delivered at UR-Huye Campus, Rwanda</span>
         </div>
       </div>

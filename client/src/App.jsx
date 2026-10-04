@@ -13,6 +13,8 @@ const Team = lazy(() => import('./pages/Team'));
 const News = lazy(() => import('./pages/News'));
 const NewsDetail = lazy(() => import('./pages/NewsDetail'));
 const Contact = lazy(() => import('./pages/Contact'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 const Gallery = lazy(() => import('./pages/Gallery'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Apply = lazy(() => import('./pages/Apply'));
@@ -52,6 +54,8 @@ const titles = {
   '/team': 'Our Team',
   '/news': 'News',
   '/contact': 'Contact Us',
+  '/privacy': 'Privacy Policy',
+  '/terms': 'Terms of Service',
   '/gallery': 'Gallery',
   '/apply': 'Apply',
   '/login': 'Login',
@@ -194,6 +198,8 @@ export default function App() {
                     <Route path="/news" element={<News />} />
                     <Route path="/news/:slug" element={<NewsDetail />} />
                     <Route path="/contact" element={<Contact />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
                     <Route path="/gallery" element={<Gallery />} />
                     <Route path="/apply" element={<Apply />} />
                     {/* Shareable per-intake application link, e.g. /apply/<intakeId> */}
