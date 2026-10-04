@@ -23,7 +23,7 @@ export const EARLY_PAYMENT_NOTICE = {
 // One line each, for the confirmation dialog. Mirrors
 // EARLY_PAYMENT_NOTICE_COMPACT in server/src/utils/fees.js.
 export const EARLY_PAYMENT_NOTICE_COMPACT = {
-  detail: 'Not an extra fee — it comes off your certificate fee later.',
+  detail: 'Not an extra fee, it comes off your certificate fee later.',
   certificateFeeExample: 'Fee 6,000 → you pay 6,000 − 2,000 = 4,000 now.',
-  action: 'Pay at the DTS office, UR-Huye Campus, or MTN +250 788 300 300 (Kamugisha Elizabeth).',
+  action: 'Pay at the DTS finance, or MTN +250 788 300 300 (Kamugisha Elizabeth).',
 };

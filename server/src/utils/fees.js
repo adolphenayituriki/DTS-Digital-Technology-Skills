@@ -34,9 +34,9 @@ export const EARLY_PAYMENT_NOTICE = {
 // Neither restates a figure the other does not - both read from the same
 // constants, so the two can never disagree.
 export const EARLY_PAYMENT_NOTICE_COMPACT = {
-  detail: 'Not an extra fee — it comes off your certificate fee later.',
+  detail: 'Not an extra fee, it comes off your certificate fee later.',
   certificateFeeExample: 'Fee 6,000 → you pay 6,000 − 2,000 = 4,000 now.',
-  action: 'Pay at the DTS office, UR-Huye Campus, or MTN +250 788 300 300 (Kamugisha Elizabeth).',
+  action: 'Pay at the DTS finance, or MTN +250 788 300 300 (Kamugisha Elizabeth).',
 };
 
 // The compact lines ride along under short* keys rather than replacing the long
