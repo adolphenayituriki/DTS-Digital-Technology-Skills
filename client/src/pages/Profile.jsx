@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
   ShieldCheck, FileText, CalendarDays, GraduationCap, ArrowRight, ArrowLeft,
-  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt, Award, Download, ShieldAlert,
+  CreditCard, AlertCircle, CheckCircle2, Clock, Receipt, Award, Medal, Download, ShieldAlert,
   LayoutDashboard, ChartNoAxesColumn, MonitorPlay, Lock, Camera,
 } from 'lucide-react';
 import apiFetch, { setStudentSession, clearStudentSession, getStudentSession } from '../api';
@@ -88,7 +88,9 @@ export default function Profile() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotOk, setForgotOk] = useState(false);
-  const [showCertificate, setShowCertificate] = useState(false);
+  // The course whose appreciation card is open in the lightbox, or null. There
+  // is one card per completed course, so this is a course name and not a flag.
+  const [appreciationCourse, setAppreciationCourse] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
 
   // Only courses staff explicitly ticked as completed count towards the
@@ -116,6 +118,20 @@ export default function Profile() {
     completedCourseKeys.has(String(course).trim().toLowerCase())
   );
   const allCoursesCompleted = totalMarks > 0 && completedMarks.length === totalMarks;
+
+  // One appreciation card per completed course, in programme order, so a
+  // student with three signed-off courses sees three cards rather than one
+  // card that quietly stands in for all of them.
+  const appreciationCards = completedMarks.map((course) => {
+    const signOff = (Array.isArray(student?.completedCourses) ? student.completedCourses : []).find(
+      (entry) => String(entry?.course || '').trim().toLowerCase() === String(course).trim().toLowerCase()
+    );
+    return {
+      course,
+      completedAt: signOff?.completedAt || null,
+      recordedBy: String(signOff?.recordedBy || '').trim(),
+    };
+  });
 
   useEffect(() => {
     if (!ready) return;
@@ -351,9 +367,14 @@ export default function Profile() {
     },
     {
       id: 'profile-achievements', group: 'Academics', label: 'Course Appreciation',
-      icon: <Award size={15} />,
-      badge: certificateReady ? 'Ready' : null,
-      tone: certificateReady ? 'paid' : null,
+      icon: <Medal size={15} />,
+      // Counted per course, because that is how the cards unlock. Gating this on
+      // every course being done said "Not available yet" while completed courses
+      // were already downloadable.
+      badge: appreciationCards.length
+        ? `${appreciationCards.length} ready`
+        : null,
+      tone: appreciationCards.length ? (allCoursesCompleted ? 'paid' : 'ok') : null,
     },
     {
       id: 'profile-note', group: 'Account', label: 'Note from DTS',
@@ -586,9 +607,9 @@ export default function Profile() {
                   </span>
                   <span className={`profile-top-cert${certificateReady ? ' is-ready' : ''}`}>
                     {certificateReady ? (
-                      <><CheckCircle2 size={14} /> Certificate ready</>
+                      <><CheckCircle2 size={14} /> All courses completed</>
                     ) : (
-                      <><Lock size={14} /> Certificate not yet issued</>
+                      <><Lock size={14} /> {completedMarks.length} of {totalMarks} completed</>
                     )}
                   </span>
                 </div>
@@ -919,53 +940,77 @@ export default function Profile() {
                   {activeId === 'profile-achievements' && (
                     <section className="card profile-card">
                       <div className="profile-card-head">
-                        <h3 className="profile-card-title"><Award size={14} /> Certificate of Completion</h3>
+                        <h3 className="profile-card-title"><Medal size={14} /> Course Appreciation</h3>
                         <span className="profile-hint">
-                          {certificateReady ? 'Ready' : 'Locked'}
+                          {appreciationCards.length
+                            ? `${appreciationCards.length} of ${totalMarks} available`
+                            : 'Locked'}
                         </span>
                       </div>
 
-                      {/* One certificate for the whole programme. Both conditions
-                          are stated up front, with the outstanding one named, so
-                          the student is never left guessing why it is unavailable. */}
+                      {/* The card is per course, so progress is stated per course
+                          and the outstanding ones are named. */}
                       <div className="certificate-status">
                         <div className={allCoursesCompleted ? 'is-done' : 'is-pending'}>
                           {allCoursesCompleted
                             ? <CheckCircle2 size={15} />
                             : <AlertCircle size={15} />}
                           <span>
-                            <b>All courses completed</b>
+                            <b>{allCoursesCompleted ? 'All courses completed' : 'Courses in progress'}</b>
                             <small>
-                              {completedMarks.length} of {totalMarks} course{totalMarks === 1 ? '' : 's'} done
+                              {completedMarks.length} of {totalMarks} course{totalMarks === 1 ? '' : 's'} signed off
                             </small>
                           </span>
                         </div>
 
+                        <div className={allCoursesCompleted ? 'is-done' : 'is-pending'}>
+                          {allCoursesCompleted ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+                          <span>
+                            <b>
+                              {totalMarks - completedMarks.length > 0
+                                ? `Waiting on ${totalMarks - completedMarks.length} more`
+                                : 'All cards issued'}
+                            </b>
+                            <small>
+                              {programmeCourses
+                                .filter((c) => !completedCourseKeys.has(String(c).trim().toLowerCase()))
+                                .join(', ') || 'Nothing outstanding'}
+                            </small>
+                          </span>
+                        </div>
                       </div>
 
-                      {certificateReady ? (
+                      {appreciationCards.length ? (
                         <div className="profile-achievements">
-                          <div className="profile-achievement">
-                            <div className="profile-achievement-icon"><Award size={14} /></div>
-                            <div className="profile-achievement-body">
-                              <b>{student.intakeTitle || 'Course Appreciation'}</b>
-                              <span className="muted">
-                                Issued to {student.name}
-                                {student.regNumber ? ` · ${student.regNumber}` : ''}
-                              </span>
+                          {appreciationCards.map((card) => (
+                            <div className="profile-achievement" key={card.course}>
+                              <div className="profile-achievement-icon is-gold"><Medal size={14} /></div>
+                              <div className="profile-achievement-body">
+                                <b>{card.course}</b>
+                                <span className="muted">
+                                  {card.completedAt
+                                    ? `Completed ${new Date(card.completedAt).toLocaleDateString('en-GB', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                      })}`
+                                    : 'Course completion appreciation'}
+                                  {card.recordedBy ? ` · ${card.recordedBy}` : ''}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                onClick={() => setAppreciationCourse(card.course)}
+                              >
+                                <Download size={13} /> Download
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              onClick={() => setShowCertificate(true)}
-                            >
-                              <Download size={13} /> Download
-                            </button>
-                          </div>
+                          ))}
                         </div>
                       ) : (
                           <EmptyNote icon={<Lock size={20} style={{ opacity: 0.4 }} />}>
-                            {'Your course appreciation card will unlock once every course on your programme is marked completed.'}
+                            {'Each course gets its own appreciation card. Yours appears here as soon as a trainer marks that course completed.'}
                           </EmptyNote>
                       )}
                     </section>
@@ -1005,11 +1050,12 @@ export default function Profile() {
             </>
           )}
 
-          {showCertificate && (
+          {appreciationCourse && (
             <CertificateModal
               student={student}
               intakeTitle={student?.intakeTitle}
-              onClose={() => setShowCertificate(false)}
+              course={appreciationCourse}
+              onClose={() => setAppreciationCourse(null)}
             />
           )}
         </div>

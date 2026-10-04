@@ -1246,36 +1246,76 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .confetti-piece, .celebration-emoji { display: none; }
 }
 
-/* ── Confirm Dialog ── */
+/* ── Dialogs ──
+   One definition for the whole app, rendered by components/Dialog.jsx.
+   Previously .dialog-overlay and .dialog-card were each declared twice, ~2,700
+   lines apart, from two different eras. The later block silently won, which
+   meant editing the earlier one did nothing and the two card widths (380px vs
+   580px) never both applied. Do not re-declare these below - extend them. */
 .dialog-overlay {
-  position: fixed; inset: 0; background: rgba(10, 20, 40, 0.55); z-index: 300;
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(10, 20, 40, 0.55);
+  backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center; padding: 1rem;
   animation: dialog-fade 0.18s ease;
 }
 @keyframes dialog-fade { from { opacity: 0; } to { opacity: 1; } }
 .dialog-card {
-  position: relative; width: 100%; max-width: 380px;
+  position: relative; width: 100%; max-width: 520px; max-height: 85vh;
   background: var(--surface); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl); padding: 1.9rem 1.75rem 1.5rem; text-align: center;
-  animation: dialog-pop 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+  box-shadow: var(--shadow-xl); padding: 1.6rem 1.5rem 1.25rem;
+  overflow-y: auto;
+  animation: dialog-pop 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
+.dialog-card:focus { outline: none; }
 @keyframes dialog-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
-.dialog-card .dialog-icon {
-  width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 1rem;
-  background: #fef2f2; color: var(--error); border: 1px solid #fecaca;
-  display: flex; align-items: center; justify-content: center;
-}
-.dialog-card h3 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 0.4rem; }
-.dialog-card p { font-size: 0.85rem; color: var(--text-light); line-height: 1.55; margin-bottom: 1.4rem; }
-.dialog-actions { display: flex; gap: 0.6rem; }
-.dialog-actions .btn { flex: 1; justify-content: center; }
 .dialog-close {
-  position: absolute; top: 0.9rem; right: 0.9rem; background: transparent; border: none;
+  position: absolute; top: 0.85rem; right: 0.85rem; background: transparent; border: none;
   color: var(--text-light); width: 30px; height: 30px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
 .dialog-close:hover { background: #f1f5f9; color: var(--text); }
+
+/* Header: a tinted icon badge beside the title and optional subtitle. Centred
+   for the small confirm dialogs, left-aligned everywhere else, so a stack of
+   related dialogs reads as one family. */
+.dialog-head { display: flex; align-items: flex-start; gap: 0.85rem; margin-bottom: 1.1rem; }
+.dialog-head-text { min-width: 0; padding-right: 1.75rem; }
+.dialog-head h3 {
+  font-size: 1.08rem; font-weight: 800; letter-spacing: -0.01em; margin: 0;
+}
+.dialog-head .dialog-sub { margin: 0.2rem 0 0; }
+.dialog-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  background: #e8f6fd; color: var(--primary); border: 1px solid #cdeaf8;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Danger variant, so a destructive dialog reads as destructive before a word of
+   the title is read. */
+.dialog-icon.is-danger { background: #fef2f2; color: var(--error); border-color: #fecaca; }
+.dialog-icon.is-success { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+
+.dialog-body > :last-child { margin-bottom: 0; }
+.dialog-body p { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.9rem; }
+
+/* Footer: a separated action row, so the buttons are not read as part of the
+   content above them. */
+.dialog-actions {
+  display: flex; gap: 0.6rem; justify-content: flex-end;
+  margin-top: 1.35rem; padding-top: 1.1rem; border-top: 1px solid #eef2f7;
+}
+.dialog-actions .btn { flex: 1; justify-content: center; }
+
+/* The small centred variant used for confirmations, where there is no body to
+   speak of and stretching the buttons full width keeps them easy to hit. */
+.dialog-card-compact { max-width: 400px; text-align: center; }
+.dialog-card-compact .dialog-head { flex-direction: column; align-items: center; }
+.dialog-card-compact .dialog-head-text { padding-right: 0; }
+.dialog-card-compact .dialog-actions .btn { flex: 1; }
+
+/* Wider variant for checklists and tables. */
+.dialog-card-wide { max-width: 680px; }
 
 /* ── Admin ── */
 .admin-layout { display: flex; min-height: 100vh; }
@@ -4014,27 +4054,6 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .compact-table th { font-size: 0.65rem; padding: 0.5rem 0.65rem; }
 .workspace-full-button { width: 100%; justify-content: center; margin-top: 0.75rem; }
 
-/* Dialog styles for transaction detail */
-.dialog-overlay {
-  position: fixed; inset: 0; z-index: 300;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(2px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem; animation: dialog-fade 0.15s ease;
-}
-@keyframes dialog-fade { from { opacity: 0; } to { opacity: 1; } }
-.dialog-card {
-  position: relative; width: 100%; max-width: 580px; max-height: 85vh;
-  background: var(--surface); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl); padding: 1.5rem 1.4rem 1.25rem;
-  overflow-y: auto;
-  animation: dialog-pop 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-/* A course checklist needs more room than the default 580px: long course names
-   ("Online Job Applications") would otherwise wrap to two lines per row. */
-.dialog-card-wide { max-width: 640px; }
-.dialog-sub { margin-top: -0.2rem; font-size: 0.82rem; color: var(--text-light); }
-
 /* Progress towards the Course Appreciation card, shown above the checklist so the
    trainer sees the consequence of a tick before making it. */
 .completion-meter {
@@ -4533,6 +4552,13 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
   border-radius: 10px;
   background: rgba(35,168,222,0.14);
   color: var(--primary-dark);
+}
+/* Gold variant, so the course appreciation list matches the gold emblem on
+   the card itself instead of the default blue chip. */
+.profile-achievement-icon.is-gold {
+  background: linear-gradient(140deg, rgba(233,196,106,0.28), rgba(201,154,46,0.20));
+  color: #a97c1c;
+  border: 1px solid rgba(201,154,46,0.42);
 }
 .profile-achievement-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1 1 auto; }
 .profile-achievement-body b { font-size: 0.95rem; }

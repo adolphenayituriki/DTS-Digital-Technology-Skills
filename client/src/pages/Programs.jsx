@@ -33,7 +33,8 @@ export default function Programs() {
         <div className="container">
           <p style={{ textAlign: 'center', color: 'var(--text-light)', maxWidth: 700, margin: '0 auto 3rem', fontSize: '1.05rem' }}>
             All training programs run for 2-3 months on UR-Huye Campus. Each program includes
-            hands-on practice, real-world projects, and a certificate of completion.
+            hands-on practice, real-world projects, and a course completion appreciation for
+            every course you finish.
           </p>
           <div className="grid-3">
             {programs.map((p, i) => {
