@@ -23,8 +23,10 @@ import {
   optionProblem,
 } from "../utils/options.js";
 import { earlyPaymentNotice } from "../utils/fees.js";
+import { renameInDrive } from "../utils/googleDrive.js";
 import {
   parseCertificateUpload,
+  storeCertificate,
   removeCertificate,
   certificateLimiter,
 } from "../utils/certificateUpload.js";
@@ -73,11 +75,13 @@ router.post(
   async (req, res) => {
     const uploaded = req.certificate;
     let application = null;
-  // Multer has already written the file to disk by this point, so every exit
-  // below the validation has to either store it on an application or delete it
-  // - otherwise a rejected submission leaves an orphan on the server.
+    let stored = null;
+  // Nothing is written anywhere until every check below has passed, so a
+  // rejected submission leaves nothing behind. Once `stored` is set, every exit
+  // below has to either attach it to an application or delete it - otherwise a
+  // certificate outlives the application that carried it.
   const discard = () => {
-    if (uploaded) removeCertificate(uploaded.url);
+    if (stored) removeCertificate(stored.url, stored.fileId);
   };
   // Every rejected submission routes through here so the temporary file is
   // cleaned up in exactly one place.
@@ -156,6 +160,16 @@ router.post(
       : program
         ? [program]
         : [];
+    // The certificate is stored here, after the last check and just before the
+    // document is written, so a rejected applicant never causes a file to be
+    // pushed to Drive. The reg number prefixes the stored file so a staff member
+    // browsing the folder can tell whose certificate they are looking at.
+    try {
+      stored = advanced && uploaded ? await storeCertificate(uploaded, { hint: regNumber }) : null;
+    } catch (error) {
+      console.error("[applications] Failed to store certificate:", error.message);
+      return fail(500, "The certificate could not be saved. Please try again in a moment.");
+    }
     application = await Application.create({
       userId: extractUser(req),
       intakeId,
@@ -174,8 +188,9 @@ router.post(
       // Only kept for an Advanced applicant, so the field always means
       // "this is the proof for this session" and never carries a stray upload
       // that nobody asked for.
-      certificate: advanced && uploaded ? uploaded.url : "",
-      certificateName: advanced && uploaded ? uploaded.name : "",
+      certificate: stored ? stored.url : "",
+      certificateFileId: stored ? stored.fileId : "",
+      certificateName: stored ? stored.name : "",
       motivation,
     });
     let credentials = null;
@@ -184,6 +199,20 @@ router.post(
       credentials = { regNumber: student.regNumber, pin };
     } catch (error) {
       console.error("[applications] Failed to create student profile:", error.message);
+    }
+    // The DTS registration number is only assigned now, when the student profile
+    // was created - it did not exist while the certificate was uploaded, which is
+    // why the file went up under a temporary name. Renaming it to the registration
+    // number is what makes the Drive folder readable: that number is what staff
+    // will be looking for, and the extension is preserved so the file still opens.
+    // Not fatal if it fails - the certificate is stored and attached either way,
+    // only its filename would be less useful.
+    if (stored?.fileId && credentials?.regNumber && uploaded?.ext) {
+      try {
+        await renameInDrive(stored.fileId, `${credentials.regNumber}${uploaded.ext}`);
+      } catch (error) {
+        console.error("[applications] Could not rename certificate:", error.message);
+      }
     }
     sendApplicationConfirmation(application, intake, credentials).catch((e) =>
       console.error("[mailer] confirmation email failed:", e.message)
@@ -201,7 +230,7 @@ router.post(
     });
   } catch (error) {
     // The certificate is already attached to the document here, so it is left
-    // on disk: the file name is the only handle on the stored copy.
+    // in storage: the file id is the only handle on the stored copy.
     if (application) return res.status(500).json({ message: error.message });
     return fail(500, error.message);
   }
@@ -253,8 +282,10 @@ router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
     if (!application) return res.status(404).json({ message: "Application not found" });
     await Student.findOneAndDelete({ applicationId: application._id });
     // An applicant's certificate is personal data, so it goes when the
-    // application does rather than lingering in uploads forever.
-    removeCertificate(application.certificate);
+    // application does rather than lingering in Drive forever. The file id
+    // identifies the Drive copy; the stored url covers local files from before
+    // Drive was configured.
+    removeCertificate(application.certificate, application.certificateFileId);
     res.json({ message: "Application deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

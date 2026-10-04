@@ -18,6 +18,7 @@ import testimonialRoutes from "./routes/testimonials.js";
 import uploadRoutes from "./routes/upload.js";
 import intakeRoutes from "./routes/intakes.js";
 import applicationRoutes from "./routes/applications.js";
+import certificateRoutes from "./routes/certificates.js";
 import studentRoutes from "./routes/students.js";
 import userRoutes from "./routes/users.js";
 import trainerRoutes from "./routes/trainer.js";
@@ -25,6 +26,7 @@ import trainerAdminRoutes from "./routes/trainerAdmin.js";
 import financeRoutes from "./routes/finance.js";
 import statsRoutes from "./routes/stats.js";
 import { logSecretStatus } from "./utils/token.js";
+import { logDriveStatus } from "./utils/googleDrive.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +60,7 @@ app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/intakes", intakeRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/certificates", certificateRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/trainer", trainerRoutes);
@@ -103,6 +106,7 @@ if (fs.existsSync(distDir)) {
 connectDB().then(() => {
   app.listen(PORT, () => {
     logSecretStatus();
+    logDriveStatus();
     console.log(`Server running on port ${PORT}`);
   });
 });

@@ -9,6 +9,12 @@ client/dist/
 .env.local
 server/.env
 
+# Google service-account key. This is a private key with write access to the
+# certificate folder - it must never enter the repository, and it should not sit
+# next to the code either.
+server/service-account.json
+*service-account*.json
+
 # User-uploaded media (application documents, avatars, post images).
 # These are real user data and must never enter the repository.
 server/uploads/

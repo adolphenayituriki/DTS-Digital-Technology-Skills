@@ -6,7 +6,9 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "seed": "node src/seed.js",
-    "backfill:students": "node src/scripts/backfillStudents.js"
+    "backfill:students": "node src/scripts/backfillStudents.js",
+    "migrate:certificates": "node src/scripts/migrateCertificatesToDrive.js",
+    "drive:auth": "node src/scripts/googleAuth.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

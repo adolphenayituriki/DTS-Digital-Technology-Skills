@@ -348,14 +348,28 @@ export default function ApplicationsAdmin() {
               {selected.certificate && (
                 <div className="app-detail-block">
                   <div className="app-detail-label"><Paperclip size={15} /> Basic Certificate</div>
-                  <a
-                    className="btn btn-outline btn-xs"
-                    href={`${getApiOrigin()}${selected.certificate}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open certificate
-                  </a>
+                  <div className="app-detail-actions">
+                    <a
+                      className="btn btn-outline btn-xs"
+                      href={`${getApiOrigin()}${selected.certificate}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open certificate
+                    </a>
+                    {/* Only the Drive-backed copy is streamed by our own API, which
+                        is what turns ?download=1 into a save. The older local files
+                        are plain static assets, so a download link would just open
+                        them in a new tab under a misleading label. */}
+                    {selected.certificateFileId && (
+                      <a
+                        className="btn btn-outline btn-xs"
+                        href={`${getApiOrigin()}${selected.certificate}?download=1`}
+                      >
+                        <Download size={14} /> Download
+                      </a>
+                    )}
+                  </div>
                   {selected.certificateName && (
                     <div className="table-subtext" style={{ marginTop: '0.5rem' }}>{selected.certificateName}</div>
                   )}

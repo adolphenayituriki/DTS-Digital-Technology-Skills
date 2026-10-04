@@ -44,7 +44,17 @@ const applicationSchema = new mongoose.Schema({
     trim: true,
     default: "",
   },
+  // Where the certificate can be opened from. A Drive-hosted certificate is an
+  // API route keyed by file id (see routes/certificates.js); anything written
+  // before Drive was configured keeps the local /uploads path.
   certificate: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  // The Drive file id, kept separately because it is the handle a delete needs.
+  // Empty for locally-stored certificates and for applications with none.
+  certificateFileId: {
     type: String,
     trim: true,
     default: "",
