@@ -239,8 +239,8 @@ const safeFileName = (hint, fallbackName) => {
   return `${label ? `${label}-` : ""}${fallbackName}-${stamp}`;
 };
 
-export const uploadToDrive = async ({ buffer, mimeType, originalName, hint }) => {
-  const folderId = DRIVE_FOLDER_ID();
+export const uploadToDrive = async ({ buffer, mimeType, originalName, hint, folderId: targetFolder }) => {
+  const folderId = targetFolder || DRIVE_FOLDER_ID();
   if (!folderId) throw new Error("GOOGLE_DRIVE_FOLDER_ID is not set");
 
   const metadata = { name: safeFileName(hint, originalName), parents: [folderId], mimeType };
