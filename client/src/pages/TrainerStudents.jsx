@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ClipboardCheck, Search } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Search, Award } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
+import CourseCompletionDialog, { coursesFor } from '../components/CourseCompletionDialog';
 
 export default function TrainerStudents() {
   const toast = useToast();
@@ -10,6 +11,7 @@ export default function TrainerStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ intakeId: '', course: '', q: '' });
+  const [completionFor, setCompletionFor] = useState(null);
 
   useEffect(() => {
     apiFetch('/trainer/assignments')
@@ -35,6 +37,22 @@ export default function TrainerStudents() {
 
   const selectedAssignment = assignments.find((item) => (item.intakeId?._id || item.intakeId) === filters.intakeId);
   const courseOptions = selectedAssignment?.intakeId?.courses || [];
+  // The intake is needed as a last-resort course list for a student whose record
+  // carries no courses of their own.
+  const selectedIntake = selectedAssignment?.intakeId;
+
+  // Completion is stored on the student, so the roster has to be patched in place
+  // rather than refetched - otherwise the dialog's optimistic tick and the row's
+  // progress badge would disagree until a reload.
+  const handleCompletionSaved = (updated, error) => {
+    if (error) {
+      toast.error(error.message || 'Could not update course completion.');
+      return;
+    }
+    if (!updated) return;
+    setStudents((current) => current.map((item) => (item._id === updated._id ? { ...item, ...updated } : item)));
+    if (completionFor?._id === updated._id) setCompletionFor({ ...completionFor, ...updated });
+  };
 
   return (
     <div className="workspace-page">
@@ -66,22 +84,45 @@ export default function TrainerStudents() {
       {loading ? <div className="loading"><div className="spinner" />Loading roster...</div> : (
         <div className="table-scroll">
           <table className="admin-table">
-            <thead><tr><th>Registration</th><th>Student</th><th>Intake</th><th>Courses</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Registration</th><th>Student</th><th>Intake</th><th>Courses</th><th>Progress</th><th>Actions</th></tr></thead>
             <tbody>
-              {students.length === 0 && <tr><td colSpan={5} className="table-empty">No students found for this assignment.</td></tr>}
-              {students.map((student) => (
+              {students.length === 0 && <tr><td colSpan={6} className="table-empty">No students found for this assignment.</td></tr>}
+              {students.map((student) => {
+                const courses = coursesFor(student, selectedIntake);
+                const doneKeys = new Set(
+                  (student.completedCourses || []).map((entry) =>
+                    String(entry.course || '').trim().toLowerCase()
+                  )
+                );
+                const doneCount = courses.filter((course) => doneKeys.has(course.trim().toLowerCase())).length;
+                const allDone = courses.length > 0 && doneCount === courses.length;
+                return (
                 <tr key={student._id}>
                   <td><span className="student-reg-cell">{student.regNumber}</span></td>
                   <td><strong>{student.name}</strong><small className="table-subtext">{student.email}</small></td>
                   <td>{student.intakeTitle}</td>
-                  <td>{(student.preferredCourses || []).join(', ') || student.program || '—'}</td>
-                  <td><div className="actions"><Link className="btn btn-outline btn-xs" to={`/trainer/marks?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || student.preferredCourses?.[0] || '')}&studentId=${student._id}`}><BookOpen size={13} /></Link><Link className="btn btn-outline btn-xs" to={`/trainer/attendance?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || '')}`}><ClipboardCheck size={13} /></Link></div></td>
+                  <td>{courses.join(', ') || '—'}</td>
+                  <td>
+                    <span className={`completion-pill${allDone ? ' is-done' : ''}`}>
+                      {courses.length ? `${doneCount}/${courses.length}` : '—'}
+                    </span>
+                  </td>
+                  <td><div className="actions"><button className="btn btn-outline btn-xs" type="button" title="Course completion" onClick={() => setCompletionFor(student)}><Award size={13} /></button><Link className="btn btn-outline btn-xs" to={`/trainer/marks?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || student.preferredCourses?.[0] || '')}&studentId=${student._id}`}><BookOpen size={13} /></Link><Link className="btn btn-outline btn-xs" to={`/trainer/attendance?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || '')}`}><ClipboardCheck size={13} /></Link></div></td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <CourseCompletionDialog
+        open={Boolean(completionFor)}
+        student={completionFor}
+        intake={selectedIntake}
+        onClose={() => setCompletionFor(null)}
+        onSaved={handleCompletionSaved}
+      />
     </div>
   );
 }

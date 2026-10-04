@@ -555,4 +555,52 @@ router.put("/students/:id/marks/:markId", async (req, res) => {
   }
 });
 
+// Marks one course as finished (or unfinished) for one student.
+//
+// This is the deliberate sign-off that unlocks the Course Appreciation card, so
+// it is a separate route rather than another field on the marks endpoints. Marks
+// are evidence a course was assessed; completion is a judgement about the course
+// itself, and it has to be revocable - a trainer who signed one off in error
+// needs a way to take it back without deleting their assessments.
+//
+// Scoping is getScopedStudent, the same guard the attendance and marks routes
+// use, so a trainer can only sign off students on intakes they are assigned to.
+router.put("/students/:id/courses", async (req, res) => {
+  try {
+    const course = cleanCourse(req.body.course);
+    if (!course) return res.status(400).json({ message: "A course name is required" });
+    const result = await getScopedStudent(req.user, req.params.id, course);
+    if (result.error) {
+      return res.status(result.error === "Student not found" ? 404 : 403).json({ message: result.error });
+    }
+    const student = result.student;
+    // Compared case-insensitively so ticking "Microsoft Office" twice from a
+    // differently-cased course picker cannot create duplicate rows.
+    const existing = student.completedCourses.find(
+      (entry) => String(entry.course || "").toLowerCase() === course.toLowerCase()
+    );
+
+    if (req.body.completed === false) {
+      if (existing) student.completedCourses.pull({ _id: existing._id });
+    } else if (existing) {
+      // Re-signing refreshes who did it and when, rather than adding a row.
+      existing.completedAt = new Date();
+      existing.recordedBy = req.user.name || req.user.email;
+      existing.recordedById = req.user._id;
+    } else {
+      student.completedCourses.push({
+        course,
+        completedAt: new Date(),
+        recordedBy: req.user.name || req.user.email,
+        recordedById: req.user._id,
+      });
+    }
+
+    await student.save();
+    res.json(publicStudent(student));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

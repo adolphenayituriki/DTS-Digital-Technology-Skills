@@ -86,9 +86,21 @@ const Certificate = forwardRef(function Certificate({ student, intakeTitle, prev
     return Math.round(scored.reduce((sum, m) => sum + Number(m.score), 0) / scored.length);
   })();
   const completedOn = (() => {
-    const dates = (student?.marks || []).map((m) => m.completedAt).filter(Boolean);
+    // The date the programme was finished: the most recent course sign-off. The
+    // old `marks[].completedAt` is still read as a fallback so a student whose
+    // card was already unlocked before this moved to per-course completion keeps
+    // a sensible date rather than printing "Date of completion: —".
+    const courseDates = (student?.completedCourses || [])
+      .map((entry) => entry.completedAt)
+      .filter(Boolean)
+      .map((d) => new Date(d).getTime());
+    const markDates = (student?.marks || [])
+      .map((m) => m.completedAt)
+      .filter(Boolean)
+      .map((d) => new Date(d).getTime());
+    const dates = courseDates.length ? courseDates : markDates;
     if (!dates.length) return null;
-    return new Date(Math.max(...dates.map((d) => new Date(d).getTime())));
+    return new Date(Math.max(...dates));
   })();
 
   return (

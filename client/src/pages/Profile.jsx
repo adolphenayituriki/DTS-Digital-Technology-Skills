@@ -4,7 +4,7 @@ import {
   KeyRound, IdCard, Mail, Phone, MapPin, BookOpen, ClipboardList,
   ShieldCheck, FileText, CalendarDays, GraduationCap, ArrowRight, ArrowLeft,
   CreditCard, AlertCircle, CheckCircle2, Clock, Receipt, Award, Download, ShieldAlert,
-  LayoutDashboard, ChartNoAxesColumn, MonitorPlay, Lock,
+  LayoutDashboard, ChartNoAxesColumn, MonitorPlay, Lock, Camera,
 } from 'lucide-react';
 import apiFetch, { setStudentSession, clearStudentSession, getStudentSession } from '../api';
 import useAuth from '../hooks/useAuth';
@@ -12,6 +12,7 @@ import { useToast } from '../components/Toast';
 import Avatar from '../components/Avatar';
 import CertificateModal from '../components/Certificate';
 import ChangePinForm from '../components/ChangePinForm';
+import { resizeImageForUpload } from '../utils/imageResize';
 
 const STATUS_META = {
   applicant: { label: 'Application Pending Review', color: 'var(--primary)', bg: '#e8f6fd' },
@@ -88,14 +89,32 @@ export default function Profile() {
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotOk, setForgotOk] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // Only courses staff explicitly ticked as completed count towards the
   // certificate. There is ONE certificate per programme, so what matters is
   // whether every course is done, not how many.
-  const completedMarks = Array.isArray(student?.marks)
-    ? student.marks.filter((m) => m.completed)
-    : [];
-  const totalMarks = Array.isArray(student?.marks) ? student.marks.length : 0;
+  //
+  // Completion is read from `completedCourses`, which a trainer signs off per
+  // course. It used to be counted from `marks[].completed` instead, which meant
+  // a course could only ever be completed if it happened to have an assessment
+  // recorded against it - a course taught without an exam could never finish,
+  // and a single mark stood in for a whole course.
+  const programmeCourses = Array.isArray(student?.preferredCourses) && student.preferredCourses.length
+    ? student.preferredCourses
+    : String(student?.program || '')
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean);
+  const completedCourseKeys = new Set(
+    (Array.isArray(student?.completedCourses) ? student.completedCourses : []).map((entry) =>
+      String(entry.course || '').trim().toLowerCase()
+    )
+  );
+  const totalMarks = programmeCourses.length;
+  const completedMarks = programmeCourses.filter((course) =>
+    completedCourseKeys.has(String(course).trim().toLowerCase())
+  );
   const allCoursesCompleted = totalMarks > 0 && completedMarks.length === totalMarks;
 
   useEffect(() => {
@@ -133,6 +152,35 @@ export default function Profile() {
       .catch(() => { /* keep the cached copy */ });
     return () => { active = false; };
   }, [ready, isLoggedIn]);
+
+  // Uploads a new profile photo for the signed-in student.
+  //
+  // Resized on the device first, for the same reason as the staff profile: this
+  // renders at 96px, so uploading a multi-megabyte phone photo would spend the
+  // student's data on bytes nobody sees.
+  const handlePhotoChange = async (event) => {
+    const chosen = event.target.files?.[0];
+    // Cleared immediately so picking the same file twice still fires a change.
+    event.target.value = '';
+    if (!chosen) return;
+    if (!chosen.type.startsWith('image/')) {
+      toast.error('That file is not an image. Choose a photo from your gallery.');
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const file = await resizeImageForUpload(chosen);
+      const body = new FormData();
+      body.append('file', file);
+      const saved = await apiFetch('/students/mine/photo', { method: 'POST', body });
+      setStudent(saved);
+      toast.success('Profile photo updated.');
+    } catch (error) {
+      toast.error(error.message || 'Could not upload that photo.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (!student) return;
@@ -504,7 +552,20 @@ export default function Profile() {
                   scattered between the sidebar and the overview tiles, so the
                   page had no single place that answered "where am I?". */}
               <header className="profile-top">
-                <Avatar size="lg" name={student.name} />
+                <div className="profile-top-photo">
+                  <Avatar size="lg" name={student.name} src={student.photo} eager />
+                  <label className="profile-photo-edit" title="Change profile photo">
+                    <Camera size={14} />
+                    <span className="sr-only">Change profile photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      disabled={photoUploading}
+                    />
+                  </label>
+                  {photoUploading && <span className="profile-photo-busy" aria-hidden="true" />}
+                </div>
 
                 <div className="profile-top-identity">
                   <h1>{student.name}</h1>
