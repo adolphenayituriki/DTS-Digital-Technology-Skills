@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import Dialog from './Dialog';
 
+// A destructive-action confirmation.
+//
+// Built on Dialog so it inherits the same overlay, card, icon badge and footer as
+// every other modal. The compact variant keeps the centred, icon-on-top layout a
+// short yes/no question wants, rather than stretching a one-line question across
+// a wide card.
 export default function ConfirmDialog({
   open,
   title = 'Are you sure?',
@@ -13,36 +20,20 @@ export default function ConfirmDialog({
   const confirmRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => {
-      if (e.key === 'Escape') onCancel();
-      if (e.key === 'Enter' && !loading) onConfirm();
-    };
-    window.addEventListener('keydown', onKey);
-    confirmRef.current?.focus();
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, loading, onCancel, onConfirm]);
-
-  if (!open) return null;
+    if (open) confirmRef.current?.focus();
+  }, [open, loading]);
 
   return (
-    <div className="dialog-overlay" onClick={onCancel}>
-      <div
-        className="dialog-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="dialog-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button className="dialog-close" onClick={onCancel} aria-label="Close">
-          <X size={16} />
-        </button>
-        <div className="dialog-icon">
-          <AlertTriangle size={24} />
-        </div>
-        <h3 id="dialog-title">{title}</h3>
-        <p>{message}</p>
-        <div className="dialog-actions">
+    <Dialog
+      open={open}
+      onClose={loading ? undefined : onCancel}
+      title={title}
+      icon={<AlertTriangle size={22} />}
+      iconClassName="is-danger"
+      className="dialog-card-compact"
+      labelledBy="dialog-title"
+      footer={
+        <>
           <button className="btn btn-outline btn-sm" onClick={onCancel} disabled={loading}>
             Cancel
           </button>
@@ -54,8 +45,10 @@ export default function ConfirmDialog({
           >
             {loading ? 'Deleting...' : confirmLabel}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p>{message}</p>
+    </Dialog>
   );
 }

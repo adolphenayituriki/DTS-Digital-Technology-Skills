@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, X, BookOpen, Save } from 'lucide-react';
 import apiFetch from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import Dialog from '../../components/Dialog';
 import { useToast } from '../../components/Toast';
 
 const emptyForm = { title: '', program: '', description: '', courses: [], courseDraft: '', startDate: '', endDate: '', deadline: '', capacity: 50, status: 'open' };
@@ -259,19 +260,22 @@ export default function IntakesAdmin() {
       </div>
 
       {courseIntake && (
-        <div className="dialog-overlay" onClick={() => setCourseIntake(null)}>
-          <div className="dialog-card course-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <button className="dialog-close" onClick={() => setCourseIntake(null)} aria-label="Close">
-              <X size={16} />
-            </button>
-            <div className="dialog-icon course-modal-icon">
-              <BookOpen size={22} />
-            </div>
-            <h3>Manage Courses</h3>
-            <p>
-              Add or remove courses for <strong>{courseIntake.title}</strong> ({courseIntake.program} level).
-            </p>
-            <div className="chip-editor">
+        <Dialog
+          open={Boolean(courseIntake)}
+          onClose={() => setCourseIntake(null)}
+          title="Manage Courses"
+          subtitle={`${courseIntake.title} · ${courseIntake.program} level`}
+          icon={<BookOpen size={22} />}
+          footer={
+            <>
+              <button className="btn btn-outline btn-sm" onClick={() => setCourseIntake(null)}>Close</button>
+              <button className="btn btn-success btn-sm" onClick={saveCourses}>
+                <Save size={14} /> Save Courses
+              </button>
+            </>
+          }
+        >
+          <div className="chip-editor">
               {courseIntake.courses.length > 0 ? (
                 <div className="chip-editor-list">
                   {courseIntake.courses.map((c) => (
@@ -298,15 +302,8 @@ export default function IntakesAdmin() {
                   <Plus size={14} /> Add
                 </button>
               </div>
-            </div>
-            <div className="dialog-actions">
-              <button className="btn btn-outline btn-sm" onClick={() => setCourseIntake(null)}>Close</button>
-              <button className="btn btn-success btn-sm" onClick={saveCourses}>
-                <Save size={14} /> Save Courses
-              </button>
-            </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       <ConfirmDialog

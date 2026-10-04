@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Circle, X, Award } from 'lucide-react';
+import { CheckCircle2, Circle, Award } from 'lucide-react';
 import apiFetch from '../api';
+import Dialog from './Dialog';
 
 // The courses a student is expected to finish.
 //
@@ -84,79 +85,67 @@ export default function CourseCompletionDialog({ open, student, intake, onClose,
   };
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
-      <div
-        className="dialog-card dialog-card-wide"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="course-completion-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button className="dialog-close" onClick={onClose} aria-label="Close">
-          <X size={16} />
+    <Dialog
+      open={Boolean(open)}
+      onClose={onClose}
+      title="Course Completion"
+      subtitle={student ? `${student.name} · ${student.regNumber || student.intakeTitle}` : ''}
+      icon={<Award size={22} />}
+      className="dialog-card-wide"
+      labelledBy="course-completion-title"
+      footer={
+        <button className="btn btn-primary btn-sm" onClick={onClose}>
+          Done
         </button>
-        <div className="dialog-icon">
-          <Award size={24} />
-        </div>
-        <h3 id="course-completion-title">Course Completion</h3>
-        <p className="dialog-sub">
-          {student.name} · {student.regNumber || student.intakeTitle}
-        </p>
-
-        <div className={`completion-meter${allDone ? ' is-done' : ''}`}>
-          <b>
-            {completedCount} of {courses.length} course{courses.length === 1 ? '' : 's'} done
-          </b>
-          <small>
-            {allDone
-              ? 'Their Course Appreciation card is unlocked.'
-              : 'Their card unlocks once every course is ticked.'}
-          </small>
-        </div>
-
-        {courses.length === 0 ? (
-          <p className="muted">
-            This student has no courses on their record, so there is nothing to sign off. Add
-            courses to their application, or set a programme, and they will appear here.
-          </p>
-        ) : (
-          <ul className="completion-list">
-            {courses.map((course) => {
-              const key = course.trim().toLowerCase();
-              const entry = done[key];
-              const busy = busyCourse === key;
-              return (
-                <li key={course} className={entry ? 'is-done' : ''}>
-                  <button
-                    type="button"
-                    className="completion-toggle"
-                    onClick={() => toggle(course)}
-                    disabled={busy}
-                    aria-pressed={Boolean(entry)}
-                  >
-                    {entry ? <CheckCircle2 size={17} /> : <Circle size={17} />}
-                    <span className="completion-course">{course}</span>
-                  </button>
-                  {entry && (
-                    <small className="completion-by">
-                      {entry.recordedBy || 'Staff'}
-                      {entry.completedAt
-                        ? ` · ${new Date(entry.completedAt).toLocaleDateString()}`
-                        : ''}
-                    </small>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        <div className="dialog-actions">
-          <button className="btn btn-primary btn-sm" onClick={onClose}>
-            Done
-          </button>
-        </div>
+      }
+    >
+      <div className={`completion-meter${allDone ? ' is-done' : ''}`}>
+        <b>
+          {completedCount} of {courses.length} course{courses.length === 1 ? '' : 's'} done
+        </b>
+        <small>
+          {allDone
+            ? 'Their Course Appreciation card is unlocked.'
+            : 'Their card unlocks once every course is ticked.'}
+        </small>
       </div>
-    </div>
+
+      {courses.length === 0 ? (
+        <p className="muted">
+          This student has no courses on their record, so there is nothing to sign off. Add
+          courses to their application, or set a programme, and they will appear here.
+        </p>
+      ) : (
+        <ul className="completion-list">
+          {courses.map((course) => {
+            const key = course.trim().toLowerCase();
+            const entry = done[key];
+            const busy = busyCourse === key;
+            return (
+              <li key={course} className={entry ? 'is-done' : ''}>
+                <button
+                  type="button"
+                  className="completion-toggle"
+                  onClick={() => toggle(course)}
+                  disabled={busy}
+                  aria-pressed={Boolean(entry)}
+                >
+                  {entry ? <CheckCircle2 size={17} /> : <Circle size={17} />}
+                  <span className="completion-course">{course}</span>
+                </button>
+                {entry && (
+                  <small className="completion-by">
+                    {entry.recordedBy || 'Staff'}
+                    {entry.completedAt
+                      ? ` · ${new Date(entry.completedAt).toLocaleDateString()}`
+                      : ''}
+                  </small>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Dialog>
   );
 }

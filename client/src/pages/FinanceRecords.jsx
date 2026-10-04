@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Receipt, Save, FileText, Mail, X } from 'lucide-react';
+import { Plus, Receipt, Save, FileText, Mail } from 'lucide-react';
 import apiFetch, { onFinanceRefresh } from '../api';
 import { useToast } from '../components/Toast';
+import Dialog from '../components/Dialog';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (value, currency = 'RWF') => `${Number(value || 0).toLocaleString('en-RW')} ${currency}`;
@@ -156,11 +157,16 @@ export default function FinanceRecords() {
       </div>
 
       {selectedTransaction && (
-        <div className="dialog-overlay" onClick={closeTransactionDetail}>
-          <div className="dialog-card" style={{ maxWidth: '600px', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-            <button className="dialog-close" onClick={closeTransactionDetail}><X size={18} /></button>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0 }}>Transaction Details</h3>
+        <Dialog
+          open={Boolean(selectedTransaction)}
+          onClose={closeTransactionDetail}
+          title="Transaction Details"
+          subtitle={selectedTransaction.studentId?.name || selectedTransaction.category || 'General'}
+          icon={<Receipt size={22} />}
+          className="dialog-card-wide"
+          labelledBy="dialog-title"
+          footer={
+            <>
               <button className="btn btn-outline btn-sm" onClick={() => {
                 const headers = ['Date', 'Type', 'Student / Category', 'Amount', 'Currency', 'Status', 'Method', 'Reference', 'Notes', 'Recorded By'];
                 const rows = [[
@@ -184,8 +190,15 @@ export default function FinanceRecords() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}><FileText size={14} /> Export CSV</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem', marginBottom: '1rem' }}>
+              {selectedTransaction.studentId && selectedTransaction.kind === 'payment' && (
+                <button className="btn btn-primary btn-sm" onClick={() => { apiFetch(`/finance/students/${selectedTransaction.studentId._id}/send-balance`, { method: 'POST' }).then(() => toast.success('Balance statement sent to student.')).catch(() => toast.error('Failed to send email.')); }}>
+                  <Mail size={14} /> Send Balance Statement
+                </button>
+              )}
+            </>
+          }
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
               <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</label><div>{new Date(selectedTransaction.occurredAt).toLocaleDateString()} {new Date(selectedTransaction.occurredAt).toLocaleTimeString()}</div></div>
               <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</label><div><span className={`finance-kind ${selectedTransaction.kind}`}>{selectedTransaction.kind}</span></div></div>
               <div><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</label><div><strong>{money(selectedTransaction.amount, selectedTransaction.currency)}</strong></div></div>
@@ -198,16 +211,8 @@ export default function FinanceRecords() {
               <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes</label><div>{selectedTransaction.notes || '—'}</div></div>
               <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorded By</label><div>{selectedTransaction.recordedById?.name || selectedTransaction.recordedById?.email || '—'}</div></div>
               <div style={{ gridColumn: '1 / -1' }}><label style={{ fontSize: '0.7rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorded At</label><div>{new Date(selectedTransaction.createdAt).toLocaleString()}</div></div>
-            </div>
-            {selectedTransaction.studentId && selectedTransaction.kind === 'payment' && (
-              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f4f8' }}>
-                <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); apiFetch(`/finance/students/${selectedTransaction.studentId._id}/send-balance`, { method: 'POST' }).then(() => toast.success('Balance statement sent to student.')).catch(() => toast.error('Failed to send email.')); }}>
-                  <Mail size={14} /> Send Balance Statement to Student
-                </button>
-              </div>
-            )}
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );
