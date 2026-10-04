@@ -23,6 +23,12 @@ const memberSchema = new mongoose.Schema({
   photo: {
     type: String,
   },
+  // The Drive file id behind `photo`, kept so a replaced photo can be deleted.
+  photoFileId: {
+    type: String,
+    trim: true,
+    default: "",
+  },
   isLeadership: {
     type: Boolean,
     default: false,

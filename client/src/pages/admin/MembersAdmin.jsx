@@ -4,8 +4,12 @@ import apiFetch, { API_URL, TOKEN_KEY, getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import Avatar from '../../components/Avatar';
+import { resizeImageForUpload } from '../../utils/imageResize';
 
-const emptyForm = { name: '', role: '', bio: '', email: '', photo: '' };
+// photoFileId rides along with photo so the Drive copy can be deleted when it is
+// replaced or cleared. Seeded rows have none, which is fine - those are local
+// client paths, not Drive files.
+const emptyForm = { name: '', role: '', bio: '', email: '', photo: '', photoFileId: '' };
 
 export default function MembersAdmin() {
   const toast = useToast();
@@ -40,16 +44,21 @@ export default function MembersAdmin() {
 
     setUploading(true);
     try {
+      // Same device-side downscale as the profile photo picker: these render at
+      // 96px on the public Team page, so the full-size original is never needed.
+      const prepared = await resizeImageForUpload(file);
       const payload = new FormData();
-      payload.append('file', file);
-      const res = await fetch(`${API_URL}/upload`, {
+      payload.append('file', prepared);
+      // The avatar endpoint validates the bytes and stores them in Drive; plain
+      // /upload is for the full-size news banners.
+      const res = await fetch(`${API_URL}/upload/avatar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
         body: payload,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || 'Upload failed');
-      setForm((f) => ({ ...f, photo: getApiOrigin() + data.url }));
+      setForm((f) => ({ ...f, photo: getApiOrigin() + data.url, photoFileId: data.fileId || '' }));
     } catch (err) {
       toast.error(err.message || 'Could not upload that image.');
     } finally {
@@ -84,6 +93,7 @@ export default function MembersAdmin() {
       bio: m.bio || '',
       email: m.email || '',
       photo: m.photo || '',
+      photoFileId: m.photoFileId || '',
     });
     setEditId(m._id);
     setShowForm(true);
@@ -127,7 +137,7 @@ export default function MembersAdmin() {
                   />
                 </label>
                 {form.photo && (
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setForm((f) => ({ ...f, photo: '' }))}>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setForm((f) => ({ ...f, photo: '', photoFileId: '' }))}>
                     <X size={14} /> Remove
                   </button>
                 )}

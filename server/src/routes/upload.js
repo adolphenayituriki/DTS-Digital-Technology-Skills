@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import auth from "../middleware/auth.js";
+import { parseAvatarUpload, storeAvatar, removeAvatar } from "../utils/imageUpload.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,6 +88,47 @@ router.post("/", auth, (req, res) => {
       mimetype: req.file.mimetype,
     });
   });
+});
+
+// Profile pictures, as opposed to news hero images on the route above.
+//
+// Separate endpoint rather than a flag on the same one because the two want
+// opposite treatment: avatars are resized in the browser and belong in Drive,
+// while news banners are full-size 16:9 images with no business being squashed
+// into a square thumbnail. Both accept the same `file` field so the client change
+// is a different URL, nothing more.
+router.post("/avatar", auth, parseAvatarUpload, async (req, res) => {
+  if (!req.avatar) return res.status(400).json({ message: "No file uploaded" });
+  try {
+    const stored = await storeAvatar(req.avatar, { hint: req.user?.regNumber || "" });
+    // The file id is returned separately so the caller can delete the Drive copy
+    // when the photo is replaced. Existing rows have no id and fall back to url.
+    res.json({
+      url: stored.url,
+      path: stored.url,
+      fileId: stored.fileId,
+      size: req.avatar.buffer.length,
+      mimetype: req.avatar.mimeType,
+    });
+  } catch (error) {
+    console.error("[upload] Failed to store avatar:", error.message);
+    res.status(500).json({ message: "The photo could not be saved. Please try again." });
+  }
+});
+
+// Removes a Drive copy that has already been replaced on the profile.
+//
+// Called by the client only after the new photo is saved, so the live avatar is
+// never the one being deleted. Answering 200 even on failure is deliberate: the
+// row already points at the new photo, and an orphan in Drive is a far smaller
+// problem than a failed save that the user sees as an error.
+router.delete("/avatar", auth, (req, res) => {
+  const { fileId, url } = req.body || {};
+  if (!fileId && !url) {
+    return res.status(400).json({ message: "fileId or url is required" });
+  }
+  removeAvatar(url, fileId);
+  res.json({ ok: true });
 });
 
 export default router;

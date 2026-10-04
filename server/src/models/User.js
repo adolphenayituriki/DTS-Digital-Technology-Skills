@@ -26,14 +26,22 @@ const userSchema = new mongoose.Schema({
     default: "user",
   },
   // Self-service profile fields. The photo is an absolute URL returned by
-  // POST /api/upload, or a seeded client path like "/Teams/..." - both are
-  // stored verbatim so the client can drop it straight into <img src>.
+  // POST /api/upload/avatar, or a seeded client path like "/Teams/..." - both
+  // are stored verbatim so the client can drop it straight into <img src>.
   phone: {
     type: String,
     trim: true,
     default: "",
   },
   photo: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  // The Drive file id behind `photo`. Held separately because it is the handle a
+  // delete needs - the URL alone cannot identify the file to remove. Empty for
+  // seeded paths and for photos uploaded before Drive was configured.
+  photoFileId: {
     type: String,
     trim: true,
     default: "",

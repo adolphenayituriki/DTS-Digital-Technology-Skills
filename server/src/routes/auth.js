@@ -15,6 +15,9 @@ const publicUser = (user) => ({
   email: user.email,
   phone: user.phone || "",
   photo: user.photo || "",
+  // Sent back so the profile page can delete the copy it just replaced. Without
+  // it every photo update orphans the previous file in Drive.
+  photoFileId: user.photoFileId || "",
   role: user.role,
   mustChangePassword: !!user.mustChangePassword,
   passwordUpdatedAt: user.passwordUpdatedAt || null,
@@ -117,12 +120,13 @@ router.put("/me", auth, async (req, res) => {
     }
 
     if (req.body.photo !== undefined) {
-      // Accept either an absolute URL from POST /api/upload or a path served
-      // by this API (/uploads/...) or the client (/Logo.png). Anything else
-      // (javascript:, data:, another origin) is rejected.
+      // Accept either an absolute URL from POST /api/upload/avatar, or a path
+      // served by this API (/uploads/..., /api/avatars/...) or the client
+      // (/Logo.png). Anything else (javascript:, data:, another origin) is
+      // rejected.
       const photo = String(req.body.photo).trim();
       if (photo) {
-        const isApiPath = photo.startsWith("/uploads/");
+        const isApiPath = photo.startsWith("/uploads/") || photo.startsWith("/api/avatars/");
         const isSameOriginPath = photo.startsWith("/") && !photo.startsWith("//");
         const isOwnOrigin = /^https?:\/\//i.test(photo);
         if (!isApiPath && !isSameOriginPath && !isOwnOrigin) {
@@ -130,6 +134,14 @@ router.put("/me", auth, async (req, res) => {
         }
       }
       user.photo = photo;
+      // The Drive id travels with the URL and is stored alongside it. Clearing the
+      // photo clears the id with it, so a removed photo is never left holding a
+      // handle to a file it no longer points at.
+      if (req.body.photoFileId !== undefined) {
+        user.photoFileId = String(req.body.photoFileId).trim();
+      } else if (!photo) {
+        user.photoFileId = "";
+      }
     }
 
     if (req.body.email !== undefined) {

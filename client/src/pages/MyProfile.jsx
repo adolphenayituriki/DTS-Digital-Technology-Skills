@@ -8,6 +8,7 @@ import useAuth from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
 import Avatar from '../components/Avatar';
 import { emailProblem, normalizeEmail } from '../utils/email';
+import { resizeImageForUpload } from '../utils/imageResize';
 import PasswordForm from '../components/PasswordForm';
 import PasswordChangeGate from '../components/PasswordChangeGate';
 
@@ -64,24 +65,31 @@ export default function MyProfile() {
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const handleAvatar = async (event) => {
-    const file = event.target.files?.[0];
+    const chosen = event.target.files?.[0];
     event.target.value = '';
-    if (!file) return;
+    if (!chosen) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!chosen.type.startsWith('image/')) {
       toast.error('That file is not an image. Choose a JPG, PNG, GIF or WebP file.');
-      return;
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      toast.error('That image is too large. Please choose one under 2 MB.');
       return;
     }
 
     setUploading(true);
     try {
+      // Downscaled on the device first. A phone photo is commonly several MB and
+      // the avatar renders at 96px, so uploading it untouched wastes the user's
+      // data allowance to store bytes nobody will ever see.
+      const file = await resizeImageForUpload(chosen);
+      if (file.size > MAX_AVATAR_BYTES) {
+        throw new Error('That image is too large. Please choose one under 2 MB.');
+      }
+
       const payload = new FormData();
       payload.append('file', file);
-      const res = await fetch(`${API_URL}/upload`, {
+      // /upload/avatar rather than /upload: this one is validated by content
+      // signature, stored in Drive and served from a cacheable route. The plain
+      // /upload route is for full-size news banners.
+      const res = await fetch(`${API_URL}/upload/avatar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
         body: payload,
@@ -89,10 +97,10 @@ export default function MyProfile() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         // A 404 here means the API build in front of this page does not expose
-        // POST /api/upload. Say so instead of leaving the admin guessing.
+        // POST /api/upload/avatar. Say so instead of leaving the admin guessing.
         throw new Error(
           res.status === 404
-            ? 'This server build cannot accept photo uploads (POST /api/upload is missing). Ask your administrator to redeploy the API.'
+            ? 'This server build cannot accept photo uploads (POST /api/upload/avatar is missing). Ask your administrator to redeploy the API.'
             : data.message || `Upload failed (${res.status})`
         );
       }
@@ -103,10 +111,18 @@ export default function MyProfile() {
       // before the details form below is submitted.
       const saved = await apiFetch('/auth/me', {
         method: 'PUT',
-        body: JSON.stringify({ photo: url }),
+        body: JSON.stringify({ photo: url, photoFileId: data.fileId || '' }),
       });
       setPhoto(url);
       updateUser(saved.user);
+      // Only now is the old copy unreferenced, so this is the first moment it can
+      // be deleted without taking the live photo with it.
+      if (user?.photoFileId) {
+        apiFetch('/upload/avatar', {
+          method: 'DELETE',
+          body: JSON.stringify({ fileId: user.photoFileId }),
+        }).catch(() => {});
+      }
       toast.success('Profile photo updated.', { celebrate: false });
     } catch (error) {
       toast.error(error.message || 'Could not upload that image.');

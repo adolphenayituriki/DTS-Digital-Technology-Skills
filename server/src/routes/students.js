@@ -4,6 +4,7 @@ import Application from "../models/Application.js";
 import Attendance from "../models/Attendance.js";
 import auth from "../middleware/auth.js";
 import studentSession from "../middleware/studentSession.js";
+import { parseAvatarUpload, storeAvatar, removeAvatar } from "../utils/imageUpload.js";
 import {
   resetStudentPin,
   setStudentPin,
@@ -229,6 +230,51 @@ router.get("/mine/profile", studentSession, async (req, res) => {
     res.json(publicStudent(student));
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Uploads and saves the signed-in student's own profile photo in one request.
+//
+// Self-service, so it is deliberately narrow: it only ever writes to the student
+// on the current session. Bytes are validated by content signature in
+// parseAvatarUpload - a student cannot downgrade this to a script renamed .png,
+// which matters because the result is served back from a route keyed by file id.
+//
+// A separate route from the staff /api/upload/avatar rather than sharing one:
+// staff authenticate with a user token and students with a student-scoped token,
+// and one endpoint cannot tell them apart reliably.
+router.post("/mine/photo", studentSession, parseAvatarUpload, async (req, res) => {
+  if (!req.avatar) return res.status(400).json({ message: "No photo uploaded" });
+  try {
+    let student = req.student;
+    if (!student && req.user) student = await Student.findOne({ userId: req.user._id });
+    if (!student) {
+      return res.status(404).json({ message: "No student record is linked to this session" });
+    }
+
+    const previousUrl = student.photo;
+    const previousFileId = student.photoFileId;
+    const stored = await storeAvatar(req.avatar, { hint: student.regNumber || "" });
+
+    student.photo = stored.url;
+    student.photoFileId = stored.fileId;
+    try {
+      await student.save();
+    } catch (saveError) {
+      // The new file is already in Drive. If the save failed, remove it rather
+      // than leaving an orphan the student has no handle on.
+      removeAvatar(stored.url, stored.fileId);
+      throw saveError;
+    }
+
+    // Only now is the previous copy unreferenced. Fire-and-forget: failing to
+    // clean up an old photo must not fail the upload that just succeeded.
+    if (previousUrl || previousFileId) removeAvatar(previousUrl, previousFileId);
+
+    res.status(201).json(publicStudent(student));
+  } catch (error) {
+    console.error("[students] Failed to store photo:", error.message);
+    res.status(500).json({ message: "The photo could not be saved. Please try again." });
   }
 });
 

@@ -148,6 +148,21 @@ const studentSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // The student's own profile photo, set from their profile page. An absolute
+    // URL (or an origin-relative /api/avatars/... path), stored verbatim so the
+    // client can hand it straight to <img src>. Empty means initials.
+    photo: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    // The Drive file id behind `photo`, held because it is the handle a delete
+    // needs - the URL alone cannot identify the file to remove.
+    photoFileId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     status: {
       type: String,
       enum: ["applicant", "active", "rejected"],
@@ -155,6 +170,30 @@ const studentSchema = new mongoose.Schema(
     },
     marks: {
       type: [markSchema],
+      default: [],
+    },
+    // Which courses this student has finished, as judged by the trainer who
+    // taught them. This is what unlocks the Course Appreciation card.
+    //
+    // It is deliberately separate from `marks[].completed`. That flag hangs off a
+    // single assessment, so tying completion to it meant a course with no exam
+    // could never be completed, and one mark stood in for a whole course. A
+    // course is finished when a trainer says so; the assessments recorded against
+    // it are evidence, not the decision.
+    completedCourses: {
+      type: [
+        new mongoose.Schema(
+          {
+            course: { type: String, required: true, trim: true },
+            completedAt: { type: Date, default: Date.now },
+            // Who signed it off. Kept as a name as well as an id because the
+            // card reads better with a person's name than an ObjectId.
+            recordedBy: { type: String, trim: true },
+            recordedById: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          },
+          { timestamps: true }
+        ),
+      ],
       default: [],
     },
     remarks: {
