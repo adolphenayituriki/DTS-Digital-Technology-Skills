@@ -30,4 +30,10 @@ const testimonialSchema = new mongoose.Schema({
   },
 });
 
+// The public carousel reads approved testimonials newest-first; the admin list
+// reads all of them. Neither filter-and-sort pair had an index, so both sorted
+// the whole collection in memory on every request.
+testimonialSchema.index({ isApproved: 1, createdAt: -1 });
+testimonialSchema.index({ createdAt: -1 });
+
 export default mongoose.model("Testimonial", testimonialSchema);

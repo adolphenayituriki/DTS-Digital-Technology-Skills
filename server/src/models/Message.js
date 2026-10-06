@@ -35,4 +35,9 @@ const messageSchema = new mongoose.Schema({
   },
 });
 
+// The inbox sorts newest-first, and the dashboard counts unread messages. Both
+// were unindexed.
+messageSchema.index({ createdAt: -1 });
+messageSchema.index({ isRead: 1, createdAt: -1 });
+
 export default mongoose.model("Message", messageSchema);

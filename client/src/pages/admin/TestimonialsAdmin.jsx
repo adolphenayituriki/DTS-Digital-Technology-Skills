@@ -8,12 +8,29 @@ export default function TestimonialsAdmin() {
   const toast = useToast();
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [confirmId, setConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const fetchTestimonials = () => {
-    setLoading(true);
-    apiFetch('/testimonials/all')
-      .then((d) => setTestimonials(Array.isArray(d) ? d : []))
+  const fetchTestimonials = (activePage = 1, { background = false } = {}) => {
+    if (!background) setLoading(true);
+    apiFetch(`/testimonials/all?page=${activePage}`)
+      .then((d) => {
+        // Legacy bare-array shape, kept so an older cached server response still renders.
+        if (Array.isArray(d)) {
+          setTestimonials(d);
+          setTotal(d.length);
+          setPages(1);
+          setPage(1);
+          return;
+        }
+        setTestimonials(Array.isArray(d?.items) ? d.items : []);
+        setTotal(d?.total ?? 0);
+        setPages(d?.pages ?? 1);
+        setPage(d?.page ?? activePage);
+      })
       .catch((err) => toast.error(err.message || 'Failed to load testimonials.'))
       .finally(() => setLoading(false));
   };
@@ -34,12 +51,22 @@ export default function TestimonialsAdmin() {
   };
 
   const deleteTestimonial = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/testimonials/${id}`, { method: 'DELETE' });
-      setTestimonials((prev) => prev.filter((t) => t._id !== id));
       toast.success('Testimonial deleted.', { celebrate: false });
+      // Refetch rather than splice: the count above the table is the server's.
+      // Deleting the only row on the last page would otherwise request a page
+      // that no longer exists, so step back a page first.
+      const targetPage = testimonials.length === 1 && page > 1 ? page - 1 : page;
+      if (targetPage !== page) setPage(targetPage);
+      await fetchTestimonials(targetPage, { background: true });
+      return true;
     } catch (err) {
       toast.error(err.message || 'Failed to delete testimonial.');
+      return false;
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -47,7 +74,7 @@ export default function TestimonialsAdmin() {
 
   return (
     <div>
-      <h2 style={{ fontWeight: 700, marginBottom: '1.5rem' }}>Testimonials ({testimonials.length})</h2>
+      <h2 style={{ fontWeight: 700, marginBottom: '1.5rem' }}>Testimonials ({total})</h2>
       {testimonials.length === 0 ? (
         <p style={{ color: 'var(--text-light)' }}>No testimonials yet.</p>
       ) : (
@@ -100,11 +127,25 @@ export default function TestimonialsAdmin() {
         </div>
       )}
 
+      {pages > 1 && (
+        <div className="pagination-bar">
+          <span className="pagination-count">
+            Showing {testimonials.length} of {total} testimonial{total === 1 ? '' : 's'}
+          </span>
+          <div className="pagination-controls">
+            <button className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => fetchTestimonials(page - 1)}>Previous</button>
+            <span className="pagination-page">Page {page} of {pages}</span>
+            <button className="btn btn-outline btn-sm" disabled={page >= pages} onClick={() => fetchTestimonials(page + 1)}>Next</button>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         open={!!confirmId}
         title="Delete this testimonial?"
         message="This will permanently remove the testimonial from the site."
-        onConfirm={async () => { await deleteTestimonial(confirmId); setConfirmId(null); }}
+        loading={deleting}
+        onConfirm={async () => { if (await deleteTestimonial(confirmId)) setConfirmId(null); }}
         onCancel={() => setConfirmId(null)}
       />
     </div>

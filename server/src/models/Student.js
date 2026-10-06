@@ -208,4 +208,42 @@ studentSchema.methods.comparePin = function (candidatePin) {
   return bcrypt.compare(candidatePin, this.pinHash);
 };
 
+// This is the biggest collection in the database and it had no index at all on
+// any field the app actually reads, so every lookup below was a full collection
+// scan. Student documents are also large - `marks` and `completedCourses` are
+// embedded arrays - so each scan moves a lot of data to answer a question about
+// one field.
+//
+// Each index here matches a query that exists in the code:
+//
+//   { userId }              students.js /students/mine, PUT /mine/*, the
+//                           student-session middleware
+//   { intakeId, status }    every roster and intake-filtered list, plus the
+//                           enrollment count grouped by intake
+//   { intakeId, name }      the roster queries, which sort by name
+//   { status, createdAt }   the admin students list and dashboard counters
+//   { email }               finance and admin lookups by email
+//
+// `regNumber` and `applicationId` are already unique from the field definitions
+// above, which builds their indexes too.
+studentSchema.index({ userId: 1 });
+studentSchema.index({ intakeId: 1, status: 1 });
+studentSchema.index({ intakeId: 1, name: 1 });
+studentSchema.index({ status: 1, createdAt: -1 });
+studentSchema.index({ email: 1 });
+
+// Multikey over `marks.course`, for the per-course assessment aggregate the
+// trainer marks page runs.
+studentSchema.index({ 'marks.course': 1 });
+
+// These two exist for the search boxes, and they are the reason search on this
+// collection is fast at all.
+//
+// A regex like /^abc/i can only be answered from an index if the indexed field
+// leads with the text being matched. `name` was previously only the second half
+// of { intakeId, name }, so an unfiltered search ("all intakes", no intakeId) had
+// nothing to match against and scanned every student. `regNumber` already has a
+// unique index from its field definition.
+studentSchema.index({ name: 1 });
+
 export default mongoose.model("Student", studentSchema);

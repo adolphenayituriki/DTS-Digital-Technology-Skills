@@ -4,8 +4,29 @@ import Student from "../models/Student.js";
 import TrainerAssignment from "../models/TrainerAssignment.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
+import { pick } from "../utils/pick.js";
 
 const router = Router();
+
+// What the intake editor may change.
+//
+// `tuitionFee` and `currency` are deliberately not here. They decide what every
+// enrolled student owes, they have their own audited route
+// (PUT /api/finance/intakes/:id/fee, which validates the amount), and the intake
+// form never sends them - so accepting them here would only offer a second,
+// unvalidated way to move money. `enrolled` is derived from the student count
+// and should never be written directly.
+const EDITABLE = [
+  "title",
+  "program",
+  "description",
+  "courses",
+  "startDate",
+  "endDate",
+  "deadline",
+  "capacity",
+  "status",
+];
 
 const withEnrollment = async (intakes) => {
   const counts = await Student.aggregate([
@@ -61,12 +82,15 @@ router.put("/:id", auth, requireRole("admin"), async (req, res) => {
     const previous = await Intake.findById(req.params.id).select("title").lean();
     if (!previous) return res.status(404).json({ message: "Intake not found" });
 
-    const intake = await Intake.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const payload = pick(req.body, EDITABLE);
+    const intake = await Intake.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
     if (!intake) return res.status(404).json({ message: "Intake not found" });
 
     // Students denormalise the intake title onto their own record. Keep it in
     // step so the balances list never shows a stale label next to a live fee.
-    const nextTitle = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+    // Reads the sanitised payload, not the raw body, so a rejected field name
+    // cannot trigger the rewrite.
+    const nextTitle = typeof payload.title === "string" ? payload.title.trim() : "";
     if (nextTitle && nextTitle !== previous.title) {
       await Student.updateMany({ intakeId: intake._id }, { $set: { intakeTitle: intake.title } });
     }

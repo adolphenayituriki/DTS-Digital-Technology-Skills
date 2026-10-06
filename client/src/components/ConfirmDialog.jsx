@@ -13,6 +13,7 @@ export default function ConfirmDialog({
   title = 'Are you sure?',
   message = 'This action cannot be undone.',
   confirmLabel = 'Delete',
+  loadingLabel = 'Working...',
   loading = false,
   onConfirm,
   onCancel,
@@ -43,7 +44,7 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? 'Deleting...' : confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </>
       }

@@ -76,4 +76,10 @@ postSchema.pre("findOneAndUpdate", function (next) {
   next();
 });
 
+// The public news list filters published posts and sorts newest-first, which is a
+// blocking in-memory sort without this. The admin list filters nothing and sorts
+// the same way.
+postSchema.index({ isPublished: 1, createdAt: -1 });
+postSchema.index({ createdAt: -1 });
+
 export default mongoose.model("Post", postSchema);

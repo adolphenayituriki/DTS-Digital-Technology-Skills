@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, ClipboardCheck, Search, Award } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
+import { TableLoading } from '../components/Loading';import useDebounced from '../hooks/useDebounced';
 import CourseCompletionDialog, { coursesFor } from '../components/CourseCompletionDialog';
 
 export default function TrainerStudents() {
@@ -10,30 +11,61 @@ export default function TrainerStudents() {
   const [assignments, setAssignments] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filters, setFilters] = useState({ intakeId: '', course: '', q: '' });
   const [completionFor, setCompletionFor] = useState(null);
 
+  // The roster query reaches every student document, so the search box must not
+  // drive it keystroke by keystroke. `filters.q` still tracks the input for the
+  // field's own value; only the debounced copy reaches the fetch.
+  const searchQuery = useDebounced(filters.q, 300);
+
+  // Once on mount. This used to depend on filters.intakeId, so changing the
+  // intake dropdown re-requested the assignments it had already loaded.
   useEffect(() => {
+    let cancelled = false;
     apiFetch('/trainer/assignments')
       .then((data) => {
+        if (cancelled) return;
         const list = Array.isArray(data) ? data : [];
         setAssignments(list);
-        if (list.length && !filters.intakeId) setFilters((current) => ({ ...current, intakeId: list[0].intakeId?._id || list[0].intakeId || '', course: list[0].course || '' }));
+        if (list.length) {
+          setFilters((current) => (current.intakeId ? current : {
+            ...current,
+            intakeId: list[0].intakeId?._id || list[0].intakeId || '',
+            course: list[0].course || '',
+          }));
+        }
       })
-      .catch((error) => toast.error(error.message || 'Failed to load assignments.'));
-  }, [filters.intakeId, toast]);
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message || 'Failed to load your assignments.');
+        toast.error(err.message || 'Failed to load assignments.');
+      });
+    return () => { cancelled = true; };
+  }, [toast]);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
+    setError('');
     const params = new URLSearchParams();
     if (filters.intakeId) params.set('intakeId', filters.intakeId);
     if (filters.course) params.set('course', filters.course);
-    if (filters.q) params.set('q', filters.q);
+    if (searchQuery) params.set('q', searchQuery);
     apiFetch(`/trainer/students?${params.toString()}`)
-      .then((data) => setStudents(Array.isArray(data) ? data : []))
-      .catch((error) => toast.error(error.message || 'Failed to load students.'))
-      .finally(() => setLoading(false));
-  }, [filters, toast]);
+      .then((data) => { if (!cancelled) setStudents(Array.isArray(data) ? data : []); })
+      // A failed roster load used to land in the same branch as an empty roster,
+      // so the trainer saw "No students found" for a request that never returned.
+      .catch((err) => {
+        if (cancelled) return;
+        setStudents([]);
+        setError(err.message || 'Failed to load students.');
+        toast.error(err.message || 'Failed to load students.');
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [filters.intakeId, filters.course, searchQuery, toast]);
 
   const selectedAssignment = assignments.find((item) => (item.intakeId?._id || item.intakeId) === filters.intakeId);
   const courseOptions = selectedAssignment?.intakeId?.courses || [];
@@ -81,13 +113,19 @@ export default function TrainerStudents() {
         </select>
         <div className="search-box workspace-search"><Search size={15} /><input type="search" value={filters.q} onChange={(e) => setFilters((current) => ({ ...current, q: e.target.value }))} placeholder="Search students..." /></div>
       </div>
-      {loading ? <div className="loading"><div className="spinner" />Loading roster...</div> : (
-        <div className="table-scroll">
-          <table className="admin-table">
-            <thead><tr><th>Registration</th><th>Student</th><th>Intake</th><th>Courses</th><th>Progress</th><th>Actions</th></tr></thead>
-            <tbody>
-              {students.length === 0 && <tr><td colSpan={6} className="table-empty">No students found for this assignment.</td></tr>}
-              {students.map((student) => {
+      <div className="table-scroll">
+        <table className="admin-table">
+          <thead><tr><th>Registration</th><th>Student</th><th>Intake</th><th>Courses</th><th>Progress</th><th>Actions</th></tr></thead>
+          <tbody>
+            {/* Skeleton rows rather than a collapsed spinner, so the columns stay
+                put and a pending read is never mistaken for an empty table. */}
+            {loading
+              ? <TableLoading rows={5} cols={6} label="Loading roster" />
+              : (
+                <>
+                  {error && <tr><td colSpan={6} className="table-empty table-empty-error">{error}</td></tr>}
+                  {!error && students.length === 0 && <tr><td colSpan={6} className="table-empty">No students found for this assignment.</td></tr>}
+                  {students.map((student) => {
                 const courses = coursesFor(student, selectedIntake);
                 const doneKeys = new Set(
                   (student.completedCourses || []).map((entry) =>
@@ -110,11 +148,12 @@ export default function TrainerStudents() {
                   <td><div className="actions"><button className="btn btn-outline btn-xs" type="button" title="Course completion" onClick={() => setCompletionFor(student)}><Award size={13} /></button><Link className="btn btn-outline btn-xs" to={`/trainer/marks?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || student.preferredCourses?.[0] || '')}&studentId=${student._id}`}><BookOpen size={13} /></Link><Link className="btn btn-outline btn-xs" to={`/trainer/attendance?intakeId=${encodeURIComponent(student.intakeId)}&course=${encodeURIComponent(filters.course || '')}`}><ClipboardCheck size={13} /></Link></div></td>
                 </tr>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+            })}
+                </>
+              )}
+          </tbody>
+        </table>
+      </div>
 
       <CourseCompletionDialog
         open={Boolean(completionFor)}

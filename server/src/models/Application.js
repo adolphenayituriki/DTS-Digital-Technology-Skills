@@ -109,4 +109,18 @@ const applicationSchema = new mongoose.Schema({
   },
 });
 
+// No index at all was declared on this schema, so "my applications" and the
+// admin's filtered lists were both scanning every application ever submitted.
+//
+//   { userId, createdAt }   /applications/mine, sorted newest first
+//   { intakeId }             the enrollment count grouped by intake, and the
+//                           per-intake application lists
+//   { status, createdAt }    the admin applications list and its status filter,
+//                           plus the dashboard's per-status counters
+//   { email }                applicant lookups by email
+applicationSchema.index({ userId: 1, createdAt: -1 });
+applicationSchema.index({ intakeId: 1 });
+applicationSchema.index({ status: 1, createdAt: -1 });
+applicationSchema.index({ email: 1 });
+
 export default mongoose.model("Application", applicationSchema);

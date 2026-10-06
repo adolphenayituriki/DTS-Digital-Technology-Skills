@@ -236,6 +236,7 @@ export default function Profile() {
       const result = await apiFetch('/students/login', {
         method: 'POST',
         body: JSON.stringify({ regNumber: form.regNumber, pin: form.pin }),
+        anonymous: true,
       });
       setStudentSession(result);
       setStudent(getStudentSession());

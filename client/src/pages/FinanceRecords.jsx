@@ -15,6 +15,9 @@ export default function FinanceRecords() {
   const [intakes, setIntakes] = useState([]);
   const [students, setStudents] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [form, setForm] = useState(emptyForm);
   const [filterKind, setFilterKind] = useState('');
   const [loading, setLoading] = useState(true);
@@ -40,16 +43,36 @@ export default function FinanceRecords() {
     });
   }, [prefillStudentId, students]);
 
-  const loadTransactions = () =>
-    apiFetch(`/finance/transactions${filterKind ? `?kind=${filterKind}` : ''}`)
-      .then((data) => setTransactions(Array.isArray(data) ? data : []))
+  const loadTransactions = (activePage = 1) => {
+    const params = new URLSearchParams({ page: String(activePage) });
+    if (filterKind) params.set('kind', filterKind);
+    return apiFetch(`/finance/transactions?${params.toString()}`)
+      .then((data) => {
+        // Legacy bare-array shape, kept so an older cached server response still
+        // renders rather than throwing on `data.items`.
+        if (Array.isArray(data)) {
+          setTransactions(data);
+          setTotal(data.length);
+          setPages(1);
+          setPage(1);
+          return;
+        }
+        setTransactions(Array.isArray(data?.items) ? data.items : []);
+        setTotal(data?.total ?? 0);
+        setPages(data?.pages ?? 1);
+        setPage(data?.page ?? activePage);
+      })
       .catch((error) => {
         setTransactions([]);
         toast.error(error.message || 'Failed to load transactions.');
       });
+  };
 
   const loadIntakesAndStudents = () => {
-    return Promise.all([apiFetch('/finance/intakes'), apiFetch('/finance/students')])
+    // all=true is deliberate: this list feeds the "filter by student" picker, so it
+    // has to contain every student or most of them become unselectable. The list
+    // screen pages the same endpoint instead.
+    return Promise.all([apiFetch('/finance/intakes'), apiFetch('/finance/students?all=true')])
       .then(([intakeData, studentData]) => {
         setIntakes(Array.isArray(intakeData) ? intakeData : []);
         setStudents(Array.isArray(studentData) ? studentData : []);
@@ -68,7 +91,7 @@ export default function FinanceRecords() {
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { loadTransactions(); }, [filterKind]);
+  useEffect(() => { loadTransactions(1); }, [filterKind]);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const selectStudent = (studentId) => {
@@ -84,13 +107,15 @@ export default function FinanceRecords() {
       await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify(form) });
       toast.success('Finance record saved.');
       setForm(emptyForm);
-      await loadTransactions();
+      // New records sort to the top of the ledger unless the date was backdated,
+      // so jump back to page 1 rather than refetching the page the operator is on.
+      await loadTransactions(1);
     } catch (error) {
       toast.error(error.message || 'Failed to save finance record.');
     } finally { setSaving(false); }
   };
   const voidTransaction = async (id) => {
-    try { await apiFetch(`/finance/transactions/${id}/void`, { method: 'PUT' }); toast.success('Transaction voided.', { celebrate: false }); await loadTransactions(); } catch (error) { toast.error(error.message || 'Failed to void transaction.'); }
+    try { await apiFetch(`/finance/transactions/${id}/void`, { method: 'PUT' }); toast.success('Transaction voided.', { celebrate: false }); await loadTransactions(page); } catch (error) { toast.error(error.message || 'Failed to void transaction.'); }
   };
   
   const openTransactionDetail = (transaction) => setSelectedTransaction(transaction);
@@ -98,9 +123,21 @@ export default function FinanceRecords() {
 
   if (loading) return <div className="loading"><div className="spinner" />Loading finance records...</div>;
 
-  const exportTransactionsCSV = () => {
-    const headers = ['Date', 'Type', 'Student / Category', 'Amount', 'Currency', 'Status', 'Method', 'Reference', 'Notes', 'Recorded By'];
-    const rows = transactions.map((t) => [
+  const exportTransactionsCSV = async () => {
+    try {
+      // Export asks the server for every row matching the current filter, not
+      // the page on screen. Envelopes are the only shape the server returns
+      // now that the ledger pages.
+      const params = new URLSearchParams({ all: 'true' });
+      if (filterKind) params.set('kind', filterKind);
+      const response = await apiFetch(`/finance/transactions?${params.toString()}`);
+      const matches = Array.isArray(response) ? response : response?.items || [];
+      if (matches.length === 0) {
+        toast.error('Nothing to export for the current filter.');
+        return;
+      }
+      const headers = ['Date', 'Type', 'Student / Category', 'Amount', 'Currency', 'Status', 'Method', 'Reference', 'Notes', 'Recorded By'];
+      const rows = matches.map((t) => [
       new Date(t.occurredAt).toLocaleDateString(),
       t.kind,
       t.studentId?.name || t.category || 'General',
@@ -111,15 +148,18 @@ export default function FinanceRecords() {
       t.reference || '',
       (t.notes || '').replace(/"/g, '""'),
       t.recordedById?.name || t.recordedById?.email || '—',
-    ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `finance-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      ]);
+      const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `finance-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      if (error?.name !== 'AbortError') toast.error(error.message || 'Failed to export transactions.');
+    }
   };
 
   return (
@@ -153,6 +193,18 @@ export default function FinanceRecords() {
             {transactions.length === 0 && <tr><td colSpan={6} className="table-empty">No transactions recorded.</td></tr>}
             {transactions.map((transaction) => <tr key={transaction._id} onClick={() => openTransactionDetail(transaction)} style={{ cursor: 'pointer' }}><td>{new Date(transaction.occurredAt).toLocaleDateString()}</td><td><span className={`finance-kind ${transaction.kind}`}>{transaction.kind}</span></td><td><strong>{transaction.studentId?.name || transaction.category || 'General'}</strong><small className="table-subtext">{transaction.reference || transaction.notes || '—'}</small></td><td>{money(transaction.amount, transaction.currency)}</td><td><span className={`finance-status ${transaction.status === 'voided' ? 'status-neutral' : transaction.status === 'pending' ? 'status-partial' : 'status-paid'}`}>{transaction.status}</span></td><td><button className="btn btn-outline btn-xs" onClick={(e) => { e.stopPropagation(); voidTransaction(transaction._id); }}>Void</button></td></tr>)}
           </tbody></table></div>
+          {pages > 1 && (
+            <div className="pagination-bar">
+              <span className="pagination-count">
+                Showing {transactions.length} of {total} transaction{total === 1 ? '' : 's'}
+              </span>
+              <div className="pagination-controls">
+                <button className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => loadTransactions(page - 1)}>Previous</button>
+                <span className="pagination-page">Page {page} of {pages}</span>
+                <button className="btn btn-outline btn-sm" disabled={page >= pages} onClick={() => loadTransactions(page + 1)}>Next</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

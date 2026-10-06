@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   Search, Eye, X, KeyRound, BookOpen, FileText, RefreshCcw, Check, Trash2, GraduationCap, PlusCircle,
 } from 'lucide-react';
@@ -7,12 +7,18 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import { gradeForScore } from '../../utils/grade';
 import Avatar from '../../components/Avatar';
+import Loading, { TableLoading } from '../../components/Loading';
+import useDebounced from '../../hooks/useDebounced';
 
 const STATUS_META = {
   applicant: { label: 'Applicant', color: 'var(--primary)', bg: '#e8f6fd' },
   active: { label: 'Active Student', color: 'var(--success)', bg: '#f0fdf4' },
   rejected: { label: 'Rejected', color: 'var(--error)', bg: '#fef2f2' },
 };
+
+// Shown before the first response arrives, and kept as the fallback shape so the
+// tab labels always have four numbers to render.
+const EMPTY_COUNTS = { all: 0, applicant: 0, active: 0, rejected: 0 };
 
 const emptyMarkDraft = { course: '', score: '', grade: '', remarks: '', completed: false };
 
@@ -21,9 +27,21 @@ export default function StudentsAdmin() {
   const [students, setStudents] = useState([]);
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);
+  // A refetch from changing the status tab, the intake picker or the search box
+  // must not blank the page - the toolbar (and the search box the user is typing
+  // into) would collapse under a centred spinner. `refreshing` only reshapes the
+  // table body.
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
   const [intakeFilter, setIntakeFilter] = useState('all');
   const [q, setQ] = useState('');
+  // The input stays bound to `q` so typing is instant; `searchTerm` is what
+  // reaches the request.
+  const searchTerm = useDebounced(q, 300);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState(EMPTY_COUNTS);
   const [selected, setSelected] = useState(null);
   const [draft, setDraft] = useState(null);
   const [markDraft, setMarkDraft] = useState(emptyMarkDraft);
@@ -31,18 +49,74 @@ export default function StudentsAdmin() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [deleteMarkId, setDeleteMarkId] = useState(null);
+  const [deletingMark, setDeletingMark] = useState(false);
   const [pinResult, setPinResult] = useState(null);
+  const abortRef = useRef(null);
 
-  const fetchStudents = () => {
-    setLoading(true);
-    apiFetch('/students')
-      .then((d) => setStudents(Array.isArray(d) ? d : []))
-      .catch((err) => toast.error(err.message || 'Failed to load students.'))
-      .finally(() => setLoading(false));
+  const buildQuery = (activePage) => {
+    const params = new URLSearchParams({ page: String(activePage) });
+    if (filter && filter !== 'all') params.set('status', filter);
+    if (intakeFilter && intakeFilter !== 'all') params.set('intakeId', intakeFilter);
+    const term = searchTerm.trim();
+    if (term) params.set('q', term);
+    return params.toString();
   };
 
+  const fetchStudents = (activePage = 1, { background = false } = {}) => {
+    if (background) setRefreshing(true);
+    else setLoading(true);
+    // Cancel the request being superseded, so a slow response cannot land after
+    // a faster one and put the wrong page back on screen.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    apiFetch(`/students?${buildQuery(activePage)}`, { signal: controller.signal })
+      .then((d) => {
+        // Legacy bare-array shape, kept only so an older cached server response
+        // still renders instead of throwing on `d.items`.
+        if (Array.isArray(d)) {
+          setStudents(d);
+          setTotal(d.length);
+          setPages(1);
+          setPage(1);
+          return;
+        }
+        setStudents(Array.isArray(d?.items) ? d.items : []);
+        setTotal(Number.isFinite(d?.total) ? d.total : 0);
+        setPages(Number.isFinite(d?.pages) ? d.pages : 1);
+        setPage(Number.isFinite(d?.page) ? d.page : activePage);
+        if (d?.counts) setCounts({ ...EMPTY_COUNTS, ...d.counts });
+      })
+      .catch((err) => {
+        // A superseded request is not a failure - aborts are rethrown by api.js
+        // precisely so they can be told apart from real errors here.
+        if (err?.name === 'AbortError') return;
+        toast.error(err.message || 'Failed to load students.');
+      })
+      .finally(() => {
+        // Only the request that is still current clears the indicator. A
+        // superseded or unmounted request must not, or it would switch the
+        // skeleton off while the newer request was still in flight.
+        if (controller.signal.aborted || abortRef.current !== controller) return;
+        setLoading(false);
+        setRefreshing(false);
+      });
+  };
+
+  // Re-runs when the tab, the intake picker or the (debounced) search term
+  // changes, so every change returns to page 1 - staying on page 4 of a
+  // different result set shows a wrong-looking list or an out-of-range empty
+  // page. `loading` decides which of the two in-flight states this is: on the
+  // very first run it is still true, so the page shows its centred spinner; by
+  // the time a control changes it is false, so only the table body reshapes.
   useEffect(() => {
-    fetchStudents();
+    fetchStudents(1, { background: !loading });
+    return () => abortRef.current?.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, intakeFilter, searchTerm]);
+
+  useEffect(() => {
     apiFetch('/intakes/all')
       .then((d) => setIntakes(Array.isArray(d) ? d : []))
       .catch((err) => toast.error(err.message || 'Failed to load intakes.'));
@@ -93,6 +167,10 @@ export default function StudentsAdmin() {
       });
       updateLocal(updated);
       toast.success('Student record updated.');
+      // Edits change what the current search/filter would return (a renamed
+      // student may no longer match the query, or leave the status tab), so the
+      // view is reconciled against the server without collapsing the table.
+      fetchStudents(page, { background: true });
     } catch (err) {
       toast.error(err.message || 'Failed to save student record.');
     } finally {
@@ -109,6 +187,9 @@ export default function StudentsAdmin() {
       updateLocal(updated);
       setDraft((d) => ({ ...d, status }));
       toast.success(`Student marked as ${STATUS_META[status].label}.`);
+      // The status tabs and the possible membership of this row in the active
+      // filter both changed, so pull the counts and drop/keep the row as needed.
+      fetchStudents(page, { background: true });
     } catch (err) {
       toast.error(err.message || 'Failed to update status.');
     }
@@ -181,6 +262,7 @@ export default function StudentsAdmin() {
   };
 
   const deleteMark = async () => {
+    setDeletingMark(true);
     try {
       const updated = await apiFetch(`/students/${selected._id}/marks/${deleteMarkId}`, { method: 'DELETE' });
       updateLocal(updated);
@@ -188,6 +270,8 @@ export default function StudentsAdmin() {
       toast.success('Mark removed.', { celebrate: false });
     } catch (err) {
       toast.error(err.message || 'Failed to delete mark.');
+    } finally {
+      setDeletingMark(false);
     }
   };
 
@@ -196,31 +280,15 @@ export default function StudentsAdmin() {
     setMarkDraft({ course: m.course, score: String(m.score), grade: m.grade || '', remarks: m.remarks || '', completed: Boolean(m.completed) });
   };
 
-  const query = q.trim().toLowerCase();
-  const filtered = students.filter(
-    (s) =>
-      (filter === 'all' || s.status === filter) &&
-      (intakeFilter === 'all' || s.intakeId === intakeFilter) &&
-      (!query ||
-        [s.name, s.email, s.regNumber, s.phone, s.campus, s.intakeTitle, s.program, ...(s.preferredCourses || [])]
-          .filter(Boolean)
-          .some((v) => v.toString().toLowerCase().includes(query))),
-  );
-
-  const counts = {
-    all: students.length,
-    applicant: students.filter((s) => s.status === 'applicant').length,
-    active: students.filter((s) => s.status === 'active').length,
-    rejected: students.filter((s) => s.status === 'rejected').length,
-  };
-
-  if (loading) return <div className="loading"><div className="spinner" />Loading students...</div>;
+  if (loading) return <Loading label="Loading students..." />;
 
   return (
     <div>
       <div className="app-adm-head">
         <div>
-          <h2 style={{ fontWeight: 700 }}>Students ({students.length})</h2>
+          {/* total from the server, not students.length - the latter is one
+              page's worth once the list paginates. */}
+          <h2 style={{ fontWeight: 700 }}>Students ({total})</h2>
           <p className="app-adm-sub">
             Every applicant is registered with a DTS number and PIN. Approving an application activates the student.
           </p>
@@ -263,7 +331,7 @@ export default function StudentsAdmin() {
         </div>
       </div>
 
-      <table className="admin-table app-adm-table">
+      <table className="admin-table app-adm-table" aria-busy={refreshing}>
         <thead>
           <tr>
             <th>Reg Number</th>
@@ -276,12 +344,16 @@ export default function StudentsAdmin() {
           </tr>
         </thead>
         <tbody>
-          {filtered.length === 0 && (
+          {/* Shaped rows instead of the previous centred spinner: collapsing the
+              table to a spinner while a filter refetches throws away the layout,
+              and an empty table with no error reads as "nothing here". */}
+          {refreshing ? (
+            <TableLoading rows={6} cols={7} label="Loading students..." />
+          ) : students.length === 0 ? (
             <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2.5rem' }}>
               No students found for this view.
             </td></tr>
-          )}
-          {filtered.map((s) => {
+          ) : students.map((s) => {
             const meta = STATUS_META[s.status] || STATUS_META.applicant;
             return (
               <tr key={s._id} className="app-adm-row" onClick={() => setSelected(s)} tabIndex={0}
@@ -320,6 +392,31 @@ export default function StudentsAdmin() {
           })}
         </tbody>
       </table>
+
+      {pages > 1 && (
+        <div className="pagination-bar">
+          <span className="pagination-count">
+            Showing {students.length} of {total} student{total === 1 ? '' : 's'}
+          </span>
+          <div className="pagination-controls">
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={loading || refreshing || page <= 1}
+              onClick={() => fetchStudents(page - 1, { background: true })}
+            >
+              Previous
+            </button>
+            <span className="pagination-page">Page {page} of {pages}</span>
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={loading || refreshing || page >= pages}
+              onClick={() => fetchStudents(page + 1, { background: true })}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <div className="dialog-overlay app-detail-overlay" onClick={() => setSelected(null)}>
@@ -533,6 +630,7 @@ export default function StudentsAdmin() {
         open={!!deleteMarkId}
         title="Remove this mark?"
         message="This will permanently remove the mark from the student's record."
+        loading={deletingMark}
         onConfirm={deleteMark}
         onCancel={() => setDeleteMarkId(null)}
       />

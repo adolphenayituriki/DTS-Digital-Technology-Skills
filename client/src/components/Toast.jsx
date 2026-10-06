@@ -36,14 +36,38 @@ export function ToastProvider({ children }) {
   const idRef = useRef(0);
   const timersRef = useRef(new Map());
 
-  const dismiss = useCallback((id) => {
-    setToasts((list) => list.filter((t) => t.id !== id));
+  // The visible list is mirrored into a ref so `push` can read it synchronously.
+  // That is what keeps the context value permanently stable: every callback
+  // below depends only on other stable callbacks, never on the toast list.
+  //
+  // This matters more than it looks. Many pages fetch in an effect that lists
+  // `toast` in its dependency array and calls `toast.error` in its catch. If the
+  // context value changed identity on every push, a single failed request would
+  // push a toast, change the context, re-run the effect, fail again, and refetch
+  // forever. A stable value makes those dependency arrays inert.
+  const toastsRef = useRef([]);
+
+  // Every write goes through here, so the ref and the rendered state can never
+  // drift apart. Deliberately not a setState updater: the next list is computed
+  // from the ref beforehand, which keeps the read-then-write sequence atomic
+  // across several pushes in the same tick.
+  const commit = useCallback((next) => {
+    toastsRef.current = next;
+    setToasts(next);
+  }, []);
+
+  const clearTimer = useCallback((id) => {
     const timer = timersRef.current.get(id);
     if (timer) {
       window.clearTimeout(timer);
       timersRef.current.delete(id);
     }
   }, []);
+
+  const dismiss = useCallback((id) => {
+    commit(toastsRef.current.filter((t) => t.id !== id));
+    clearTimer(id);
+  }, [commit, clearTimer]);
 
   // The ceremony. `grand: true` for milestones (application sent, signup).
   const celebrate = useCallback((options = {}) => {
@@ -64,32 +88,31 @@ export function ToastProvider({ children }) {
     const duration = opts.duration ?? (type === 'error' ? 5200 : 4000);
     const title = opts.title || TITLES[type] || TITLES.info;
 
+    const list = toastsRef.current;
+
     // Collapse an identical message that is already on screen instead of
     // stacking duplicates (common when several effects fail at once).
-    const existing = toasts.find((t) => t.message === text && t.type === type);
+    const existing = list.find((t) => t.message === text && t.type === type);
     if (existing) {
-      const timer = timersRef.current.get(existing.id);
-      if (timer) window.clearTimeout(timer);
+      clearTimer(existing.id);
       if (duration > 0) {
         timersRef.current.set(
           existing.id,
           window.setTimeout(() => dismiss(existing.id), duration)
         );
       }
-      setToasts((list) => list.map((t) => (t.id === existing.id ? { ...t, duration, title } : t)));
+      // Restating the same toast only needs a re-render if something it shows
+      // actually changed. Skipping the commit keeps a repeat push free.
+      if (existing.duration !== duration || existing.title !== title) {
+        commit(list.map((t) => (t.id === existing.id ? { ...t, duration, title } : t)));
+      }
       return existing.id;
     }
 
     // Drop the oldest so the stack never runs off screen.
-    setToasts((list) => {
-      const overflow = list.slice(0, Math.max(0, list.length - (MAX_VISIBLE - 1)));
-      overflow.forEach((t) => {
-        const timer = timersRef.current.get(t.id);
-        if (timer) window.clearTimeout(timer);
-        timersRef.current.delete(t.id);
-      });
-      return [...overflow, { id, message: text, type, title, duration }];
-    });
+    const overflow = list.slice(0, Math.max(0, list.length - (MAX_VISIBLE - 1)));
+    overflow.forEach((t) => clearTimer(t.id));
+    commit([...overflow, { id, message: text, type, title, duration }]);
 
     if (duration > 0) {
       timersRef.current.set(id, window.setTimeout(() => dismiss(id), duration));
@@ -104,8 +127,11 @@ export function ToastProvider({ children }) {
       }
     }
     return id;
-  }, [celebrate, dismiss, toasts]);
+  }, [celebrate, clearTimer, commit, dismiss]);
 
+  // Built once and never rebuilt. Every dependency above is referentially
+  // stable, so adding `toasts` (or any rendered state) to this list would
+  // reintroduce the refetch loop described at the top of the provider.
   const value = useMemo(() => ({
     notify: push,
     success: (m, o) => push(m, 'success', o),

@@ -1,6 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, ChevronLeft, ChevronRight, ZoomIn, Camera, Search, ImageOff } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
+import PageHeader from '../components/PageHeader';
+
+const headerImages = [
+  '/gallery/training-1.jpg',
+  '/gallery/events-1.jpg',
+  '/gallery/graduation-1.jpg',
+  '/gallery/team-1.jpg',
+  '/hero-5.jpg',
+];
 
 // One entry per distinct photo in public/. A few files are byte-identical
 // duplicates across the Featured Images / Guests / Graduation images / Teams
@@ -100,12 +109,11 @@ export default function Gallery() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="container">
-          <h1>Gallery</h1>
-          <p>Moments from our training sessions, events, and activities</p>
-        </div>
-      </section>
+      <PageHeader
+        title="Gallery"
+        subtitle="Moments from our training sessions, events, and activities"
+        images={headerImages}
+      />
 
       <section className="section gallery-section">
         <div className="container">

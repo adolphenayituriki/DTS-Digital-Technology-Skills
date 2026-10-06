@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, Check, Copy, KeyRound, RotateCcw, Save, ShieldAlert, Trash2,
@@ -8,6 +8,8 @@ import apiFetch from '../api';
 import { useToast } from '../components/Toast';
 import ActionMenu from '../components/ActionMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Loading, { TableLoading } from '../components/Loading';
+import useDebounced from '../hooks/useDebounced';
 import { PASSWORD_MIN_LENGTH } from '../utils/password';
 import { emailProblem, normalizeEmail } from '../utils/email';
 
@@ -27,6 +29,9 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
+  // A refetch from typing in the search box must not blank the page - the toolbar
+  // (and the search box being typed into) would collapse under a centred spinner.
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resetingId, setResetingId] = useState('');
   // Set when the credentials email could not be delivered. The password is
@@ -34,28 +39,62 @@ export default function UserManagement() {
   // ever reach it.
   const [fallback, setFallback] = useState(null);
   const [query, setQuery] = useState('');
+  // The input stays bound to `query` so typing is instant; `searchTerm` is what
+  // reaches the request.
+  const searchTerm = useDebounced(query, 300);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [confirmUser, setConfirmUser] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const abortRef = useRef(null);
 
-  const loadUsers = () =>
-    apiFetch('/users')
-      .then((data) => setUsers(Array.isArray(data) ? data : []))
-      .catch((error) => toast.error(error.message || 'Failed to load users.'));
+  const loadUsers = (activePage = 1, { background = false } = {}) => {
+    if (background) setRefreshing(true);
+    else setLoading(true);
+    // Cancel the request being superseded, so a slow response cannot land after
+    // a faster one and put the wrong page back on screen.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const params = new URLSearchParams({ page: String(activePage) });
+    const term = searchTerm.trim();
+    if (term) params.set('q', term);
+
+    return apiFetch(`/users?${params.toString()}`, { signal: controller.signal })
+      .then((data) => {
+        // Legacy bare-array shape, kept so an older cached server response still renders.
+        if (Array.isArray(data)) {
+          setUsers(data);
+          setTotal(data.length);
+          setPages(1);
+          setPage(1);
+          return;
+        }
+        setUsers(Array.isArray(data?.items) ? data.items : []);
+        setTotal(data?.total ?? 0);
+        setPages(data?.pages ?? 1);
+        setPage(data?.page ?? activePage);
+      })
+      .catch((error) => {
+        if (error?.name !== 'AbortError') toast.error(error.message || 'Failed to load users.');
+      })
+      .finally(() => {
+        if (controller.signal.aborted || abortRef.current !== controller) return;
+        setLoading(false);
+        setRefreshing(false);
+      });
+  };
 
   useEffect(() => {
-    loadUsers().finally(() => setLoading(false));
+    // Returns to page 1 when the search term changes; the first run loads the
+    // initial page. `loading` decides the in-flight state: the first run shows
+    // the centred spinner, later ones only reshape the table body.
+    loadUsers(1, { background: !loading });
+    return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const visibleUsers = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    if (!search) return users;
-    return users.filter((user) =>
-      [user.name, user.email, user.role]
-        .filter(Boolean)
-        .some((value) => value.toString().toLowerCase().includes(search)),
-    );
-  }, [users, query]);
+  }, [searchTerm]);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -102,7 +141,9 @@ export default function UserManagement() {
         setFallback({ name: created.name, email: created.email, password: created.temporaryPassword });
         toast.error('Account created, but the credentials email could not be sent.', { title: 'Copy the password below' });
       }
-      await loadUsers();
+      // New staff sort to the top of the newest-first list, so jump back to
+      // page 1 rather than refreshing whatever page the operator is on.
+      await loadUsers(1, { background: true });
     } catch (error) {
       toast.error(error.message || 'Failed to create user.');
     } finally {
@@ -115,6 +156,9 @@ export default function UserManagement() {
       const updated = await apiFetch(`/users/${user._id}`, { method: 'PUT', body: JSON.stringify(changes) });
       setUsers((current) => current.map((item) => item._id === updated._id ? updated : item));
       toast.success('User access updated.');
+      // A role change can move the row in or out of the current search, so the
+      // view is reconciled against the server without collapsing the table.
+      loadUsers(page, { background: true });
     } catch (error) {
       toast.error(error.message || 'Failed to update user.');
     }
@@ -163,7 +207,12 @@ export default function UserManagement() {
           : res.message,
         { celebrate: false, duration: 5000 },
       );
-      await loadUsers();
+      // Refetch rather than splice: the account count above the table is the
+      // server's. Deleting the only row on the last page would otherwise request
+      // a page that no longer exists, so step back a page first.
+      const targetPage = users.length === 1 && page > 1 ? page - 1 : page;
+      if (targetPage !== page) setPage(targetPage);
+      await loadUsers(targetPage, { background: true });
     } catch (error) {
       toast.error(error.message || 'Failed to delete user.');
     } finally {
@@ -258,7 +307,7 @@ export default function UserManagement() {
 
         <div className="dash-panel finance-ledger-panel">
           <div className="dash-panel-head">
-            <h3><Users size={17} /> Accounts <span className="dash-pill">{users.length}</span></h3>
+            <h3><Users size={17} /> Accounts <span className="dash-pill">{total}</span></h3>
             <input
               className="form-control assignment-search"
               type="search"
@@ -269,7 +318,7 @@ export default function UserManagement() {
             />
           </div>
           <div className="admin-table-scroll">
-            <table className="admin-table compact-table user-access-table">
+            <table className="admin-table compact-table user-access-table" aria-busy={refreshing}>
               <thead>
                 <tr>
                   <th>User</th>
@@ -279,14 +328,18 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {visibleUsers.length === 0 && (
+                {/* Shaped rows instead of a centred spinner: collapsing the table
+                    while a search refetches throws away the layout, and an empty
+                    table with no error reads as "nothing here". */}
+                {refreshing ? (
+                  <TableLoading rows={6} cols={4} label="Loading users..." />
+                ) : users.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="table-empty">
-                      {users.length === 0 ? 'No accounts yet.' : 'No accounts match that search.'}
+                      No accounts match that search.
                     </td>
                   </tr>
-                )}
-                {visibleUsers.map((user) => (
+                ) : users.map((user) => (
                   <tr key={user._id} className={user.active ? undefined : 'is-disabled'}>
                     <td>
                       <strong>{user.name}</strong>
@@ -354,6 +407,31 @@ export default function UserManagement() {
               </tbody>
             </table>
           </div>
+
+          {pages > 1 && (
+            <div className="pagination-bar">
+              <span className="pagination-count">
+                Showing {users.length} of {total} account{total === 1 ? '' : 's'}
+              </span>
+              <div className="pagination-controls">
+                <button
+                  className="btn btn-outline btn-sm"
+                  disabled={loading || refreshing || page <= 1}
+                  onClick={() => loadUsers(page - 1, { background: true })}
+                >
+                  Previous
+                </button>
+                <span className="pagination-page">Page {page} of {pages}</span>
+                <button
+                  className="btn btn-outline btn-sm"
+                  disabled={loading || refreshing || page >= pages}
+                  onClick={() => loadUsers(page + 1, { background: true })}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="admin-table-foot">
             <KeyRound size={14} />

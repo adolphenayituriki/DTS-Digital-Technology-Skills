@@ -561,6 +561,71 @@ input, textarea, select { font-family: inherit; }
 .action-menu-item:focus-visible { outline: 2px solid var(--primary, #23a8de); outline-offset: -2px; }
 .action-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Shown in place of the item's icon while an async onSelect is still in flight,
+   so the menu stays open and reports progress instead of vanishing. */
+/* Page controls for a long table. Kept to the same visual language as the
+   toolbar above it so the two read as one control group. */
+/* Matches the literal border colours used elsewhere in this file - there is no
+   --border-light custom property to reference. */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #eef0f4;
+}
+
+.pagination-count {
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pagination-page {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+/* Below this width the row would wrap awkwardly, so stack it and let the page
+   controls sit on their own line. */
+@media (max-width: 640px) {
+  .pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination-controls {
+    justify-content: space-between;
+  }
+}
+
+.action-menu-spinner {
+  width: 13px; height: 13px; flex-shrink: 0;
+  border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; opacity: 0.7;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Inline spinner for a button that is waiting on a request. Kept separate from
+   .spinner, which is a 36px block-level element and would break a button's
+   layout if reused here - which is what one page was doing. */
+.btn-spinner {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; opacity: 0.75;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -2px;
+}
+
 /* Same hue language as the .act buttons, so an action keeps its colour when it
    moves from a button into the menu. */
 .action-menu-item.tone-info:hover:not(:disabled) { background: #eff6ff; }
@@ -1618,6 +1683,10 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   padding: 1rem 0; color: var(--text-light);
 }
 .dash-empty p { font-size: 0.7rem; margin: 0; }
+/* A failed read in a dashboard panel. Kept distinct from the plain empty state so
+   "the request failed" never reads as "you have nothing here". */
+.dash-empty-error { color: var(--error, #dc2626); }
+.dash-empty-error p { font-weight: 600; }
 .dash-actions { display: flex; flex-direction: column; gap: 0.3rem; }
 .dash-action {
   display: flex; align-items: center; gap: 0.4rem;
@@ -1907,6 +1976,30 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   animation: spin 0.7s linear infinite; margin: 0 auto 1rem;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Busy wrapper for a non-table panel that is refreshing in place. */
+.loading-panel { opacity: 0.75; transition: opacity 0.15s ease; }
+.loading-panel > .loading { padding: 2rem 1rem; }
+
+/* Skeleton rows for a table that is refetching. See components/Loading.jsx -
+   the point is to keep the columns on screen so a pending read never looks
+   like an empty result. */
+.skeleton-row td { padding: 0.85rem 1rem; }
+.skeleton-bar {
+  display: block; height: 0.75rem; border-radius: 999px;
+  background: linear-gradient(90deg, #eef1f4 25%, #e2e6ea 37%, #eef1f4 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+  .skeleton-bar { animation: none; background: #eef1f4; }
+}
 
 .about-slider {
   position: relative; border-radius: var(--radius-lg); overflow: hidden;
@@ -2831,6 +2924,212 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .apply-page .page-header p { margin-top: 0.3rem; font-size: 0.85rem; opacity: 0.65; }
 .apply-page .section { flex: 1; display: flex; flex-direction: column; padding: 2.25rem 0 3rem; }
 .apply-page .container { width: 100%; }
+
+/* ── Apply page: muted green & blue palette pass -------------------------------
+   The public application flow gets its own calm, desaturated look. The solid
+   brand blue and green elsewhere are vivid; here they are blended back into
+   soft "bland" tones so the wizard reads quietly and the moments that carry
+   meaning - the current step, chosen courses, the submit button - still stand
+   out. Everything is scoped to .apply-page, so the admin and account screens
+   keep the full-strength brand colours. Blue is where you are going (active
+   step, fields, links); green is what is done, confirmed or chosen. */
+.apply-page {
+  --ap-blue: #4c9183;
+  --ap-blue-deep: #3b7569;
+  --ap-blue-soft: #e3f2ee;
+  --ap-green: #57a06a;
+  --ap-green-deep: #45845a;
+  --ap-green-soft: #e6f3ea;
+  --ap-ink: #2b4a3f;
+  --ap-muted: #59705f;
+}
+.apply-page .page-header {
+  padding: 3.4rem 0 3rem;
+}
+.apply-page .section { background: linear-gradient(180deg, #f4faf6 0%, #ecf5ef 100%); }
+
+/* ── Animated page header (PageHeader component) -----------------------------
+   Shared by About, Programs, Team, News, Gallery and Apply. Slow cross-fade
+   between photos with a gentle zoom, same cadence as the home hero. */
+.page-header-animated {
+  position: relative; overflow: hidden;
+  padding: 3.4rem 0 2.9rem;
+  background: linear-gradient(120deg, #0d1b38 0%, #142851 55%, #1a3570 100%);
+  color: #fff;
+}
+.page-header-bg { position: absolute; inset: 0; z-index: 0; }
+.page-header-bg-slide {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1.4s ease;
+}
+.page-header-bg-slide.active {
+  opacity: 1;
+  animation: pageHeaderBgZoom 9s ease-in-out forwards;
+}
+@keyframes pageHeaderBgZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.12); }
+}
+.page-header-bg-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(120deg, rgba(10, 21, 44, 0.88) 0%, rgba(13, 27, 56, 0.84) 55%, rgba(20, 40, 81, 0.8) 100%);
+}
+.page-header-animated .container { position: relative; z-index: 2; }
+.page-header-animated h1 { color: #fff; }
+.page-header-animated p { color: #fff; opacity: 0.78; }
+/* Apply wizard keeps its muted green tone. */
+.page-header-animated.tone-apply {
+  background: linear-gradient(120deg, #2f4f42 0%, #3f6f5c 55%, #568a68 100%);
+}
+.page-header-animated.tone-apply .page-header-bg-overlay {
+  background: linear-gradient(120deg, rgba(28, 58, 46, 0.88) 0%, rgba(47, 92, 74, 0.82) 55%, rgba(70, 128, 92, 0.78) 100%);
+}
+
+/* Form frame: quieter ripples, a roomier and softer card. */
+.apply-page .apply-form-border::before { border-color: rgba(76, 145, 131, 0.30); }
+.apply-page .apply-form-border::after { border-color: rgba(87, 160, 106, 0.30); }
+.apply-page .apply-form-card {
+  padding: 1.6rem 1.6rem;
+  border-radius: 18px;
+  border: 1px solid #dbe6ee;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+  box-shadow: 0 8px 22px -10px rgba(59, 103, 133, 0.14);
+}
+.apply-page .apply-form-head h3 { color: var(--ap-ink); }
+.apply-page .apply-form-sub { color: var(--ap-muted); }
+
+/* One slim strip replaces the stacked guest/advanced banner alerts so the
+   header stays compact, repeating above the stepper on every step. */
+.apply-page .apply-notes {
+  display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem;
+  margin: 0 0 0.9rem;
+  padding: 0.45rem 0.7rem;
+  background: rgba(87, 160, 106, 0.06);
+  border: 1px solid #dce8df;
+  border-radius: 10px;
+}
+.apply-page .apply-note {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.72rem; line-height: 1.45; color: var(--ap-muted);
+}
+.apply-page .apply-note svg { color: var(--ap-green); flex-shrink: 0; }
+
+/* Wizard stepper: blue is the active step, green the ones already done. */
+.apply-page .apply-steps { margin: 0 0 1.1rem; padding: 0.7rem 0 0.9rem; }
+.apply-page .apply-steps li:not(:last-child)::after { background: #dbe4ec; }
+.apply-page .apply-steps li.is-done:not(:last-child)::after { background: var(--ap-green); }
+.apply-page .apply-step-num {
+  color: #6f8191; border-color: #cbd7e0; background: #f8fbfd;
+}
+.apply-page .apply-steps li.is-active .apply-step-num {
+  background: var(--ap-blue); border-color: var(--ap-blue); color: #fff;
+  box-shadow: 0 0 0 4px rgba(76, 145, 131, 0.18);
+}
+.apply-page .apply-steps li.is-done .apply-step-num {
+  background: var(--ap-green); border-color: var(--ap-green); color: #fff;
+  box-shadow: 0 0 0 3px rgba(92, 150, 112, 0.16);
+}
+.apply-page .apply-step-label { color: #7a8b99; }
+.apply-page .apply-steps li.is-active .apply-step-label { color: var(--ap-blue-deep); }
+.apply-page .apply-steps li.is-done .apply-step-label { color: var(--ap-green-deep); }
+
+/* Step hint gains a green edge so each step reads like a heading. */
+.apply-page .apply-form-card .step-hint {
+  margin: 0 0 0.95rem;
+  padding: 0.45rem 0.65rem 0.45rem 0.8rem;
+  border-left: 3px solid var(--ap-green);
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(87, 160, 106, 0.14), rgba(76, 145, 131, 0.08));
+  color: var(--ap-muted);
+  font-weight: 500;
+}
+
+/* Fields: softer borders, a muted blue focus instead of the neon one. */
+.apply-page .apply-form-card .form-group { margin-bottom: 0.9rem; }
+.apply-page .apply-form-card .form-group label { color: #2f5344; }
+.apply-page .apply-form-card .form-control,
+.apply-page .apply-form-card textarea.form-control { border-color: #c2d6cb; background: #fdfefe; }
+.apply-page .apply-form-card .form-control:focus {
+  border-color: var(--ap-blue);
+  box-shadow: 0 0 0 3px rgba(76, 145, 131, 0.14);
+}
+
+/* Course picker: hover teal, chosen green. */
+.apply-page .apply-form-card .course-options { gap: 0.4rem; }
+.apply-page .apply-form-card .course-option { border-color: #d0ddd5; background: #ffffff; }
+.apply-page .apply-form-card .course-option:hover { border-color: var(--ap-blue); background: var(--ap-blue-soft); }
+.apply-page .apply-form-card .course-option.is-selected {
+  border-color: var(--ap-green); background: var(--ap-green-soft);
+  color: var(--ap-green-deep); box-shadow: 0 0 0 3px rgba(87, 160, 106, 0.14);
+}
+.apply-page .apply-form-card .course-checkbox { border-color: #a9c9ba; background: #fff; }
+.apply-page .apply-form-card .course-option.is-selected .course-checkbox { background: var(--ap-green); border-color: var(--ap-green); color: #fff; }
+
+/* Certificate upload: muted teal, like an action; picked file, like done. */
+.apply-page .apply-form-card .cert-drop { border-color: #bfd9d0; background: #fbfdfc; color: var(--ap-muted); }
+.apply-page .apply-form-card .cert-drop:hover { border-color: var(--ap-blue); background: #e9f4f0; color: var(--ap-blue-deep); }
+.apply-page .apply-form-card .cert-drop svg { color: var(--ap-blue); }
+.apply-page .apply-form-card .cert-picked {
+  border-color: #cfdbe4; border-left-color: var(--ap-green); background: var(--ap-green-soft);
+}
+.apply-page .apply-form-card .cert-picked-icon { background: var(--ap-green); }
+
+/* Review card: green-leaning summary strip on the intake row, calm separators. */
+.apply-page .apply-review {
+  border: 1px solid #d6e3da; border-radius: 14px; background: #fbfdfc;
+  box-shadow: 0 1px 3px rgba(46, 92, 70, 0.06);
+}
+.apply-page .apply-review-row { border-bottom: 1px solid #eef4f0; }
+.apply-page .apply-review-row span { color: #3f5f4e; min-width: 34%; }
+.apply-page .apply-review-row strong { color: #223a2d; }
+.apply-page .apply-review-row:first-child {
+  background: linear-gradient(90deg, var(--ap-green-soft), rgba(76, 145, 131, 0.10));
+}
+.apply-page .apply-review-row:first-child span,
+.apply-page .apply-review-row:first-child strong { font-weight: 700; }
+.apply-page .apply-review-row:first-child strong { color: var(--ap-green-deep); }
+
+/* Nav & buttons: muted teal/green fills, green reserved for the final submit. */
+.apply-page .apply-form-nav { border-top: 1px solid #e4ece7; }
+.apply-page .apply-form-card .btn-outline { color: var(--ap-blue-deep); border-color: #a5cdc0; background: transparent; }
+.apply-page .apply-form-card .btn-outline:hover { background: var(--ap-blue); border-color: var(--ap-blue); color: #fff; }
+.apply-page .apply-form-card .btn-primary { background: var(--ap-blue); border-color: var(--ap-blue); color: #fff; }
+.apply-page .apply-form-card .btn-primary:hover { background: var(--ap-blue-deep); border-color: var(--ap-blue-deep); box-shadow: 0 4px 12px rgba(76, 145, 131, 0.28); }
+.apply-page .apply-form-card .btn-success { background: var(--ap-green); border-color: var(--ap-green); color: #fff; }
+.apply-page .apply-form-card .btn-success:hover { background: var(--ap-green-deep); border-color: var(--ap-green-deep); box-shadow: 0 4px 12px rgba(87, 160, 106, 0.28); }
+.apply-page .apply-form-card .btn-success:disabled { background: #8faa96; border-color: #8faa96; cursor: not-allowed; }
+
+/* Intake cards: Basic and Advanced both lean green now, each kept distinct
+   (teal vs green), and only while open - closed cards stay neutral grey. */
+.apply-page .intake-card-head {
+  --head-scrim: linear-gradient(135deg, rgba(40, 84, 72, 0.9) 0%, rgba(76, 145, 131, 0.85) 100%);
+  background: #2e5750;
+}
+.apply-page .intake-card.intake-tone-advanced .intake-card-head {
+  --head-scrim: linear-gradient(135deg, rgba(40, 86, 60, 0.9) 0%, rgba(87, 160, 106, 0.85) 100%);
+  background: #355c41;
+}
+.apply-page .intake-card:not(.intake-closed) .intake-bar-fill { background: linear-gradient(90deg, var(--ap-blue), var(--ap-green)); }
+.apply-page .intake-card:not(.intake-closed) .intake-course-item svg { color: var(--ap-green); }
+.apply-page .intake-meta-item > svg { color: var(--ap-blue); }
+.apply-page .intake-card.is-open .intake-btn { background: linear-gradient(135deg, var(--ap-blue), var(--ap-green)); border: none; }
+.apply-page .intake-card.is-open .intake-btn:hover { box-shadow: 0 10px 22px -8px rgba(76, 145, 131, 0.5); }
+
+/* Confirmation: the same calm palette; the paid-fee note keeps its amber. */
+.apply-page .apply-done {
+  background: linear-gradient(180deg, #f2f9f4 0%, #ffffff 100%);
+  border-color: #c8e0d0;
+}
+.apply-page .apply-done-tick { background: var(--ap-green-soft); color: var(--ap-green-deep); }
+.apply-page .apply-done-steps li { border-color: #e6efe9; }
+.apply-page .apply-done-steps svg { color: var(--ap-green); }
+.apply-page .apply-done-steps b { color: var(--ap-green-deep); }
+.apply-page .apply-done-close:hover { background: #e7f1ec; color: var(--ap-ink); }
+.apply-page .apply-done .btn-primary { background: var(--ap-green); border-color: var(--ap-green); color: #fff; }
+.apply-page .apply-done .btn-primary:hover { background: var(--ap-green-deep); border-color: var(--ap-green-deep); box-shadow: 0 4px 12px rgba(92, 150, 112, 0.28); }
+.apply-page .apply-done .btn-outline { color: var(--ap-blue-deep); border-color: #a9c3d6; background: transparent; }
+.apply-page .apply-done .btn-outline:hover { background: var(--ap-blue); border-color: var(--ap-blue); color: #fff; }
 .auth-card {
   width: 100%; max-width: 920px;
   display: grid; grid-template-columns: 1fr 1fr;
@@ -3125,6 +3424,7 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 @media (prefers-reduced-motion: reduce) {
   .fade-in { opacity: 1; transform: none !important; transition: none; }
   .hero-bg-slide { transition: none; animation: none; }
+  .page-header-bg-slide { transition: none; animation: none; }
   .intake-status .intake-status-dot { animation: none; }
 }
 
@@ -3537,6 +3837,9 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .admin-table th, .admin-table td { padding: 0.7rem 0.85rem; font-size: 0.8rem; }
 .admin-table th { font-size: 0.7rem; padding: 0.6rem 0.85rem; }
 .table-empty { text-align: center !important; color: var(--text-light); padding: 1.5rem 1rem !important; font-size: 0.82rem; }
+/* A failed read shown in the empty slot. Kept visually distinct from a genuine
+   "there is nothing here" so an error is never read as an empty result. */
+.table-empty-error { color: var(--error, #dc2626); font-weight: 600; }
 .table-subtext { display: block; color: var(--text-light); font-size: 0.68rem; margin-top: 0.1rem; }
 .attendance-toolbar { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
 .attendance-toolbar .form-control { min-width: 170px; padding: 0.45rem 0.7rem; font-size: 0.8rem; }

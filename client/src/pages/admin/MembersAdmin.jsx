@@ -20,6 +20,7 @@ export default function MembersAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [confirmId, setConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const fetchMembers = () => {
@@ -99,12 +100,22 @@ export default function MembersAdmin() {
     setShowForm(true);
   };
 
+  // Returns true on success so the dialog only closes when the row is actually
+  // gone. A failure used to close the dialog silently, leaving the member on the
+  // page as though the delete had worked.
   const deleteMember = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/members/${id}`, { method: 'DELETE' });
       setMembers((prev) => prev.filter((m) => m._id !== id));
       toast.success('Member deleted.', { celebrate: false });
-    } catch { /* ignore */ }
+      return true;
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete member.');
+      return false;
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) return <div className="loading"><div className="spinner" />Loading members...</div>;
@@ -209,7 +220,8 @@ export default function MembersAdmin() {
         open={!!confirmId}
         title="Delete this member?"
         message="This will permanently remove the member from the team page."
-        onConfirm={async () => { await deleteMember(confirmId); setConfirmId(null); }}
+        loading={deleting}
+        onConfirm={async () => { if (await deleteMember(confirmId)) setConfirmId(null); }}
         onCancel={() => setConfirmId(null)}
       />
     </div>

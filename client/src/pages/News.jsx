@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom';
 import apiFetch from '../api';
 import { ArrowRight, Image, Search, FileText, Newspaper } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
+import PageHeader from '../components/PageHeader';
+
+const headerImages = [
+  '/gallery/events-1.jpg',
+  '/gallery/events-2.jpg',
+  '/gallery/events-3.jpg',
+  '/gallery/events-4.jpg',
+];
 
 export default function News() {
   const [posts, setPosts] = useState([]);
@@ -18,22 +26,24 @@ export default function News() {
   }, []);
 
   const query = q.trim().toLowerCase();
+  // Searched over `summary`, which the server builds from excerpt-or-content. The
+  // full `content` is no longer in this payload - it never was rendered here, it
+  // was only used to run this filter and to fill in a card fallback.
   const filtered = posts.filter(
     (p) =>
       !query ||
-      [p.title, p.category, p.excerpt, p.content]
+      [p.title, p.category, p.excerpt, p.summary]
         .filter(Boolean)
         .some((v) => v.toString().toLowerCase().includes(query)),
   );
 
   return (
     <>
-      <section className="page-header">
-        <div className="container">
-          <h1>News & Updates</h1>
-          <p>Stay informed about DTS events, achievements, and training updates</p>
-        </div>
-      </section>
+      <PageHeader
+        title="News & Updates"
+        subtitle="Stay informed about DTS events, achievements, and training updates"
+        images={headerImages}
+      />
 
       <section className="section">
         <div className="container">
@@ -86,7 +96,9 @@ export default function News() {
                   <div className="date">
                     {new Date(p.createdAt || p.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </div>
-                  <p>{p.excerpt || (p.content ? p.content.substring(0, 120) + '...' : '')}</p>
+                  {/* `summary` already prefers the excerpt over content, and strips HTML tags
+                    from whichever it takes - so a single field covers both cases. */}
+                <p>{p.summary}</p>
                   <span style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem', marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     Read more <ArrowRight size={14} />
                   </span>

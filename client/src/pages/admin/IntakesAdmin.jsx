@@ -16,6 +16,7 @@ export default function IntakesAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [confirmId, setConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [courseIntake, setCourseIntake] = useState(null);
   const [newCourse, setNewCourse] = useState('');
 
@@ -105,12 +106,21 @@ export default function IntakesAdmin() {
     }
   };
 
+  // Returns true on success so the dialog only closes when the intake is really
+  // gone; a swallowed failure left the row on screen and closed the dialog.
   const deleteIntake = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/intakes/${id}`, { method: 'DELETE' });
       setIntakes((prev) => prev.filter((i) => i._id !== id));
       toast.success('Intake deleted.', { celebrate: false });
-    } catch { /* ignore */ }
+      return true;
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete intake.');
+      return false;
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) return <div className="loading"><div className="spinner" />Loading intakes...</div>;
@@ -310,7 +320,8 @@ export default function IntakesAdmin() {
         open={!!confirmId}
         title="Delete this intake?"
         message="This will permanently remove the intake. Existing applications for it will remain but without an active intake."
-        onConfirm={async () => { await deleteIntake(confirmId); setConfirmId(null); }}
+        loading={deleting}
+        onConfirm={async () => { if (await deleteIntake(confirmId)) setConfirmId(null); }}
         onCancel={() => setConfirmId(null)}
       />
     </div>

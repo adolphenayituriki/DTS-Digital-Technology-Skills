@@ -3,6 +3,7 @@ import Testimonial from "../models/Testimonial.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
 import { notifyAdminsNewTestimonial } from "../utils/mailer.js";
+import { parsePage, pageResponse } from "../utils/pagination.js";
 
 const router = Router();
 
@@ -19,8 +20,12 @@ router.get("/", async (req, res) => {
 
 router.get("/all", auth, requireRole("admin", "editor", "secretary"), async (req, res) => {
   try {
-    const testimonials = await Testimonial.find().sort({ createdAt: -1 });
-    res.json(testimonials);
+    const { page, limit, skip } = parsePage(req.query);
+    const [items, total] = await Promise.all([
+      Testimonial.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Testimonial.countDocuments(),
+    ]);
+    res.json(pageResponse({ items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) }));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

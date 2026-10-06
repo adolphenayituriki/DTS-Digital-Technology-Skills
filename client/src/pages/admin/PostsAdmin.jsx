@@ -16,16 +16,33 @@ export default function PostsAdmin() {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
 
-  const fetchPosts = () => {
+  const fetchPosts = (activePage = page) => {
     setLoading(true);
-    apiFetch('/posts/all')
-      .then((d) => setPosts(Array.isArray(d) ? d : []))
+    apiFetch(`/posts/all?page=${activePage}`)
+      .then((d) => {
+        // Tolerates a bare array so an un-deployed server still populates the
+        // table rather than showing a permanent empty state.
+        if (Array.isArray(d)) {
+          setPosts(d);
+          setTotal(d.length);
+          setPages(1);
+          return;
+        }
+        setPosts(Array.isArray(d?.items) ? d.items : []);
+        setTotal(d?.total ?? 0);
+        setPages(d?.pages ?? 1);
+        setPage(d?.page ?? activePage);
+      })
       .catch((err) => toast.error(err.message || 'Failed to load posts.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchPosts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { fetchPosts(1); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -70,6 +87,10 @@ export default function PostsAdmin() {
     e.preventDefault();
     setError('');
     try {
+      // Sorted newest-first, so a brand new post lands on page 1. Refreshing
+      // whatever page is open would leave the operator staring at a page that
+      // does not contain the row they just created.
+      const isCreate = !editId;
       if (editId) {
         await apiFetch(`/posts/${editId}`, { method: 'PUT', body: JSON.stringify(form) });
       } else {
@@ -78,7 +99,8 @@ export default function PostsAdmin() {
       setForm(emptyForm);
       setEditId(null);
       setShowForm(false);
-      fetchPosts();
+      if (isCreate) setPage(1);
+      fetchPosts(isCreate ? 1 : page);
       toast.success(editId ? 'Post updated.' : 'Post created.');
     } catch (err) {
       setError(err.message || 'Failed to save post.');
@@ -93,12 +115,25 @@ export default function PostsAdmin() {
   };
 
   const deletePost = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/posts/${id}`, { method: 'DELETE' });
-      setPosts((prev) => prev.filter((p) => p._id !== id));
       toast.success('Post deleted.', { celebrate: false });
+      // Refetch instead of splicing the row out: the count above the table comes
+      // from the server, so an in-memory removal would leave it off by one.
+      //
+      // Deleting the only row on the last page would otherwise request a page
+      // that no longer exists and show an empty table next to "Page 3 of 2", so
+      // step back a page first when this one has just emptied.
+      const targetPage = posts.length === 1 && page > 1 ? page - 1 : page;
+      if (targetPage !== page) setPage(targetPage);
+      await fetchPosts(targetPage);
+      return true;
     } catch (err) {
       toast.error(err.message || 'Failed to delete post.');
+      return false;
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -107,7 +142,8 @@ export default function PostsAdmin() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontWeight: 700 }}>Posts ({posts.length})</h2>
+        {/* total, not posts.length - the latter is one page's worth once the list paginates. */}
+        <h2 style={{ fontWeight: 700 }}>Posts ({total})</h2>
         <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyForm); }}>
           <Plus size={16} /> Add Post
         </button>
@@ -212,11 +248,25 @@ export default function PostsAdmin() {
       </table>
       </div>
 
+      {pages > 1 && (
+        <div className="pagination-bar">
+          <span className="pagination-count">
+            Showing {posts.length} of {total} post{total === 1 ? '' : 's'}
+          </span>
+          <div className="pagination-controls">
+            <button className="btn btn-outline btn-sm" disabled={loading || page <= 1} onClick={() => fetchPosts(page - 1)}>Previous</button>
+            <span className="pagination-page">Page {page} of {pages}</span>
+            <button className="btn btn-outline btn-sm" disabled={loading || page >= pages} onClick={() => fetchPosts(page + 1)}>Next</button>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         open={!!confirmId}
         title="Delete this post?"
         message="This will permanently remove the post and its details from the site."
-        onConfirm={async () => { await deletePost(confirmId); setConfirmId(null); }}
+        loading={deleting}
+        onConfirm={async () => { if (await deletePost(confirmId)) setConfirmId(null); }}
         onCancel={() => setConfirmId(null)}
       />
     </div>

@@ -3,6 +3,7 @@ import Message from "../models/Message.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
 import { notifyAdminsNewMessage } from "../utils/mailer.js";
+import { parsePage, pageResponse } from "../utils/pagination.js";
 
 const router = Router();
 
@@ -26,8 +27,12 @@ router.post("/", async (req, res) => {
 
 router.get("/", auth, requireRole("admin", "editor", "secretary"), async (req, res) => {
   try {
-    const messages = await Message.find().sort({ createdAt: -1 });
-    res.json(messages);
+    const { page, limit, skip } = parsePage(req.query);
+    const [items, total] = await Promise.all([
+      Message.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Message.countDocuments(),
+    ]);
+    res.json(pageResponse({ items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) }));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

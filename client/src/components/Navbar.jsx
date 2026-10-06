@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, LayoutDashboard, Search,
@@ -35,16 +35,62 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
   const [q, setQ] = useState('');
-  const [posts, setPosts] = useState([]);
-  const [members, setMembers] = useState([]);
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, ready, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // The search index is fetched only once someone starts typing, and only for as
+  // long as the field has content.
+  //
+  // This used to run on every mount, so every page view paid for two unbounded
+  // list endpoints - and on /news and /team it duplicated the fetch that page had
+  // already made for itself. Search is a rare action behind a click, so the cost
+  // belongs at the moment of use rather than on every navigation.
+  const [index, setIndex] = useState(null);
+  const [indexing, setIndexing] = useState(false);
+  const searchActive = q.trim().length > 0;
+
+  // Whether the fetch below is in flight.
+  //
+  // This is a ref and not `indexing` on purpose. Using the state as the guard
+  // deadlocks: setIndexing(true) re-runs this effect, the cleanup sets
+  // cancelled, the rerun bails because indexing is now true, and the original
+  // promise then bails because it was cancelled - so the field sat on
+  // "Searching..." forever. A ref changes nothing that re-triggers the effect.
+  const indexingRef = useRef(false);
+
   useEffect(() => {
-    apiFetch('/posts').then(setPosts).catch(() => setPosts([]));
-    apiFetch('/members').then(setMembers).catch(() => setMembers([]));
-  }, []);
+    if (!searchActive || index || indexingRef.current) return undefined;
+    let cancelled = false;
+    indexingRef.current = true;
+    setIndexing(true);
+    Promise.all([
+      apiFetch('/posts').catch(() => []),
+      apiFetch('/members').catch(() => []),
+    ])
+      .then(([postList, memberList]) => {
+        if (cancelled) return;
+        setIndex({
+          posts: Array.isArray(postList) ? postList : [],
+          members: Array.isArray(memberList) ? memberList : [],
+        });
+      })
+      .catch(() => { /* both fetches already degrade to empty lists */ })
+      .finally(() => {
+        indexingRef.current = false;
+        // Set unconditionally: clearing the flag is what unblocks the spinner,
+        // and skipping it on cancellation is what stranded it above.
+        setIndexing(false);
+      });
+    return () => { cancelled = true; };
+  }, [searchActive, index]);
+
+  // Drop the index when the field is emptied. These endpoints are unbounded and
+  // change only from the admin side, so holding them for the life of the session
+  // would trade the duplicate fetch for a stale one instead.
+  useEffect(() => {
+    if (!searchActive) setIndex(null);
+  }, [searchActive]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -89,10 +135,10 @@ export default function Navbar() {
   const trimmed = q.trim().toLowerCase();
   const pageHits = trimmed ? pageItems.filter((p) => p.label.toLowerCase().includes(trimmed)) : [];
   const postHits = trimmed
-    ? posts.filter((p) => (p.title || '').toLowerCase().includes(trimmed)).slice(0, 4)
+    ? (index?.posts || []).filter((p) => (p.title || '').toLowerCase().includes(trimmed)).slice(0, 4)
     : [];
   const memberHits = trimmed
-    ? members.filter((m) => (m.name || '').toLowerCase().includes(trimmed)).slice(0, 4)
+    ? (index?.members || []).filter((m) => (m.name || '').toLowerCase().includes(trimmed)).slice(0, 4)
     : [];
   const dropdownOpen = trimmed.length > 0;
   const workspace = roleHome(user?.role);
@@ -132,7 +178,13 @@ export default function Navbar() {
       </button>
       {dropdownOpen && (
         <div className={`navbar-dropdown${variant === 'panel' ? ' in-panel' : ''}`}>
-          {!pageHits.length && !postHits.length && !memberHits.length && (
+          {/* Loading news and team. Page matches are already available, so they
+              are listed while this is in flight rather than being withheld
+              behind it. */}
+          {!index && indexing && pageHits.length === 0 && (
+            <div className="navbar-dropdown-empty">Searching...</div>
+          )}
+          {index && !pageHits.length && !postHits.length && !memberHits.length && (
             <div className="navbar-dropdown-empty">No results found</div>
           )}
           {pageHits.length > 0 && (
@@ -243,7 +295,13 @@ export default function Navbar() {
               ))}
             </div>
 
-            {isLoggedIn ? (
+            {/* `ready` guards both auth areas. Until localStorage has been read the
+                visitor's status is unknown, and defaulting to "signed out" would
+                disagree with the prerendered markup React is hydrating against -
+                which costs the prerender entirely on every signed-in page view. */}
+            {!ready ? (
+              <div className="navbar-panel-auth navbar-auth-pending" aria-hidden="true" />
+            ) : isLoggedIn ? (
               <div className="navbar-panel-auth">
                 <NavLink
                   to={workspace}
@@ -283,7 +341,9 @@ export default function Navbar() {
             <Link to="/apply" className="btn btn-accent btn-sm navbar-cta-desktop">
               Apply Now
             </Link>
-            {isLoggedIn ? (
+            {!ready ? (
+              <span className="navbar-auth-pending" aria-hidden="true" />
+            ) : isLoggedIn ? (
               <>
                 <Link
                   to={user?.mustChangePassword ? '/account' : workspace}

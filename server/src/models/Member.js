@@ -43,4 +43,7 @@ const memberSchema = new mongoose.Schema({
   },
 });
 
+// The team page lists members by explicit order, newest breaking ties.
+memberSchema.index({ order: 1, createdAt: -1 });
+
 export default mongoose.model("Member", memberSchema);

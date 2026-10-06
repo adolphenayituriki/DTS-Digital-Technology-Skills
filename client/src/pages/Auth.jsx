@@ -67,7 +67,7 @@ export default function Auth({ mode }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(login) });
+      const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(login), anonymous: true });
       setSession(data.token, data.user);
       toast.success(`Welcome back, ${data.user.name || 'friend'}!`);
       navigate(roleHome(data.user.role));
@@ -109,7 +109,8 @@ export default function Auth({ mode }) {
     try {
       const result = await apiFetch('/students/login', {
         method: 'POST',
-        body: JSON.stringify({ regNumber: stuForm.regNumber, pin: stuForm.pin }),
+        body: JSON.stringify(stuForm),
+        anonymous: true,
       });
       setStudentSession(result);
       toast.success(`Signed in as ${result.name}.`);

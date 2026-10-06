@@ -15,6 +15,7 @@ import { MoreHorizontal } from 'lucide-react';
 export default function ActionMenu({ label = 'Row actions', items = [], minWidth = 200 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
+  const [pending, setPending] = useState(false);
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
 
@@ -114,15 +115,28 @@ export default function ActionMenu({ label = 'Row actions', items = [], minWidth
               type="button"
               role="menuitem"
               className={`action-menu-item tone-${item.tone || 'slate'}`}
-              disabled={item.disabled}
+              disabled={item.disabled || pending}
               onClick={(event) => {
                 event.stopPropagation();
+                // A synchronous action closes the menu immediately, as before.
+                // An async one keeps the menu open and shows it as busy until it
+                // settles: closing straight away meant the caller had no way to
+                // show progress, so a second click on the trigger could start a
+                // duplicate delete before the first one returned.
+                const result = item.onSelect?.();
+                if (result && typeof result.then === 'function') {
+                  setPending(true);
+                  Promise.resolve(result).then(
+                    () => { setPending(false); close(); },
+                    () => setPending(false)
+                  );
+                  return;
+                }
                 close();
-                item.onSelect?.();
               }}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              {pending ? <span className="action-menu-spinner" aria-hidden="true" /> : item.icon}
+              <span>{pending ? 'Working...' : item.label}</span>
             </button>
           ))}
         </div>,

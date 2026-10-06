@@ -2,8 +2,25 @@ import { Router } from "express";
 import Member from "../models/Member.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
+import { pick } from "../utils/pick.js";
 
 const router = Router();
+
+// Everything on a member is editable content - there are no server-owned fields
+// beyond the id and timestamps. `photoFileId` has to be in this list: it is the
+// Drive handle behind `photo`, it is what lets a replaced photo be deleted, and
+// the admin form sends it. It used to survive only because this route handed
+// the raw body to Mongoose.
+const EDITABLE = [
+  "name",
+  "role",
+  "bio",
+  "email",
+  "photo",
+  "photoFileId",
+  "isLeadership",
+  "order",
+];
 
 router.get("/", async (req, res) => {
   try {
@@ -31,7 +48,7 @@ router.post("/", auth, requireRole("admin", "editor"), async (req, res) => {
 
 router.put("/:id", auth, requireRole("admin", "editor"), async (req, res) => {
   try {
-    const member = await Member.findByIdAndUpdate(req.params.id, req.body, {
+    const member = await Member.findByIdAndUpdate(req.params.id, pick(req.body, EDITABLE), {
       new: true,
       runValidators: true,
     });

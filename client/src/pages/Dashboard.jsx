@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ClipboardList, Calendar, FileText, ArrowRight, GraduationCap, IdCard, Settings } from 'lucide-react';
 import apiFetch from '../api';
 import useAuth from '../hooks/useAuth';
-import { useToast } from '../components/Toast';
 import Avatar from '../components/Avatar';
 import PasswordForm from '../components/PasswordForm';
 import PasswordChangeGate from '../components/PasswordChangeGate';
@@ -24,25 +23,41 @@ const studentStatusMap = {
 export default function Dashboard() {
   const { user, isLoggedIn, ready } = useAuth();
   const navigate = useNavigate();
-  const toast = useToast();
   const [applications, setApplications] = useState([]);
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // One flag per request. A single shared `loading` was cleared by whichever
+  // request settled first, so a fast /students/mine response ended the wait while
+  // /applications/mine was still in flight - and the panel then rendered the
+  // "you haven't applied yet" empty state for applications that were on the way.
+  const [appsLoading, setAppsLoading] = useState(true);
+  const [appsError, setAppsError] = useState('');
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready) return undefined;
     if (!isLoggedIn) {
       navigate('/login');
-      return;
+      return undefined;
     }
+    let cancelled = false;
+
+    setAppsLoading(true);
+    setAppsError('');
     apiFetch('/applications/mine')
-      .then((d) => setApplications(Array.isArray(d) ? d : []))
-      .catch((err) => toast.error(err.message || 'Could not load your applications.'));
+      .then((d) => { if (!cancelled) setApplications(Array.isArray(d) ? d : []); })
+      // Surfaced in the panel, not only as a toast: a toast fades, and then the
+      // empty state below reads as a real answer rather than a failed request.
+      .catch((err) => {
+        if (cancelled) return;
+        setAppsError(err.message || 'Could not load your applications.');
+      })
+      .finally(() => { if (!cancelled) setAppsLoading(false); });
+
     apiFetch('/students/mine')
-      .then((d) => setStudents(Array.isArray(d) ? d : []))
-      .catch(() => setStudents([]))
-      .finally(() => setLoading(false));
-  }, [ready, isLoggedIn, navigate, toast]);
+      .then((d) => { if (!cancelled) setStudents(Array.isArray(d) ? d : []); })
+      .catch(() => { if (!cancelled) setStudents([]); });
+
+    return () => { cancelled = true; };
+  }, [ready, isLoggedIn, navigate]);
 
   if (!ready || !isLoggedIn) {
     return <div className="loading"><div className="spinner" />Loading...</div>;
@@ -140,8 +155,13 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {loading ? (
+              {appsLoading ? (
                 <div className="loading"><div className="spinner" />Loading applications...</div>
+              ) : appsError ? (
+                <div className="dash-empty dash-empty-error">
+                  <ClipboardList size={30} style={{ opacity: 0.35 }} />
+                  <p>{appsError}</p>
+                </div>
               ) : applications.length === 0 ? (
                 <div className="dash-empty">
                   <ClipboardList size={30} style={{ opacity: 0.35 }} />

@@ -1,6 +1,14 @@
 import React from 'react';
 import { Users, Layers, Sparkles, Globe, Clock, BadgeCheck, School, HeartHandshake, Handshake, Target, Eye, Rocket } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
+import PageHeader from '../components/PageHeader';
+
+const headerImages = [
+  '/activity-1.jpg',
+  '/activity-2.jpg',
+  '/hero-2.jpg',
+  '/gallery/training-1.jpg',
+];
 
 const steps = [
   {
@@ -33,12 +41,11 @@ const stats = [
 export default function About() {
   return (
     <div className="about-page">
-      <section className="page-header">
-        <div className="container">
-          <h1>Digital Technology Skills</h1>
-          <p>Empowering students and communities with digital literacy since 2022</p>
-        </div>
-      </section>
+      <PageHeader
+        title="Digital Technology Skills"
+        subtitle="Empowering students and communities with digital literacy since 2022"
+        images={headerImages}
+      />
 
       <section className="section">
         <div className="container">

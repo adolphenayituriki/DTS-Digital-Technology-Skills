@@ -18,6 +18,8 @@ import {
 } from "../utils/mailer.js";
 import { signStudentToken } from "../utils/token.js";
 import { normalizeEmail } from "../utils/email.js";
+import { searchFilter, escapeRegex } from "../utils/search.js";
+import { parsePage, pageResponse } from "../utils/pagination.js";
 
 const router = Router();
 
@@ -49,7 +51,19 @@ router.post("/login", async (req, res) => {
       return res.status(429).json({ message: signInLimiter.message });
     }
 
-    const student = await Student.findOne({ regNumber: new RegExp(`^${regNumber}$`, "i") }).select("+pinHash");
+    // Exact match, anchored and escaped.
+    //
+    // This interpolated sign-in input straight into a pattern without escaping it,
+    // so a registration number of `.*` compiled to /^.*$/ and matched every
+    // student - and `(A` would throw a SyntaxError at query time. The input is
+    // uppercased above, but Student.regNumber has no uppercase: true of its own
+    // (only Application's does), so a plain equality check could lock out any
+    // student whose stored number is not uppercase - not a risk worth taking on
+    // an auth route. Escaping keeps the case-insensitive match it has always had,
+    // and anchored against the unique index.
+    const student = await Student.findOne({
+      regNumber: new RegExp(`^${escapeRegex(regNumber)}$`, "i"),
+    }).select("+pinHash");
     if (!student) {
       return res.status(404).json({ message: "No student found with that registration number" });
     }
@@ -115,7 +129,13 @@ router.post("/forgot-pin", async (req, res) => {
     const generic = {
       message: "If your registration number and email match, a new PIN has been sent to your email.",
     };
-    const student = await Student.findOne({ regNumber: new RegExp(`^${regNumber}$`, "i") });
+    // Exact match for the same reason as above: the pattern was built from unescaped
+    // input, so `.*` here would resolve to some arbitrary student and the email
+    // recovery flow would target them, while `(A` would throw. Escaped and
+    // anchored, case-insensitive as before.
+    const student = await Student.findOne({
+      regNumber: new RegExp(`^${escapeRegex(regNumber)}$`, "i"),
+    });
     // Deliberately not running the strict validator here. This is a lookup, not
     // a registration, and records created before the stricter rule may still
     // hold a malformed address that the applicant cannot retype. Normalising
@@ -169,7 +189,7 @@ router.get("/mine/attendance", studentSession, async (req, res) => {
       Attendance.find({ studentId })
         .sort({ sessionDate: -1, createdAt: -1 })
         .limit(20)
-        .select("sessionDate status course note")
+        .select("sessionDate status course notes")
         .lean(),
     ]);
 
@@ -194,7 +214,7 @@ router.get("/mine/attendance", studentSession, async (req, res) => {
         sessionDate: r.sessionDate,
         status: r.status,
         course: r.course || "",
-        note: r.note || "",
+        note: r.notes || "",
       })),
     });
   } catch (error) {
@@ -286,13 +306,37 @@ router.get("/", requireRole("admin", "secretary"), async (req, res) => {
     if (status) filter.status = status;
     if (intakeId) filter.intakeId = intakeId;
     if (q) {
-      const rx = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      filter.$or = [{ name: rx }, { regNumber: rx }, { email: rx }];
+      // Anchored prefix match - index-eligible, unlike the unanchored regex this
+      // replaced. See utils/search.js for what that does and does not match.
+      Object.assign(filter, searchFilter(q, ["name", "regNumber", "email"]));
     }
-    const students = await Student.find(filter)
-      .select(PUBLIC_FIELDS)
-      .sort({ createdAt: -1 });
-    res.json(students);
+
+    // The counts behind the status tabs are global and come back with the page,
+    // for the same reason they do on the applications list: deriving them in the
+    // browser meant walking the full collection, which paging the collection is
+    // supposed to stop. A page-sized "Active 47" would still look authoritative.
+    const countsPipeline = [{ $group: { _id: "$status", count: { $sum: 1 } } }];
+    const countsByStatus = await Student.aggregate(countsPipeline).allowDiskUse(true);
+    const counts = { all: 0, applicant: 0, active: 0, rejected: 0 };
+    for (const row of countsByStatus) {
+      const key = row._id || "applicant";
+      if (key in counts) counts[key] = row.count;
+      counts.all += row.count;
+    }
+
+    const { page, limit, skip } = parsePage(req.query);
+    const [students, total] = await Promise.all([
+      Student.find(filter)
+        .select(PUBLIC_FIELDS)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Student.countDocuments(filter),
+    ]);
+    res.json(
+      pageResponse({ items: students, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) }, { counts })
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

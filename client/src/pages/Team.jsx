@@ -3,10 +3,18 @@ import apiFetch from '../api';
 import { Search, Users, Mail, Hourglass, ChevronLeft, ChevronRight } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 import Avatar from '../components/Avatar';
+import PageHeader from '../components/PageHeader';
 
 const teamImages = [
   "/Teams/ELITEFRAMSTUDIO(123).jpg",
   "/Teams/ELITEFRAMSTUDIO(124).jpg",
+];
+
+const headerImages = [
+  "/gallery/team-1.jpg",
+  "/gallery/team-2.jpg",
+  "/gallery/team-3.jpg",
+  "/Teams/ELITEFRAMSTUDIO(123).jpg",
 ];
 
 function MemberCard({ member }) {
@@ -90,12 +98,11 @@ export default function Team() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="container">
-          <h1>Our Team</h1>
-          <p>The dedicated students driving DTS forward</p>
-        </div>
-      </section>
+      <PageHeader
+        title="Our Team"
+        subtitle="The dedicated students driving DTS forward"
+        images={headerImages}
+      />
 
       <section className="section wm-section section-alt">
         <div className="container">

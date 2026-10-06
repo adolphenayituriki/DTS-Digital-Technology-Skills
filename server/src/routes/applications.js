@@ -5,6 +5,9 @@ import Student from "../models/Student.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
 import { verifyToken } from "../utils/token.js";
+import { pick } from "../utils/pick.js";
+import { parsePage, pageResponse } from "../utils/pagination.js";
+import { searchFilter } from "../utils/search.js";
 import {
   createStudentForApplication,
   studentStatusFromApplication,
@@ -247,20 +250,95 @@ router.get("/mine", auth, async (req, res) => {
 
 router.get("/", auth, requireRole("admin", "secretary"), async (req, res) => {
   try {
-    const applications = await Application.find().sort({ createdAt: -1 });
-    res.json(applications);
+    // The counts that drive the status tabs are global and are returned with the
+    // page rather than derived client-side. They were previously computed by
+    // walking the full array in the browser, so paging the array would have
+    // silently reported "Pending 47" when only the current page's pending rows
+    // were present - a number that still looks authoritative.
+    const countsPipeline = [
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ];
+    const countsByStatus = await Application.aggregate(countsPipeline).allowDiskUse(true);
+    const counts = { all: 0, pending: 0, reviewed: 0, accepted: 0, rejected: 0 };
+    for (const row of countsByStatus) {
+      const key = row._id || "pending";
+      if (key in counts) counts[key] = row.count;
+      counts.all += row.count;
+    }
+
+    const filter = {};
+    if (req.query.status && req.query.status !== "all") filter.status = req.query.status;
+    // Anchored prefix match across the same fields the client searched, including
+    // preferredCourses - a multikey field, so the $or matches any element.
+    const search = searchFilter(req.query.q, [
+      "name", "email", "phone", "regNumber", "levelOfStudy", "department",
+      "gender", "campus", "learningPlace", "program", "intakeTitle", "status",
+      "certificateName", "preferredCourses",
+    ]);
+    if (search) Object.assign(filter, search);
+
+    // The export button asks for every matching row rather than the page on
+    // screen, for the same reason the finance export does.
+    if (req.query.all === "true") {
+      const all = await Application.find(filter).sort({ createdAt: -1 }).lean();
+      return res.json({ ...pageResponse({ items: all, total: all.length, page: 1, limit: all.length || 1, pages: 1 }), counts });
+    }
+
+    const { page, limit, skip } = parsePage(req.query);
+    const [items, total] = await Promise.all([
+      Application.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Application.countDocuments(filter),
+    ]);
+
+    res.json(
+      pageResponse({ items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) }, { counts })
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
+// What a reviewer may correct on a submitted application: the applicant's own
+// answers, plus the decision.
+//
+// Deliberately excluded:
+//   userId           - which account the application belongs to. Rewriting it
+//                      grafts one person's application onto another's login.
+//   certificate      - the applicant-supplied file handle.
+//   certificateFileId - same. GET /api/certificates/:fileId is unauthenticated,
+//                      so pointing this at another applicant's file id exposes
+//                      that file to whoever holds the link.
+//   intakeId / intakeTitle - the intake decides the fee owed. The linked Student
+//                      record carries its own intakeId, so changing it here
+//                      would desynchronise the two.
+//   createdAt        - report and queue ordering.
+//
+// Moving an application between intakes has no UI today; if one is ever needed
+// it should move the Student record in the same transaction, not just this.
+const EDITABLE = [
+  "name",
+  "regNumber",
+  "levelOfStudy",
+  "department",
+  "gender",
+  "email",
+  "phone",
+  "campus",
+  "learningPlace",
+  "program",
+  "preferredCourses",
+  "motivation",
+  "status",
+];
+
 router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const previous = await Application.findById(req.params.id);
     if (!previous) return res.status(404).json({ message: "Application not found" });
-    const application = await Application.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const payload = pick(req.body, EDITABLE);
+    const application = await Application.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
     if (!application) return res.status(404).json({ message: "Application not found" });
-    if (req.body.status && req.body.status !== previous.status) {
+    if (payload.status && payload.status !== previous.status) {
       const student = await Student.findOne({ applicationId: application._id });
       if (student) {
         student.status = studentStatusFromApplication(application.status);

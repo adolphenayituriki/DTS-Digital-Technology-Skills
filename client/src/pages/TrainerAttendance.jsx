@@ -45,6 +45,7 @@ export default function TrainerAttendance() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     apiFetch('/trainer/assignments')
@@ -188,6 +189,9 @@ export default function TrainerAttendance() {
   };
 
   const clearDay = async () => {
+    // The dialog stays open and disabled until the delete lands. It used to be
+    // closable throughout, so a second click could fire a second DELETE.
+    setClearing(true);
     try {
       const result = await apiFetch('/trainer/attendance', {
         method: 'DELETE',
@@ -206,6 +210,8 @@ export default function TrainerAttendance() {
       toast.success(result?.message || 'Session cleared.', { celebrate: false });
     } catch (error) {
       toast.error(error.message || 'Failed to clear the session.');
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -428,6 +434,7 @@ export default function TrainerAttendance() {
         title="Clear this session?"
         message={`This removes every attendance record saved for ${longDate(sessionDate)}. The day can be recorded again afterwards.`}
         confirmLabel="Clear session"
+        loading={clearing}
         onConfirm={clearDay}
         onCancel={() => setConfirmClear(false)}
       />

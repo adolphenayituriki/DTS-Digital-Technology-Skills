@@ -69,6 +69,15 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+// `email` is already unique from the field definition above. The rest are here
+// because the dashboard counts by role and by active flag, and the admin list
+// sorts newest-first - all previously full collection scans.
+userSchema.index({ role: 1, active: 1 });
+userSchema.index({ createdAt: -1 });
+// For the staff search box, same reason as Student.name: an anchored regex needs
+// the searched field to lead the index, and `name` was not indexed on its own.
+userSchema.index({ name: 1 });
+
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);

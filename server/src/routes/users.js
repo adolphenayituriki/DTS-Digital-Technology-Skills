@@ -8,6 +8,8 @@ import requireRole from "../middleware/roles.js";
 import { emailProblem as checkEmail, normalizeEmail } from "../utils/email.js";
 import { generateTemporaryPassword, passwordProblem } from "../utils/password.js";
 import { sendStaffCredentials } from "../utils/mailer.js";
+import { searchFilter } from "../utils/search.js";
+import { parsePage, pageResponse } from "../utils/pagination.js";
 
 const router = Router();
 const roles = ["admin", "editor", "trainer", "finance", "secretary", "user"];
@@ -36,11 +38,18 @@ router.get("/", async (req, res) => {
     const filter = {};
     if (role) filter.role = role;
     if (q) {
-      const rx = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      filter.$or = [{ name: rx }, { email: rx }];
+      // Anchored prefix match - index-eligible. See utils/search.js for the
+      // tradeoff against the mid-string match the old client-side filter did.
+      Object.assign(filter, searchFilter(q, ["name", "email", "role"]));
     }
-    const users = await User.find(filter).select("-password").sort({ createdAt: -1 });
-    res.json(users.map(publicUser));
+    const { page, limit, skip } = parsePage(req.query);
+    const [users, total] = await Promise.all([
+      User.find(filter).select("-password").sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      User.countDocuments(filter),
+    ]);
+    res.json(
+      pageResponse({ items: users.map(publicUser), total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) })
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -48,14 +48,32 @@ const getAssignments = async (user, intakeId) => {
   return TrainerAssignment.find(filter).lean();
 };
 
-const getRoster = async (user, { intakeId, course, q } = {}) => {
+// What a roster row actually needs.
+//
+// getRoster used to select everything but the PIN hash, so every trainer page
+// pulled each student's whole document across the wire - motivation, remarks,
+// photo metadata, and the entire embedded `marks` and `completedCourses` arrays -
+// and then either ignored it or sent it on to the browser. Four routes call this
+// helper, so it was the single largest avoidable payload in the trainer area.
+//
+// `withMarks` opts back in to the mark sub-documents for the one caller that
+// aggregates over them. The dashboard only ever asks how many there are, and
+// serves that from the count below instead.
+const ROSTER_FIELDS =
+  "name email regNumber phone intakeId intakeTitle program preferredCourses status completedCourses mustChangePin photo";
+
+const getRoster = async (user, { intakeId, course, q, withMarks, withMarkCounts } = {}) => {
   const requestedCourse = cleanCourse(course);
   const filter = {};
   if (intakeId && validId(intakeId)) filter.intakeId = intakeId;
 
+  // Handed back so callers that also need the assignment count do not have to
+  // run the same query a second time. An admin's roster is not scoped by
+  // assignment at all, so their list is fetched here rather than left empty.
+  let assignments = null;
   if (user.role !== "admin") {
-    const assignments = await getAssignments(user, intakeId);
-    if (!assignments.length) return [];
+    assignments = await getAssignments(user, intakeId);
+    if (!assignments.length) return { students: [], markCount: 0, studentsWithoutMarks: 0, assignments };
     const candidateStudents = await Student.find({
       intakeId: { $in: assignments.map((assignment) => assignment.intakeId) },
     }).select("_id intakeId preferredCourses program").lean();
@@ -66,11 +84,12 @@ const getRoster = async (user, { intakeId, course, q } = {}) => {
         return courseMatches(student, requestedCourse || assignment.course);
       }))
       .map((student) => student._id);
-    if (!allowedIds.length) return [];
+    if (!allowedIds.length) return { students: [], markCount: 0, studentsWithoutMarks: 0, assignments };
     filter._id = { $in: allowedIds };
   }
 
-  let students = await Student.find(filter).select("-pinHash").sort({ name: 1 });
+  const select = withMarks ? `${ROSTER_FIELDS} marks` : ROSTER_FIELDS;
+  let students = await Student.find(filter).select(select).sort({ name: 1 }).lean();
   if (requestedCourse) students = students.filter((student) => courseMatches(student, requestedCourse));
   if (q) {
     const query = String(q).trim().toLowerCase();
@@ -80,7 +99,45 @@ const getRoster = async (user, { intakeId, course, q } = {}) => {
         .some((value) => value.toString().toLowerCase().includes(query))
     );
   }
-  return students;
+
+  // How many marks are recorded across the roster, and how many students have
+  // none. The dashboard needs both, and without this it had to ship every mark
+  // document to the client just to call .length on it.
+  //
+  // Opt-in because it costs an extra aggregate per student in the array, and only
+  // one caller actually reads the numbers. When this ran on every roster request
+  // it made the roster list, the attendance register and the clear-all endpoint
+  // each pay for a count that they then discard. With no `withMarkCounts` asked
+  // for, these stay null and the caller sees undefined rather than a wrong 0.
+  let markCount = null;
+  let studentsWithoutMarks = null;
+  if (withMarkCounts && !withMarks) {
+    const ids = students.map((student) => student._id);
+    if (ids.length) {
+      const [counts] = await Student.aggregate([
+        { $match: { _id: { $in: ids } } },
+        {
+          $group: {
+            _id: null,
+            totalMarks: { $sum: { $size: { $ifNull: ["$marks", []] } } },
+            withNoMarks: { $sum: { $cond: [{ $eq: [{ $size: { $ifNull: ["$marks", []] } }, 0] }, 1, 0] } },
+          },
+        },
+      ]);
+      markCount = counts?.totalMarks || 0;
+      studentsWithoutMarks = counts?.withNoMarks || 0;
+    } else {
+      markCount = 0;
+      studentsWithoutMarks = 0;
+    }
+  }
+
+  // An admin sees every student, so their roster is not narrowed by assignment.
+  // Their assignment total still has to be counted, and it is counted here
+  // rather than by the caller issuing a second identical query.
+  const assignmentRows = assignments ?? (await getAssignments(user));
+
+  return { students, markCount, studentsWithoutMarks, assignments: assignmentRows };
 };
 
 const getScopedStudent = async (user, studentId, course) => {
@@ -95,6 +152,60 @@ const getScopedStudent = async (user, studentId, course) => {
     return courseMatches(student, requestedCourse || assignment.course);
   });
   return allowed ? { student } : { error: "Student is outside your assigned intake or course" };
+};
+
+/**
+ * The same authorization as getScopedStudent, for a whole batch at once.
+ *
+ * The bulk attendance and marks endpoints used to call getScopedStudent once per
+ * entry inside their loop. Each call is two round trips - find the student, find
+ * their assignments - and the loops cap at 500 entries, so saving one full-class
+ * register cost up to 1,000 serial queries before a single write happened, and
+ * every one of those queries was repeated for students already checked.
+ *
+ * Here the students and the assignments are each fetched once, and the identical
+ * per-student rule is then applied in memory. Same decision, same error message,
+ * three queries instead of a thousand.
+ */
+const getScopedStudents = async (user, studentIds, course, { withMarks = false } = {}) => {
+  const ids = [...new Set(studentIds.map(String))];
+  if (!ids.length) return { students: new Map(), error: "No students supplied" };
+  if (ids.some((id) => !validId(id))) return { students: new Map(), error: "Invalid student" };
+
+  const select = withMarks ? "-pinHash marks" : "-pinHash";
+  const rows = await Student.find({ _id: { $in: ids } }).select(select).lean();
+  const byId = new Map(rows.map((row) => [String(row._id), row]));
+  if (byId.size !== ids.length) return { students: new Map(), error: "Student not found" };
+
+  if (user.role === "admin") return { students: byId };
+
+  // One query for every intake represented in the batch. An admin-free trainer's
+  // assignments are per-intake, so this is the whole authorization set.
+  const intakeIds = [...new Set(rows.map((row) => String(row.intakeId)))];
+  const assignments = await TrainerAssignment.find({
+    trainerId: user._id,
+    intakeId: { $in: intakeIds },
+    active: true,
+  }).lean();
+  const byIntake = new Map();
+  for (const assignment of assignments) {
+    const key = String(assignment.intakeId);
+    byIntake.set(key, [...(byIntake.get(key) || []), assignment]);
+  }
+
+  const requestedCourse = cleanCourse(course);
+  for (const student of rows) {
+    const forIntake = byIntake.get(String(student.intakeId)) || [];
+    const allowed = forIntake.some((assignment) => {
+      if (requestedCourse && assignment.course && normalizeCourse(assignment.course) !== normalizeCourse(requestedCourse)) return false;
+      return courseMatches(student, requestedCourse || assignment.course);
+    });
+    if (!allowed) {
+      return { students: new Map(), error: "Student is outside your assigned intake or course" };
+    }
+  }
+
+  return { students: byId };
 };
 
 const serializeAttendance = (record) => ({
@@ -120,12 +231,14 @@ router.get("/assignments", async (req, res) => {
 
 router.get("/dashboard", async (req, res) => {
   try {
-    const students = await getRoster(req.user, req.query);
+    // markCount and studentsWithoutMarks come back with the roster, so the
+    // dashboard no longer needs every mark document shipped to it just to count
+    // them. It is the only caller that reads them, so it opts in explicitly.
+    const { students, markCount, studentsWithoutMarks, assignments: assignmentRows } = await getRoster(req.user, { ...req.query, withMarkCounts: true });
     const studentIds = students.map((student) => student._id);
     const records = studentIds.length
       ? await Attendance.find({ studentId: { $in: studentIds } }).sort({ sessionDate: -1, createdAt: -1 }).limit(100).lean()
       : [];
-    const marksRecorded = students.reduce((total, student) => total + (student.marks?.length || 0), 0);
     const sessionKeys = new Set(records.map((record) => `${record.sessionDate.toISOString().slice(0, 10)}:${record.course || ""}`));
     const present = records.filter((record) => record.status === "present" || record.status === "late").length;
 
@@ -178,13 +291,16 @@ router.get("/dashboard", async (req, res) => {
 
     res.json({
       studentCount: students.length,
-      assignmentCount: (await getAssignments(req.user)).length,
+      // Counted in the same query as the roster rather than in a second one, and
+      // joined into this response rather than awaited inside it - it used to run
+      // after the roster and attendance reads had already finished.
+      assignmentCount: assignmentRows.length,
       attendanceRate: records.length ? Math.round((present / records.length) * 100) : 0,
       sessionCount: sessionKeys.size,
-      marksRecorded,
+      marksRecorded: markCount,
       // A course counts as done when every assessment on it is scored, which is
       // a truer measure of coverage than "has any mark at all".
-      studentsWithoutMarks: students.filter((student) => !student.marks?.length).length,
+      studentsWithoutMarks,
       trend,
       atRisk,
       recentAttendance: records.slice(0, 8).map((record) => {
@@ -206,7 +322,7 @@ router.get("/dashboard", async (req, res) => {
 
 router.get("/students", async (req, res) => {
   try {
-    const students = await getRoster(req.user, req.query);
+    const { students } = await getRoster(req.user, req.query);
     res.json(students.map(publicStudent));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -225,7 +341,7 @@ router.get("/students/:id", async (req, res) => {
 
 router.get("/attendance", async (req, res) => {
   try {
-    const students = await getRoster(req.user, req.query);
+    const { students } = await getRoster(req.user, req.query);
     const studentIds = students.map((student) => student._id);
     if (!studentIds.length) return res.json([]);
     const allowed = new Set(studentIds.map((id) => String(id)));
@@ -260,32 +376,51 @@ router.post("/attendance", async (req, res) => {
       return res.status(400).json({ message: "Attendance entries are required" });
     }
     const allowedStatuses = new Set(["present", "absent", "late", "excused"]);
-    const records = [];
+    // Validate every entry before touching the database, so a bad status in the
+    // middle of a register cannot leave half a session written.
     for (const entry of entries) {
       if (!allowedStatuses.has(entry.status)) {
         return res.status(400).json({ message: "Invalid attendance status" });
       }
-      const result = await getScopedStudent(req.user, entry.studentId, course);
-      if (result.error) return res.status(403).json({ message: result.error });
-      if (String(result.student.intakeId) !== String(intakeId)) {
+    }
+
+    // Authorize the whole register in three queries, then write it in one.
+    // This used to be findOneAndUpdate inside the loop, which cost up to 1,500
+    // serial round trips for a full class.
+    const { students, error } = await getScopedStudents(req.user, entries.map((entry) => entry.studentId), course);
+    if (error) return res.status(error === "Student not found" ? 404 : 403).json({ message: error });
+
+    for (const entry of entries) {
+      const student = students.get(String(entry.studentId));
+      if (String(student.intakeId) !== String(intakeId)) {
         return res.status(400).json({ message: "A student does not belong to the selected intake" });
       }
-      const record = await Attendance.findOneAndUpdate(
-        { studentId: result.student._id, intakeId, sessionDate, course },
-        {
+    }
+
+    const operations = entries.map((entry) => ({
+      updateOne: {
+        filter: { studentId: entry.studentId, intakeId, sessionDate, course },
+        update: {
           $set: {
             trainerId: req.user._id,
             status: entry.status,
             notes: String(entry.notes || "").trim(),
             recordedById: req.user._id,
           },
-          $setOnInsert: { studentId: result.student._id, intakeId, sessionDate, course },
+          $setOnInsert: { studentId: entry.studentId, intakeId, sessionDate, course },
         },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-      );
-      records.push(serializeAttendance(record));
-    }
-    res.status(201).json({ message: "Attendance saved", records });
+        upsert: true,
+      },
+    }));
+    await Attendance.bulkWrite(operations, { ordered: false, setDefaultsOnInsert: true });
+
+    // Read the saved rows back so the response carries the same document shape the
+    // per-entry upserts used to return, including ids and timestamps.
+    const saved = await Attendance.find({ studentId: { $in: entries.map((entry) => entry.studentId) }, intakeId, sessionDate, course }).lean();
+    const order = new Map(entries.map((entry, index) => [String(entry.studentId), index]));
+    saved.sort((a, b) => (order.get(String(a.studentId)) ?? 0) - (order.get(String(b.studentId)) ?? 0));
+
+    res.status(201).json({ message: "Attendance saved", records: saved.map(serializeAttendance) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -306,7 +441,7 @@ router.delete("/attendance", async (req, res) => {
     if (!validId(intakeId) || !sessionDate) {
       return res.status(400).json({ message: "A valid intake and session date are required" });
     }
-    const students = await getRoster(req.user, { intakeId, course });
+    const { students } = await getRoster(req.user, { intakeId, course });
     const studentIds = students.map((student) => student._id);
     if (!studentIds.length) return res.json({ message: "Nothing to clear", removed: 0 });
 
@@ -407,11 +542,12 @@ router.post("/marks/bulk", async (req, res) => {
       return res.status(400).json({ message: "Enter a score for at least one student" });
     }
 
-    const saved = [];
+    // Blank cells are separated out first: they are "not entered", not zero, and
+    // must not be authorized or written at all. Validating the rest up front also
+    // means a bad score cannot leave the class half-marked.
+    const filled = [];
     let skipped = 0;
     for (const entry of entries) {
-      // A blank cell is "not entered", not zero. Treating it as zero would put
-      // a mark on a student the trainer deliberately skipped.
       if (entry.score === "" || entry.score === null || entry.score === undefined) {
         skipped += 1;
         continue;
@@ -420,48 +556,86 @@ router.post("/marks/bulk", async (req, res) => {
       if (!Number.isFinite(score) || score < 0 || score > 100) {
         return res.status(400).json({ message: "Scores must be between 0 and 100" });
       }
-      const result = await getScopedStudent(req.user, entry.studentId, course);
-      if (result.error) return res.status(403).json({ message: result.error });
-
-      const remarks = String(entry.remarks || "").trim();
-      const existing = (result.student.marks || []).find((mark) =>
-        markMatchesAssessment(mark, course, assessmentType, assessmentNo),
-      );
-      if (existing) {
-        existing.score = score;
-        existing.grade = gradeForScore(score);
-        existing.remarks = remarks;
-        existing.assessmentDate = assessmentDate;
-        existing.recordedBy = req.user.name || req.user.email;
-        existing.recordedById = req.user._id;
-        existing.assessedAt = new Date();
-      } else {
-        result.student.marks.push({
-          course,
-          assessmentType,
-          assessmentNo,
-          assessmentDate,
-          score,
-          grade: gradeForScore(score),
-          remarks,
-          recordedBy: req.user.name || req.user.email,
-          recordedById: req.user._id,
-          assessedAt: new Date(),
-          // Defaults to not complete: completing a course is a separate,
-          // deliberate act, and a trainer typing up Quiz 1 has not finished it.
-          completed: false,
-        });
-      }
-      await result.student.save();
-      saved.push(String(result.student._id));
+      filled.push({ ...entry, score });
     }
-
-    if (!saved.length) {
+    if (!filled.length) {
       return res.status(400).json({ message: "Enter a score for at least one student" });
     }
+
+    // One authorization pass for the whole sheet, with the mark arrays included
+    // because matching an incoming mark to the one already stored needs them.
+    // The old loop ran getScopedStudent and a full-document save per entry, which
+    // is up to 1,500 serial round trips for a large class.
+    const { students, error } = await getScopedStudents(req.user, filled.map((entry) => entry.studentId), course, { withMarks: true });
+    if (error) return res.status(error === "Student not found" ? 404 : 403).json({ message: error });
+
+    const recordedBy = req.user.name || req.user.email;
+    const assessedAt = new Date();
+    const operations = [];
+
+    for (const entry of filled) {
+      const student = students.get(String(entry.studentId));
+      const remarks = String(entry.remarks || "").trim();
+      const existing = (student.marks || []).find((mark) =>
+        markMatchesAssessment(mark, course, assessmentType, assessmentNo),
+      );
+
+      if (existing) {
+        // Positional $set, keyed on the existing sub-document's own id, so the
+        // update targets exactly the mark being re-scored.
+        operations.push({
+          updateOne: {
+            filter: { _id: student._id, "marks._id": existing._id },
+            update: {
+              $set: {
+                "marks.$.score": entry.score,
+                "marks.$.grade": gradeForScore(entry.score),
+                "marks.$.remarks": remarks,
+                "marks.$.assessmentDate": assessmentDate,
+                "marks.$.recordedBy": recordedBy,
+                "marks.$.recordedById": req.user._id,
+                "marks.$.assessedAt": assessedAt,
+              },
+            },
+          },
+        });
+      } else {
+        operations.push({
+          updateOne: {
+            filter: { _id: student._id },
+            update: {
+              $push: {
+                marks: {
+                  course,
+                  assessmentType,
+                  assessmentNo,
+                  assessmentDate,
+                  score: entry.score,
+                  grade: gradeForScore(entry.score),
+                  remarks,
+                  recordedBy,
+                  recordedById: req.user._id,
+                  assessedAt,
+                  // Defaults to not complete: completing a course is a separate,
+                  // deliberate act, and a trainer typing up Quiz 1 has not
+                  // finished it.
+                  completed: false,
+                },
+              },
+            },
+          },
+        });
+      }
+    }
+
+    if (operations.length) {
+      await Student.bulkWrite(operations, { ordered: false });
+    }
+
+    const savedCount = operations.length;
     res.status(201).json({
-      message: `${saved.length} mark${saved.length === 1 ? "" : "s"} saved`,
-      saved: saved.length,
+      message: `${savedCount} mark${savedCount === 1 ? "" : "s"} saved`,
+      saved: savedCount,
       skipped,
     });
   } catch (error) {
@@ -476,7 +650,10 @@ router.post("/marks/bulk", async (req, res) => {
  */
 router.get("/assessments", async (req, res) => {
   try {
-    const students = await getRoster(req.user, req.query);
+    // withMarks: this is the one caller that genuinely iterates the mark
+    // sub-documents, so it asks for them explicitly. Every other roster caller
+    // leaves them in the database.
+    const { students } = await getRoster(req.user, { ...req.query, withMarks: true });
     const buckets = new Map();
     for (const student of students) {
       for (const mark of student.marks || []) {

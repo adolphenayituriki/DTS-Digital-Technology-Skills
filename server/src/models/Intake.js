@@ -57,4 +57,11 @@ const intakeSchema = new mongoose.Schema({
   },
 });
 
+//   { status, deadline }  the public intakes list, which filters by status and
+//                         sorts by closing date - without this the sort is done
+//                         in memory on every request
+//   { createdAt }         the admin intakes list, newest first
+intakeSchema.index({ status: 1, deadline: 1 });
+intakeSchema.index({ createdAt: -1 });
+
 export default mongoose.model("Intake", intakeSchema);

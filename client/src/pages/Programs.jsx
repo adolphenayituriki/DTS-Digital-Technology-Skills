@@ -2,6 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
+import PageHeader from '../components/PageHeader';
+
+const headerImages = [
+  '/gallery/training-1.jpg',
+  '/gallery/training-2.jpg',
+  '/gallery/training-3.jpg',
+  '/hero-1.jpg',
+];
 
 const programs = [
   { title: 'Google Services', desc: 'Master Gmail, Google Drive, Google Docs, Sheets, Slides, and the full Google Workspace ecosystem. Learn cloud-based collaboration and productivity tools used by millions worldwide.', duration: '2-3 months', color: 'blue' },
@@ -22,12 +30,11 @@ const colorMap = {
 export default function Programs() {
   return (
     <>
-      <section className="page-header">
-        <div className="container">
-          <h1>Our Programs</h1>
-          <p>Comprehensive digital skills training for students and community members</p>
-        </div>
-      </section>
+      <PageHeader
+        title="Our Programs"
+        subtitle="Comprehensive digital skills training for students and community members"
+        images={headerImages}
+      />
 
       <section className="section">
         <div className="container">
