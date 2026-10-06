@@ -25,8 +25,12 @@ const connectDB = async () => {
     // scan. Nothing would look broken.
     //
     // So the failure is surfaced loudly instead of being swallowed.
+    // Mongoose emits 'index' with no argument on a successful build, so only
+    // log when an actual error is present - otherwise a healthy server crashes
+    // on the first finished index.
     for (const model of Object.values(mongoose.models)) {
       model.on("index", (error) => {
+        if (!error) return;
         console.error(`Index build failed on ${model.modelName}:`, error.message);
       });
     }
