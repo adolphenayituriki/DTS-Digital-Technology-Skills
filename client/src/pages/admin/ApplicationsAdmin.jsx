@@ -478,28 +478,44 @@ XLSX.writeFile(wb, `DTS_Applications_${new Date().toISOString().slice(0, 10)}.xl
               {selected.certificate && (
                 <div className="app-detail-block">
                   <div className="app-detail-label"><Paperclip size={15} /> Basic Certificate</div>
-                  <div className="app-detail-actions">
+                  {/\.(png|jpe?g|webp|gif)$/i.test(selected.certificate) ? (
                     <a
-                      className="btn btn-outline btn-xs"
+                      className="app-cert-preview"
                       href={`${getApiOrigin()}${selected.certificate}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      title={selected.certificateName || 'Open certificate in a new tab'}
                     >
-                      Open certificate
+                      <img
+                        src={`${getApiOrigin()}${selected.certificate}`}
+                        alt={selected.certificateName || 'Basic certificate'}
+                        loading="lazy"
+                      />
                     </a>
-                    {/* Only the Drive-backed copy is streamed by our own API, which
-                        is what turns ?download=1 into a save. The older local files
-                        are plain static assets, so a download link would just open
-                        them in a new tab under a misleading label. */}
-                    {selected.certificateFileId && (
+                  ) : (
+                    <div className="app-detail-actions">
                       <a
                         className="btn btn-outline btn-xs"
-                        href={`${getApiOrigin()}${selected.certificate}?download=1`}
+                        href={`${getApiOrigin()}${selected.certificate}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        <Download size={14} /> Download
+                        Open certificate
                       </a>
-                    )}
-                  </div>
+                      {/* Only the Drive-backed copy is streamed by our own API, which
+                          is what turns ?download=1 into a save. The older local files
+                          are plain static assets, so a download link would just open
+                          them in a new tab under a misleading label. */}
+                      {selected.certificateFileId && (
+                        <a
+                          className="btn btn-outline btn-xs"
+                          href={`${getApiOrigin()}${selected.certificate}?download=1`}
+                        >
+                          <Download size={14} /> Download
+                        </a>
+                      )}
+                    </div>
+                  )}
                   {selected.certificateName && (
                     <div className="table-subtext" style={{ marginTop: '0.5rem' }}>{selected.certificateName}</div>
                   )}

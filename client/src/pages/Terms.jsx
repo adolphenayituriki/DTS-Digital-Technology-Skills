@@ -105,6 +105,7 @@ export default function Terms() {
   return (
     <LegalDocument
       title="Terms of Service"
+      icon="scale"
       intro="These terms set out the agreement between you and Digital Technology Skills when you apply for training, pay a fee, or use a student account. Please read them before applying."
       sections={sections}
     />

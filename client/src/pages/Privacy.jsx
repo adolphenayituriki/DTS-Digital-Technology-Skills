@@ -76,6 +76,7 @@ export default function Privacy() {
   return (
     <LegalDocument
       title="Privacy Policy"
+      icon="shield"
       intro="This policy explains what personal information Digital Technology Skills collects through this website, why we collect it, and what we do with it. It covers applications, student accounts, contact messages and any files you upload."
       sections={sections}
     />
