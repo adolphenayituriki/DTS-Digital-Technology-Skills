@@ -95,22 +95,20 @@ function StatTile({ card, stats, variant }) {
       to={card.to}
       className={`stat-card stat-chip-${card.iconBg}${variant === 'attention' ? ' stat-card-attention' : ''}`}
     >
-      <div className="stat-top">
-        <div>
-          <div className="stat-value">{total}</div>
-          {variant === 'attention' ? (
-            of !== null && <div className="stat-sub">{of} <span className="stat-sub-label">{card.ofLabel}</span></div>
-          ) : (
-            card.sub && (
-              <div className="stat-sub">
-                {stats[card.sub] ?? 0} <span className="stat-sub-label">{card.subLabel}</span>
-              </div>
-            )
-          )}
-        </div>
-        <div className={`stat-chip stat-chip-${card.iconBg}`}>{card.icon}</div>
+      <div className="stat-head">
+        <span className="stat-label">{card.label}</span>
+        <span className={`stat-chip stat-chip-${card.iconBg}`}>{card.icon}</span>
       </div>
-      <div className="stat-label">{card.label}</div>
+      <div className="stat-value">{total}</div>
+      {variant === 'attention' ? (
+        of !== null && <div className="stat-sub">{of} <span className="stat-sub-label">{card.ofLabel}</span></div>
+      ) : (
+        card.sub && (
+          <div className="stat-sub">
+            {stats[card.sub] ?? 0} <span className="stat-sub-label">{card.subLabel}</span>
+          </div>
+        )
+      )}
       {card.meter && (
         <div className={`stat-meter stat-meter-${card.iconBg}`} title={`${pct}% ${card.meterNote}`}>
           <i style={{ width: `${pct}%` }} />
@@ -166,7 +164,7 @@ export default function Dashboard() {
   const queueTotal = attentionCards.reduce((sum, card) => sum + (stats[card.key] ?? 0), 0);
 
   return (
-    <div className="admin-dash">
+    <div className="admin-dash admin-page">
       {outstanding.length > 0 ? (
         <section className="dash-section">
           <div className="dash-section-head">

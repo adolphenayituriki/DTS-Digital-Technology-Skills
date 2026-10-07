@@ -2,9 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the layout reach the notch, which is what makes
+         the env(safe-area-inset-*) values used throughout the CSS resolve to
+         something other than zero on iOS. Zooming stays allowed on purpose:
+         pinch-zoom is an accessibility feature, and form fields are sized to
+         16px on mobile so focusing one never triggers the iOS zoom anyway. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/png" href="/Logo.png" />
     <link rel="apple-touch-icon" href="/Logo.png" />
+    <!-- Installability: the manifest plus the 192/512 icons is what makes the
+         browser offer "Install app" / "Add to Home Screen". No service worker
+         is required for that since Chrome 108/112. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="DTS" />
 
     <!-- Everything between the markers is generated per route at build time by
          scripts/prerender.mjs, from the single ROUTES table in src/seo.js. What

@@ -170,8 +170,15 @@ input, textarea, select { font-family: inherit; }
    horizontal row (`display: contents` keeps the links as direct children, so
    the `.navbar-links > a` rules below still apply to them). */
 .navbar-panel-head,
-.navbar-panel-search { display: none; }
+.navbar-panel-search,
+.navbar-account-card,
+.navbar-menu-label,
+.navbar-menu-tile,
+.navbar-menu-chevron,
+.navbar-menu-apply { display: none; }
 .navbar-panel-links { display: contents; }
+.navbar-panel-body,
+.navbar-menu-group { display: contents; }
 .navbar-panel-auth { display: flex; align-items: center; gap: 0.15rem; }
 .navbar-panel-auth .dash-link,
 .navbar-panel-links > a {
@@ -309,10 +316,39 @@ input, textarea, select { font-family: inherit; }
     transition: transform 0.28s ease, visibility 0.28s ease;
   }
   .navbar-links.open { transform: translateX(0); visibility: visible; }
-  .navbar-links > a, .navbar-panel-links > a { padding: 0.8rem 1rem; font-size: 1rem; border-radius: 10px; }
   .navbar-links > a::after { display: none; }
-  .navbar-links > a:hover, .navbar-links > a.active,
-  .navbar-panel-links > a:hover, .navbar-panel-links > a.active { background: #f0f7fb; color: var(--primary); }
+
+  /* Identity card at the top of the menu (mobile-only; the base rule hides it
+     on desktop). It is a direct child of the nav bar, so it needs the
+     `navbar-links >` selector to outrank the generic `> a` hover rules. */
+  .navbar-links > .navbar-account-card {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    padding: 0.75rem; border-radius: 16px; min-height: 64px;
+    background: #f8fafc; border: 1px solid #eef0f4; color: var(--text);
+  }
+  .navbar-links > .navbar-account-card:hover,
+  .navbar-links > .navbar-account-card:focus-visible {
+    background: #f1f5f9; color: var(--text);
+  }
+  .navbar-account-meta {
+    display: flex; flex-direction: column; min-width: 0; flex: 1;
+  }
+  .navbar-account-meta b {
+    font-size: 0.95rem; font-weight: 700;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .navbar-account-meta small {
+    font-size: 0.72rem; color: var(--text-light);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .navbar-role-chip {
+    flex-shrink: 0; font-size: 0.66rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0.25rem 0.5rem; border-radius: 999px;
+    background: rgba(35, 168, 222, 0.12); color: var(--primary);
+  }
+  .navbar-account-card > svg { flex-shrink: 0; color: #cbd5e1; }
 
   /* Overlay header keeps the brand and the close control reachable. */
   .navbar-panel-head {
@@ -341,27 +377,72 @@ input, textarea, select { font-family: inherit; }
   .navbar-searchbox.in-panel { width: 100%; }
   .navbar-dropdown.in-panel { position: static; margin-top: 0.35rem; box-shadow: none; max-height: 44vh; overflow-y: auto; }
 
+  /* Grouped, app-style menu body: an uppercase section label over each group
+     of rows, so Explore and Account read as distinct sections. */
+  .navbar-panel-body { display: flex; flex-direction: column; gap: 1.15rem; }
+  .navbar-menu-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .navbar-menu-label {
+    display: block; padding: 0 0.75rem;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--text-light);
+  }
+
   .navbar-panel-links {
-    display: flex; flex-direction: column; gap: 0.15rem;
+    display: flex; flex-direction: column; gap: 0.2rem;
   }
   .navbar-panel-links > a {
-    padding: 0.8rem 1rem; font-size: 1rem; border-radius: 10px;
+    display: flex; align-items: center; gap: 0.85rem;
+    min-height: 52px; padding: 0.55rem 0.75rem;
+    font-size: 1.02rem; font-weight: 600; color: var(--text);
+    letter-spacing: normal;
   }
   .navbar-panel-links > a::after { display: none; }
   .navbar-panel-links > a:hover,
-  .navbar-panel-links > a.active { background: #f0f7fb; color: var(--primary); }
-
-  .navbar-panel-auth {
-    display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.85rem;
+  .navbar-panel-links > a.active { background: #eef7ff; color: var(--primary); }
+  .navbar-menu-tile {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: #eef6fb; color: var(--primary);
   }
-  .navbar-panel-auth.is-split { display: grid; grid-template-columns: 1fr 1fr; }
-  .navbar-panel-auth { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.85rem; }
-  .navbar-panel-auth.is-split { display: grid; grid-template-columns: 1fr 1fr; }
-  .navbar-panel-contact { margin-top: 0.5rem; }
-  .navbar-panel-auth .dash-link,
-  .navbar-panel-auth .dash-link-logout {
-    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-    width: 100%; padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.95rem;
+  .navbar-panel-links > a.active .navbar-menu-tile { background: var(--primary); color: #fff; }
+  .navbar-menu-chevron { display: block; margin-left: auto; color: #cbd5e1; flex-shrink: 0; }
+  .navbar-panel-links > a.active .navbar-menu-chevron { color: var(--primary); }
+
+  .navbar-menu-apply {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: 100%; padding: 0.9rem 1rem; border-radius: 12px;
+    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 700;
+  }
+  .navbar-menu-apply:hover { background: #2e8f3d; color: #fff; }
+
+  /* Auth rows live in a soft card so they never read as page links. The
+     three-class selectors outrank the later `.navbar-links .dash-link-*`
+     rules near the bottom of the file (same specificity would lose on order). */
+  .navbar-links .navbar-panel-auth {
+    display: flex; flex-direction: column; gap: 0.1rem; margin-top: 0;
+    padding: 0.3rem; border: 1px solid #eef0f4; border-radius: 14px;
+    background: #f8fafc;
+  }
+  .navbar-links .navbar-panel-auth.is-split {
+    gap: 0.5rem; padding: 0; border: none; background: transparent;
+  }
+  .navbar-links .navbar-panel-auth .dash-link,
+  .navbar-links .navbar-panel-auth .dash-link-logout {
+    display: flex; align-items: center; justify-content: flex-start; gap: 0.65rem;
+    width: 100%; min-height: 48px; padding: 0.65rem 0.75rem; border-radius: 10px;
+    font-size: 0.95rem; font-weight: 600; color: var(--text); text-align: left;
+    background: transparent; border: none;
+  }
+  .navbar-links .navbar-panel-auth .dash-link:hover,
+  .navbar-links .navbar-panel-auth .dash-link.active { background: #eef7ff; color: var(--primary); }
+  .navbar-links .navbar-panel-auth .dash-link-logout { color: #dc2626; }
+  .navbar-links .navbar-panel-auth .dash-link-logout:hover { background: #fef2f2; color: #dc2626; }
+  /* Workspace lives in the account card while signed in, so drop the
+     duplicate row from the card below it. */
+  .navbar-links .navbar-panel-auth .dash-link-ws { display: none; }
+  .navbar-links .navbar-panel-auth.is-split .navbar-cta,
+  .navbar-links .navbar-panel-auth.is-split .navbar-cta-ghost {
+    width: 100%; margin-top: 0;
   }
   .navbar-cta {
     margin-top: 0; display: flex; align-items: center; justify-content: center;
@@ -609,21 +690,44 @@ input, textarea, select { font-family: inherit; }
 }
 
 .action-menu-spinner {
+  position: relative;
+  display: inline-block;
   width: 13px; height: 13px; flex-shrink: 0;
-  border: 2px solid currentColor; border-right-color: transparent;
-  border-radius: 50%; opacity: 0.7;
-  animation: spin 0.7s linear infinite;
+  opacity: 0.7;
 }
 
 /* Inline spinner for a button that is waiting on a request. Kept separate from
    .spinner, which is a 36px block-level element and would break a button's
    layout if reused here - which is what one page was doing. */
 .btn-spinner {
+  position: relative;
   display: inline-block; width: 13px; height: 13px;
-  border: 2px solid currentColor; border-right-color: transparent;
-  border-radius: 50%; opacity: 0.75;
-  animation: spin 0.7s linear infinite;
+  opacity: 0.75;
   vertical-align: -2px;
+}
+
+/* The 12-spoke ring, scaled down: stationary currentColor spokes plus the
+   ticking sweep in the button's own colour. Both layers are the same spoke
+   mask; ::before is the resting gray, ::after is the light passing over it. */
+.action-menu-spinner::before, .btn-spinner::before,
+.action-menu-spinner::after, .btn-spinner::after {
+  content: ''; position: absolute; inset: 0;
+  -webkit-mask: var(--spokes) center / 100% 100% no-repeat;
+  mask: var(--spokes) center / 100% 100% no-repeat;
+}
+.action-menu-spinner::before, .btn-spinner::before {
+  background: currentColor; opacity: 0.32;
+}
+.action-menu-spinner::after, .btn-spinner::after {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 205deg,
+    color-mix(in srgb, currentColor 20%, transparent) 268deg,
+    color-mix(in srgb, currentColor 90%, transparent) 335deg,
+    currentColor 354deg,
+    transparent 359.9deg
+  );
+  animation: spokes-tick 1.1s steps(12, end) infinite;
 }
 
 /* Same hue language as the .act buttons, so an action keeps its colour when it
@@ -1983,6 +2087,107 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   .stat-sub { display: none; }
 }
 
+/* ── Admin dashboard — modern SaaS refresh (compact) ──
+   Scoped to `.admin-page` (the admin Dashboard root) because .stat-card,
+   .dash-panel, .dash-row, .dash-list* and .dash-action* are a shared surface:
+   the finance, secretary, trainer and student dashboards keep the compact base
+   styling above. The label leads the card (stat-head) with the number below it;
+   sizes are tuned for density - tight padding, small type steps, short rows -
+   while keeping the hover affordances. */
+.admin-page .dash-section { margin-bottom: 1.15rem; }
+.admin-page .dash-section:last-of-type { margin-bottom: 0.95rem; }
+.admin-page .dash-section-head { margin-bottom: 0.5rem; }
+.admin-page .dash-section-head h2 { font-size: 0.95rem; gap: 0.35rem; letter-spacing: -0.01em; }
+.admin-page .dash-section-head h2 svg { width: 15px; height: 15px; }
+.admin-page .dash-section-head p { font-size: 0.74rem; }
+
+.admin-page .admin-dash-grid {
+  gap: 0.6rem; margin-bottom: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.admin-page .stat-card {
+  padding: 0.8rem 0.85rem; border-radius: 12px; gap: 0.3rem;
+  border-color: #e4e9f1; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.admin-page .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -10px rgba(15, 23, 42, 0.14);
+  border-color: #d6deea;
+}
+.admin-page .stat-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+}
+.admin-page .stat-label {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; color: #64748b;
+}
+.admin-page .stat-value { font-size: 1.7rem; letter-spacing: -0.03em; }
+.admin-page .stat-sub { font-size: 0.72rem; }
+.admin-page .stat-chip { width: 32px; height: 32px; flex-basis: 32px; border-radius: 9px; }
+.admin-page .stat-chip svg { width: 15px; height: 15px; }
+.admin-page .stat-meter { height: 4px; margin-top: 0.4rem; }
+.admin-page .stat-footer { margin-top: 0.4rem; justify-content: flex-start; }
+.admin-page .stat-view { font-size: 0.7rem; opacity: 0.8; }
+/* Hover and no-hover rules from the base surface still win on specificity,
+   but the touch override is weaker than the scoped rule, so repeat it here. */
+@media (hover: none) { .admin-page .stat-view { opacity: 1; color: var(--primary); } }
+
+.admin-page .stat-card-attention { background: #fffcf2; border-color: #f1e2c0; }
+.admin-page .stat-card-attention::after { width: 4px; border-radius: 4px 0 0 4px; }
+
+.admin-page .dash-clear { padding: 0.6rem 0.8rem; border-radius: 10px; margin-bottom: 1rem; }
+.admin-page .dash-clear p { font-size: 0.8rem; }
+.admin-page .dash-clear svg { width: 17px; height: 17px; }
+
+.admin-page .dash-row { gap: 0.6rem; }
+.admin-page .dash-panel {
+  padding: 0.85rem 0.95rem; border-radius: 12px; border-color: #e4e9f1;
+}
+.admin-page .dash-panel-head { margin-bottom: 0.5rem; gap: 0.4rem; }
+.admin-page .dash-panel-head h3 { font-size: 0.9rem; gap: 0.35rem; }
+.admin-page .dash-panel-head h3 svg { width: 15px; height: 15px; }
+.admin-page .dash-pill { font-size: 0.68rem; padding: 0.1rem 0.5rem; }
+.admin-page .dash-panel-link { font-size: 0.76rem; }
+.admin-page .dash-list-item {
+  padding: 0.45rem 0.4rem; margin: 0 -0.4rem; border-radius: 9px; gap: 0.55rem;
+}
+.admin-page .dash-list-item:hover { background: #f6f9fc; }
+.admin-page .dash-av { width: 30px; height: 30px; font-size: 0.8rem; }
+.admin-page .dash-list-meta p { font-size: 0.82rem; }
+.admin-page .dash-program { font-size: 0.72rem; margin-left: 0.3rem; }
+.admin-page .dash-list-meta small { font-size: 0.7rem; }
+.admin-page .dash-status { font-size: 0.7rem; padding: 0.16rem 0.55rem; }
+.admin-page .dash-empty { padding: 1.1rem 0; gap: 0.35rem; }
+.admin-page .dash-empty p { font-size: 0.8rem; }
+
+.admin-page .dash-actions { gap: 0.35rem; }
+.admin-page .dash-action {
+  padding: 0.48rem 0.62rem; border-radius: 9px; font-size: 0.82rem; gap: 0.5rem;
+}
+.admin-page .dash-action-icon { width: 26px; height: 26px; border-radius: 8px; }
+.admin-page .dash-action-icon svg { width: 14px; height: 14px; }
+.admin-page .dash-tip { margin-top: 0.5rem; font-size: 0.7rem; }
+
+@media (max-width: 640px) {
+  .admin-page .dash-section { margin-bottom: 0.95rem; }
+  .admin-page .admin-dash-grid { gap: 0.5rem; }
+  .admin-page .stat-card { padding: 0.7rem 0.75rem; }
+  .admin-page .stat-value { font-size: 1.45rem; }
+  .admin-page .stat-chip { width: 30px; height: 30px; flex-basis: 30px; border-radius: 8px; }
+  .admin-page .stat-chip svg { width: 14px; height: 14px; }
+  .admin-page .dash-row { gap: 0.5rem; }
+  .admin-page .dash-panel { padding: 0.8rem; }
+}
+/* Same two-column rule as the base grid, with the smaller refresh sizes. */
+@media (max-width: 400px) {
+  .admin-page .admin-dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-page .stat-value { font-size: 1.35rem; }
+  .admin-page .stat-chip { width: 30px; height: 30px; flex-basis: 30px; }
+  .admin-page .stat-chip svg { width: 14px; height: 14px; }
+  .admin-page .stat-label { font-size: 0.62rem; }
+  .admin-page .stat-sub { display: none; }
+}
+
 .admin-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
 .admin-table th, .admin-table td { padding: 0.8rem 1rem; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
 .admin-table th { background: #f8fafc; font-weight: 600; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -2216,12 +2421,45 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 
 /* ── Loading ── */
 .loading { text-align: center; padding: 3rem; color: var(--text-light); font-size: 0.9rem; }
-.spinner {
-  width: 36px; height: 36px; border: 3px solid #e5e7eb;
-  border-top-color: var(--primary); border-radius: 50%;
-  animation: spin 0.7s linear infinite; margin: 0 auto 1rem;
+
+/* iOS-style activity indicator: twelve identical pill-shaped spokes in a
+   circle around a hollow centre. The spokes never move - the mask is a static
+   SVG - and a dark sweep steps around them one spoke at a time, lighting each
+   in turn before the gradient tail fades it back to translucent gray. */
+:root {
+  --spokes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23000'%3E%3Crect x='46' y='6' width='8' height='26' rx='4'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(30 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(60 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(90 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(120 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(150 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(180 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(210 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(240 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(270 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(300 50 50)'/%3E%3Crect x='46' y='6' width='8' height='26' rx='4' transform='rotate(330 50 50)'/%3E%3C/g%3E%3C/svg%3E");
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  position: relative;
+  width: 36px; height: 36px;
+  margin: 0 auto 1rem;
+  color: var(--text-light);
+}
+.spinner::before, .spinner::after {
+  content: ''; position: absolute; inset: 0;
+  -webkit-mask: var(--spokes) center / 100% 100% no-repeat;
+  mask: var(--spokes) center / 100% 100% no-repeat;
+}
+/* Resting state: uniform translucent light gray. */
+.spinner::before { background: currentColor; opacity: 0.32; }
+/* The sweep: a sharp leading edge and a tail that fades behind it. Rotated in
+   twelve discrete jumps (steps), so each jump lands the wave on the next
+   spoke - a ticking rhythm rather than a smooth wheel. The spoke mask is
+   12-fold symmetric, so every 30-degree jump maps the dark spokes back onto
+   the resting ones and the graphic itself reads as stationary. */
+.spinner::after {
+  background: conic-gradient(
+    from 0deg,
+    rgba(30, 41, 59, 0) 0deg,
+    rgba(30, 41, 59, 0) 205deg,
+    rgba(30, 41, 59, 0.18) 268deg,
+    rgba(30, 41, 59, 0.9) 335deg,
+    rgba(30, 41, 59, 1) 354deg,
+    rgba(30, 41, 59, 0) 359.9deg
+  );
+  animation: spokes-tick 1.1s steps(12, end) infinite;
+}
+@keyframes spokes-tick { to { transform: rotate(360deg); } }
 
 /* Busy wrapper for a non-table panel that is refreshing in place. */
 .loading-panel { opacity: 0.75; transition: opacity 0.15s ease; }
@@ -2243,7 +2481,9 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spinner { animation-duration: 2.4s; }
+  .spinner::after,
+  .btn-spinner::after,
+  .action-menu-spinner::after { animation-duration: 2.4s; }
   .skeleton-bar { animation: none; background: #eef1f4; }
 }
 
@@ -5654,3 +5894,120 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
   .profile-rail-nav button, .profile-quick-grid button { transition: none; }
 }
 
+
+/* -- Global busy pill -- */
+/* Floats at the top centre while any request or route transition is pending.
+   Non-blocking on purpose: it reports activity without taking the page away. */
+.busy-pill {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 600;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem 0.4rem 0.6rem;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 12px 32px -14px rgba(15, 33, 70, 0.4);
+  color: var(--text-light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  animation: busyPillIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.busy-pill-ring {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.busy-pill-label { white-space: nowrap; }
+@keyframes busyPillIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+/* The full-screen nav overlay is its own transition; a pill over it would
+   only compete with the menu the user just opened. */
+body:has(.navbar.menu-open) .busy-pill { display: none; }
+
+/* -- Bottom navigation (phones) -- */
+/* Hidden above 900px by plain CSS so the prerendered markup and the first
+   client render never disagree - visibility is never decided in JS. */
+.mobile-tabbar { display: none; }
+
+@media (max-width: 900px) {
+  .mobile-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 200;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border-top: 1px solid #e5e7eb;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -10px 26px -20px rgba(15, 33, 70, 0.5);
+  }
+  .mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 56px;
+    padding: 0.5rem 0.15rem 0.4rem;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-tab svg { flex-shrink: 0; }
+  .mobile-tab.active { color: var(--primary); }
+  .mobile-tab.is-pending { opacity: 0.45; }
+  .mobile-tab:active { background: rgba(35, 168, 222, 0.08); }
+
+  /* Reserve the bar's height so the last content row and the footer are
+     never trapped underneath it; the inset keeps the home indicator clear. */
+  .public-shell {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Same suppression as the busy pill: the overlay replaces the bar, it does
+     not stack on top of it. */
+  body:has(.navbar.menu-open) .mobile-tabbar { display: none; }
+}
+
+/* -- Mobile touch polish -- */
+@media (max-width: 900px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* iOS zooms the whole viewport when a focused field renders below 16px.
+     !important because several forms deliberately size their inputs down for
+     desktop density, and losing focus-zoom on a phone is worth more than
+     keeping that density. */
+  input, select, textarea, .form-control { font-size: 16px !important; }
+  /* Comfortable targets on the controls that anchor the mobile chrome. */
+  .hamburger, .navbar-panel-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  a, button {
+    -webkit-tap-highlight-color: rgba(35, 168, 222, 0.2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busy-pill { animation: none; }
+}

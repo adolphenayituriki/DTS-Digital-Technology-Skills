@@ -1,23 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Menu, X, LogOut, LayoutDashboard, Search,
+  Menu, X, LogOut, LayoutDashboard, Search, ChevronRight,
   Home, Info, BookOpen, Users, Newspaper, Camera, FilePlus2, Mail, User
 } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import apiFetch from '../api';
 import { roleHome, roleLabel } from '../roleHome';
 import Avatar from './Avatar';
-
-const links = [
-  { to: '/', label: 'Home' },
-  { to: '/about', label: 'About' },
-  { to: '/programs', label: 'Programs' },
-  { to: '/team', label: 'Team' },
-  { to: '/news', label: 'News' },
-  { to: '/gallery', label: 'Gallery' },
-  { to: '/apply', label: 'Apply' },
-];
 
 const pageItems = [
   { to: '/', label: 'Home', icon: <Home size={15} /> },
@@ -102,6 +92,15 @@ export default function Navbar() {
   // Following a link should never leave the overlay hanging open.
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
+  // The bottom tab bar's Menu tab opens this same overlay. A DOM event keeps
+  // the tab bar free of any state it would otherwise have to lift out of the
+  // navbar, and leaves the overlay with one source of truth for openness.
+  useEffect(() => {
+    const onOpenMenu = () => setOpen(true);
+    window.addEventListener('dts:open-menu', onOpenMenu);
+    return () => window.removeEventListener('dts:open-menu', onOpenMenu);
+  }, []);
+
   // Below this width the nav becomes a full-screen overlay, so it must be
   // hidden from assistive tech and tab order while it is closed. Above it the
   // same markup is the normal desktop bar and must stay exposed.
@@ -143,6 +142,9 @@ export default function Navbar() {
   const dropdownOpen = trimmed.length > 0;
   const workspace = roleHome(user?.role);
   const workspaceLabel = roleLabel(user?.role);
+  // The overlay menu lists every page except Apply, which gets its own
+  // prominent CTA below the list.
+  const menuItems = pageItems.filter((p) => p.to !== '/apply');
 
   const goTo = (to) => {
     setQ('');
@@ -277,64 +279,93 @@ export default function Navbar() {
               </button>
             </div>
 
+            {/* Signed-in visitors get an identity card at the top of the menu:
+                who they are, their role, and where tapping it takes them.
+                Gated on `ready` like the auth rows below so the prerendered
+                markup never disagrees with the hydrated state. */}
+            {ready && isLoggedIn && (
+              <Link
+                to={user?.mustChangePassword ? '/account' : workspace}
+                className="navbar-account-card"
+                onClick={() => setOpen(false)}
+              >
+                <Avatar size="md" name={user?.name || user?.email} src={user?.photo} eager />
+                <span className="navbar-account-meta">
+                  <b>{user?.name || user?.email}</b>
+                  {user?.name && user?.email ? <small>{user.email}</small> : null}
+                </span>
+                <span className="navbar-role-chip">{workspaceLabel}</span>
+                <ChevronRight size={16} />
+              </Link>
+            )}
+
             <form className="navbar-panel-search" onSubmit={submitSearch} role="search">
               {renderSearch('panel')}
             </form>
 
-            <div className="navbar-panel-links">
-              {links.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  end={l.to === '/'}
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                  onClick={() => setOpen(false)}
-                >
-                  {l.label}
-                </NavLink>
-              ))}
+            <div className="navbar-panel-body">
+              <div className="navbar-menu-group">
+                <div className="navbar-menu-label">Explore</div>
+                <div className="navbar-panel-links">
+                  {menuItems.map((l) => (
+                    <NavLink
+                      key={l.to}
+                      to={l.to}
+                      end={l.to === '/'}
+                      className={({ isActive }) => (isActive ? 'active' : '')}
+                      onClick={() => setOpen(false)}
+                    >
+                      <span className="navbar-menu-tile">{l.icon}</span>
+                      <span>{l.label}</span>
+                      <ChevronRight className="navbar-menu-chevron" size={16} />
+                    </NavLink>
+                  ))}
+                </div>
+                <Link to="/apply" className="navbar-menu-apply" onClick={() => setOpen(false)}>
+                  <FilePlus2 size={17} /> Apply Now
+                </Link>
+              </div>
+
+              {/* `ready` guards both auth areas. Until localStorage has been read the
+                  visitor's status is unknown, and defaulting to "signed out" would
+                  disagree with the prerendered markup React is hydrating against -
+                  which costs the prerender entirely on every signed-in page view. */}
+              <div className="navbar-menu-group">
+                <div className="navbar-menu-label">Account</div>
+                {!ready ? (
+                  <div className="navbar-panel-auth navbar-auth-pending" aria-hidden="true" />
+                ) : isLoggedIn ? (
+                  <div className="navbar-panel-auth">
+                    <NavLink
+                      to={workspace}
+                      className={({ isActive }) => (isActive ? 'active dash-link dash-link-ws' : 'dash-link dash-link-ws')}
+                      onClick={() => setOpen(false)}
+                    >
+                      {workspaceLabel}
+                    </NavLink>
+                    <NavLink
+                      to="/account"
+                      className={({ isActive }) => (isActive ? 'active dash-link' : 'dash-link')}
+                      onClick={() => setOpen(false)}
+                    >
+                      <User size={15} /> My Profile
+                    </NavLink>
+                    <button className="dash-link-logout" onClick={handleLogout}>
+                      <LogOut size={15} /> Logout
+                    </button>
+                  </div>
+                ) : (
+                  <div className="navbar-panel-auth is-split">
+                    <Link to="/signup" className="navbar-cta" onClick={() => setOpen(false)}>
+                      Sign Up
+                    </Link>
+                    <Link to="/login" className="navbar-cta navbar-cta-ghost" onClick={() => setOpen(false)}>
+                      Log In
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
-
-            {/* `ready` guards both auth areas. Until localStorage has been read the
-                visitor's status is unknown, and defaulting to "signed out" would
-                disagree with the prerendered markup React is hydrating against -
-                which costs the prerender entirely on every signed-in page view. */}
-            {!ready ? (
-              <div className="navbar-panel-auth navbar-auth-pending" aria-hidden="true" />
-            ) : isLoggedIn ? (
-              <div className="navbar-panel-auth">
-                <NavLink
-                  to={workspace}
-                  className={({ isActive }) => (isActive ? 'active dash-link' : 'dash-link')}
-                  onClick={() => setOpen(false)}
-                >
-                  {workspaceLabel}
-                </NavLink>
-                <NavLink
-                  to="/account"
-                  className={({ isActive }) => (isActive ? 'active dash-link' : 'dash-link')}
-                  onClick={() => setOpen(false)}
-                >
-                  <User size={15} /> My Profile
-                </NavLink>
-                <button className="dash-link-logout" onClick={handleLogout}>
-                  <LogOut size={15} /> Logout
-                </button>
-              </div>
-            ) : (
-              <div className="navbar-panel-auth is-split">
-                <Link to="/signup" className="navbar-cta" onClick={() => setOpen(false)}>
-                  Sign Up
-                </Link>
-                <Link to="/login" className="navbar-cta navbar-cta-ghost" onClick={() => setOpen(false)}>
-                  Log In
-                </Link>
-              </div>
-            )}
-
-            <Link to="/contact" className="navbar-cta navbar-cta-ghost navbar-panel-contact" onClick={() => setOpen(false)}>
-              Contact
-            </Link>
           </nav>
 
           <div className="navbar-right">

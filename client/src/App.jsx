@@ -6,6 +6,8 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import RouteFallback from './components/RouteFallback';
 import MetaManager from './components/MetaManager';
+import BusyIndicator from './components/BusyIndicator';
+import MobileTabBar from './components/MobileTabBar';
 import RequireRole from './RequireRole';
 import Home from './pages/Home';
 
@@ -59,6 +61,7 @@ export function AppShell() {
     <>
       <MetaManager />
       <ScrollToTop />
+      <BusyIndicator />
       {/* Every page below is code-split, so a single boundary here keeps a
           slow chunk from throwing "no fallback UI was specified" on the
           role-gated dashboards, which render outside the public shell. */}
@@ -143,7 +146,7 @@ export function AppShell() {
         <Route
           path="*"
           element={
-            <>
+            <div className="public-shell">
               <Navbar />
               <main>
                 <Suspense fallback={<RouteFallback />}>
@@ -171,7 +174,8 @@ export function AppShell() {
                 </Suspense>
               </main>
               <Footer />
-            </>
+              <MobileTabBar />
+            </div>
           }
         />
 </Routes>

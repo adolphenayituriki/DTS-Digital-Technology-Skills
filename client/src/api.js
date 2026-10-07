@@ -16,6 +16,8 @@ export const USER_KEY = 'dts_user';
 // imported *by* AuthContext and importing back would be circular.
 export const SESSION_EXPIRED_EVENT = 'dts:session-expired';
 
+import { beginBusy, endBusy } from './busy';
+
 // Simple event emitter for cross-component refresh signals
 const refreshListeners = new Map();
 export function onFinanceRefresh(callback) {
@@ -99,7 +101,21 @@ async function readError(res) {
   return body.slice(0, 300);
 }
 
+// The busy session spans the whole call - headers, body read and error parsing
+// included - so the indicator stays up until the caller actually has its data.
+// `busy: false` opts a request out for anything long-lived or purely cosmetic.
 async function apiFetch(path, options = {}) {
+  const { busy = true, ...rest } = options;
+  if (!busy) return apiFetchRaw(path, rest);
+  beginBusy();
+  try {
+    return await apiFetchRaw(path, rest);
+  } finally {
+    endBusy();
+  }
+}
+
+async function apiFetchRaw(path, options = {}) {
   const { anonymous, ...rest } = options;
   const method = (rest.method || 'GET').toUpperCase();
   const token =
