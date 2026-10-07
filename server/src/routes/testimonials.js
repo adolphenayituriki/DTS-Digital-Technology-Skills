@@ -33,19 +33,30 @@ router.get("/all", auth, requireRole("admin", "editor", "secretary"), async (req
 
 router.post("/", async (req, res) => {
   try {
-    const { name, role, content, rating } = req.body;
+    // Public route, so the body is coerced and capped rather than trusted:
+    // strings only, lengths the admin list and the carousel can display, and a
+    // rating that falls back to 5 instead of failing schema validation.
+    const name = String(req.body.name ?? "").trim();
+    const role = String(req.body.role ?? "").trim().slice(0, 100);
+    const content = String(req.body.content ?? "").trim();
+    const rating = Number(req.body.rating);
 
     if (!name || !content) {
       return res
         .status(400)
         .json({ message: "Name and content are required" });
     }
+    if (name.length > 80 || content.length > 800) {
+      return res.status(400).json({
+        message: "Name must be 80 characters or fewer and the testimonial 800 or fewer.",
+      });
+    }
 
     const testimonial = await Testimonial.create({
       name,
       role,
       content,
-      rating,
+      rating: rating >= 1 && rating <= 5 ? rating : 5,
     });
     notifyAdminsNewTestimonial(testimonial).catch((e) =>
       console.error("[mailer] new-testimonial notification failed:", e.message)

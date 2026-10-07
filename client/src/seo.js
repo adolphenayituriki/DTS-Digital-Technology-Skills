@@ -26,7 +26,12 @@ export const ROUTES = [
   {
     path: '/',
     title: `${BRAND} | Digital Technology Skills`,
-    description: DEFAULT_DESCRIPTION,
+    // The homepage is the only page that targets search traffic directly, so
+    // its description carries the terms people actually type - computer
+    // training, Huye, the course names - instead of the organisation blurb
+    // that DEFAULT_DESCRIPTION serves everywhere else.
+    description:
+      'Computer training in Huye, Rwanda - hands-on courses in Microsoft Office, Google services, graphic design and digital literacy at UR-Huye Campus since 2022.',
     priority: '1.0',
     changefreq: 'weekly',
   },

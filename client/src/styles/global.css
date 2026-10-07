@@ -860,6 +860,31 @@ input, textarea, select { font-family: inherit; }
   .testimonial-bigquote { top: 0.7rem; left: 0.9rem; }
 }
 
+/* ── Share your testimonial ──
+   The public entry point under the carousel. Submissions are held for admin
+   approval, so the copy under the button states the review step up front. */
+.testimonial-share {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  margin-top: 1.75rem; text-align: center;
+}
+.testimonial-share .form-hint { margin-top: 0; }
+.tstar-row { display: flex; gap: 0.3rem; }
+.tstar {
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1.5px solid #e2e6ee; background: var(--surface); color: #f59e0b;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.tstar:hover { border-color: #f59e0b; }
+.tstar.on { border-color: #f59e0b; background: #fff7e8; }
+.testimonial-thanks { text-align: center; padding: 0.4rem 0 0.25rem; }
+.testimonial-thanks svg { color: var(--success); margin-bottom: 0.6rem; }
+.testimonial-thanks p {
+  font-size: 0.9rem; color: var(--text-light);
+  line-height: 1.6; margin-bottom: 0.4rem;
+}
+.testimonial-thanks b { color: var(--text); }
+
 /* ── CTA Banner ── */
 .cta-banner {
   background: linear-gradient(120deg, var(--primary-dark) 0%, #1a3570 100%);

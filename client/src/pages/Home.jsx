@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Monitor, Wifi, Zap, ChevronLeft, ChevronRight, Users, Rocket } from "lucide-react";
 import TestimonialCarousel from "../components/TestimonialCarousel";
+import ShareTestimonial from "../components/ShareTestimonial";
 import FadeIn from "../components/FadeIn";
+import apiFetch from "../api";
 
 const heroImages = ["/hero-1.jpg", "/hero-3.jpg", "/hero-5.jpg", "/hero-6.jpg", "/Featured Images/ELITEFRAMSTUDIO(134).jpg"];
 const aboutImages = ["/activity-1.jpg", "/activity-2.jpg", "/hero-2.jpg"];
@@ -261,6 +263,24 @@ function Hero() {
 
 export default function Home() {
   const [aboutIdx, setAboutIdx] = useState(0);
+  // Admin-approved testimonials replace the built-in sample set. The fetch runs
+  // without the global busy pill and after first paint - the carousel is on
+  // screen either way, and an unreachable API simply leaves the samples up.
+  const [approved, setApproved] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/testimonials", { busy: false })
+      .then((data) => {
+        if (!cancelled && Array.isArray(data) && data.length) setApproved(data);
+      })
+      .catch(() => {
+        /* samples stay on screen; the section must never fail loudly */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setAboutIdx((i) => (i + 1) % aboutImages.length), 6000);
@@ -431,7 +451,8 @@ export default function Home() {
             </div>
           </FadeIn>
           <FadeIn delay={150}>
-            <TestimonialCarousel />
+            <TestimonialCarousel testimonials={approved} />
+            <ShareTestimonial />
           </FadeIn>
         </div>
       </section>
