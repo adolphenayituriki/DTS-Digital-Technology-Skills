@@ -140,20 +140,26 @@ const INTERNAL_TITLES = {
   '/secretary/settings': 'Settings',
 };
 
-// Routes that get a real static HTML file at build time. Every one of these is
-// either fully static JSX or degrades to a useful shell, so none of them depend
-// on the API being up while the site builds.
+// Every route in ROUTES gets a real static HTML file at build time, because the
+// static markup - not the body, the head tags - is what non-JS crawlers and
+// link unfurlers (WhatsApp, Slack, Facebook, none of which run JavaScript) read.
+// Before this covered /news, /team, /contact and /apply, those four fell
+// through to the SPA fallback and every one of them unfurled as the homepage's
+// title and description.
 //
-// Deliberately excluded from PRERENDER_PATHS: /team, /news, /news/:slug, /contact
-// and /apply all fetch their content in useEffect, so a prerender would bake in a
-// loading spinner. They still ship correct <head> tags via MetaManager, which is
-// what link unfurlers (WhatsApp, Slack, Facebook) actually read, and they are all
-// public and indexable, so they stay in the sitemap.
-// Note /apply must not be Disallowed in robots.txt: it is public, and a URL that
+// The rule for adding a route: its first render must not touch browser-only
+// APIs (window, document, localStorage) and must not suspend on data fetched in
+// useEffect. Pages that fetch that way (News, Team, Contact, Apply) bake their
+// loading markup instead of real content - harmless, since the head is what
+// crawlers read here - but a page that suspends until an effect runs would hit
+// the prerender timeout in entry-server.jsx and fail the build loudly.
+//
+// /news/:slug is deliberately absent: article slugs come from the API, so those
+// URLs keep the SPA fallback and have no sitemap entry either.
+//
+// /apply must not be Disallowed in robots.txt: it is public, and a URL that
 // the sitemap advertises while robots.txt blocks is a contradiction.
-export const PRERENDER_PATHS = ROUTES
-  .filter((route) => ['/', '/about', '/programs', '/gallery', '/privacy', '/terms'].includes(route.path))
-  .map((route) => route.path);
+export const PRERENDER_PATHS = ROUTES.map((route) => route.path);
 
 const byPath = new Map(ROUTES.map((route) => [route.path, route]));
 

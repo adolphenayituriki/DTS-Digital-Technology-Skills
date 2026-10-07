@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ToastProvider } from './components/Toast';
 import { AuthProvider } from './AuthContext';
+import registerServiceWorker from './registerSW';
 import './styles/global.css';
 
 const container = document.getElementById('root');
@@ -26,3 +27,6 @@ if (container.hasChildNodes()) {
 } else {
   ReactDOM.createRoot(container).render(app);
 }
+
+// After first paint: the worker is what keeps the site open offline.
+registerServiceWorker();

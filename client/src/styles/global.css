@@ -1586,6 +1586,42 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 @keyframes toastBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
+/* ── Offline banner ──
+   Rendered at the top of AppShell (src/App.jsx) whenever the browser reports
+   the connection is gone. Deliberately in normal document flow, not fixed, so
+   it can never sit on top of the sticky navbar or the mobile tab bar. Neutral
+   slate: it is a status, not an error. */
+.offline-banner {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem; flex-wrap: wrap; text-align: center;
+  padding: 0.55rem 1rem;
+  background: #1f2937; color: #f8fafc;
+  font-size: 0.8rem; line-height: 1.45;
+}
+.offline-banner svg { flex-shrink: 0; opacity: 0.85; }
+.offline-banner b { font-weight: 700; }
+
+/* ── Route error panel (ErrorBoundary) ──
+   What a failed chunk or render failure looks like: one panel, one cause, one
+   way out. Same neutral grey language as the offline banner. */
+.route-error {
+  max-width: 520px; margin: 3rem auto; padding: 1.5rem 1.5rem 1.4rem;
+  background: var(--surface); border: 1px solid #e5e9f2;
+  border-radius: 14px; text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.route-error-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; margin-bottom: 0.7rem;
+  border-radius: 50%; background: #eef1f6; color: #4b5563;
+}
+.route-error h2 { font-size: 1rem; margin-bottom: 0.4rem; }
+.route-error p {
+  font-size: 0.84rem; color: var(--text-light);
+  line-height: 1.6; margin-bottom: 1rem;
+}
+.route-error-actions { display: flex; gap: 0.5rem; justify-content: center; }
+
 /* ── Celebration (fires after a completed action) ── */
 .celebration {
   position: fixed; inset: 0; z-index: 400; pointer-events: none;
@@ -2091,100 +2127,262 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
    Scoped to `.admin-page` (the admin Dashboard root) because .stat-card,
    .dash-panel, .dash-row, .dash-list* and .dash-action* are a shared surface:
    the finance, secretary, trainer and student dashboards keep the compact base
-   styling above. The label leads the card (stat-head) with the number below it;
-   sizes are tuned for density - tight padding, small type steps, short rows -
-   while keeping the hover affordances. */
-.admin-page .dash-section { margin-bottom: 1.15rem; }
-.admin-page .dash-section:last-of-type { margin-bottom: 0.95rem; }
-.admin-page .dash-section-head { margin-bottom: 0.5rem; }
-.admin-page .dash-section-head h2 { font-size: 0.95rem; gap: 0.35rem; letter-spacing: -0.01em; }
-.admin-page .dash-section-head h2 svg { width: 15px; height: 15px; }
-.admin-page .dash-section-head p { font-size: 0.74rem; }
+   styling above.
+   Palette rule: the page is neutral (white / slate greys). Amber is spent only
+   on the "Needs attention" queues, the brand blue only on link hovers and
+   focus rings, and green/red only on true success / failure states. */
+
+/* Section heads: icon chip + title on the left, live status on the right. */
+.admin-page .dash-section { margin-bottom: 0.85rem; }
+.admin-page .dash-section:last-of-type { margin-bottom: 0.7rem; }
+.admin-page .dash-section-head { margin-bottom: 0.4rem; align-items: center; }
+.admin-page .dash-section-head h2 {
+  font-size: 0.85rem; gap: 0.4rem; letter-spacing: -0.01em; font-weight: 800;
+}
+.admin-page .dash-head-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 21px; height: 21px; border-radius: 7px; flex-shrink: 0;
+  background: #eef2f7; color: #475569;
+}
+.admin-page .dash-section-head .dash-head-icon svg { width: 13px; height: 13px; }
+.admin-page h2.is-attention .dash-head-icon { background: var(--warning-soft, rgba(245, 158, 11, 0.14)); color: #b45309; }
+.admin-page h2.is-attention { color: #b45309; }
+.admin-page .dash-count-pill {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.67rem; font-weight: 700; color: #b45309;
+  background: var(--warning-soft, rgba(245, 158, 11, 0.12));
+  border: 1px solid #fde7bd; padding: 0.12rem 0.5rem; border-radius: 999px;
+  white-space: nowrap;
+}
+.admin-page .dash-section-tools {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+}
+.admin-page .dash-section-tools p {
+  margin: 0; font-size: 0.7rem; color: var(--text-light); white-space: nowrap;
+}
+.admin-page .dash-refresh {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.66rem; font-weight: 700; color: #475569;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 999px;
+  padding: 0.2rem 0.55rem; cursor: pointer; white-space: nowrap;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+.admin-page .dash-refresh svg { width: 11px; height: 11px; }
+.admin-page .dash-refresh:hover:not(:disabled) {
+  color: #0f172a; border-color: #cbd5e1; background: #f8fafc;
+}
+.admin-page .dash-refresh:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.admin-page .dash-refresh:disabled { opacity: 0.65; cursor: progress; }
+.admin-page .dash-refresh.is-busy svg { animation: dash-spin 0.8s linear infinite; }
+@keyframes dash-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .admin-page .dash-refresh.is-busy svg { animation: none; } }
 
 .admin-page .admin-dash-grid {
-  gap: 0.6rem; margin-bottom: 0.8rem;
+  gap: 0.45rem; margin-bottom: 0.6rem;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+/* Cards stay white with ink text: the tone class on the root would otherwise
+   wash the whole tile (and every number in it) in the accent colour. */
 .admin-page .stat-card {
-  padding: 0.8rem 0.85rem; border-radius: 12px; gap: 0.3rem;
-  border-color: #e4e9f1; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  background: var(--surface); color: var(--text);
+  padding: 0.5rem 0.65rem; border-radius: 12px; gap: 0.1rem;
+  border: 1px solid #e5e9f2; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .admin-page .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -10px rgba(15, 23, 42, 0.14);
-  border-color: #d6deea;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 24px -14px rgba(15, 23, 42, 0.35);
 }
+.admin-page .stat-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
 .admin-page .stat-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
 }
 .admin-page .stat-label {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; color: #64748b;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; color: #64748b;
+  line-height: 1.25;
 }
-.admin-page .stat-value { font-size: 1.7rem; letter-spacing: -0.03em; }
-.admin-page .stat-sub { font-size: 0.72rem; }
-.admin-page .stat-chip { width: 32px; height: 32px; flex-basis: 32px; border-radius: 9px; }
-.admin-page .stat-chip svg { width: 15px; height: 15px; }
-.admin-page .stat-meter { height: 4px; margin-top: 0.4rem; }
-.admin-page .stat-footer { margin-top: 0.4rem; justify-content: flex-start; }
-.admin-page .stat-view { font-size: 0.7rem; opacity: 0.8; }
+/* One neutral icon chip for every tile: colour is spent only on the queue
+   section, so the eye reads numbers first instead of a row of hues. */
+.admin-page .stat-chip {
+  width: 24px; height: 24px; flex-basis: 24px; border-radius: 7px;
+  background: #f1f5f9; color: #475569;
+}
+.admin-page .stat-chip svg { width: 13px; height: 13px; }
+.admin-page .stat-value {
+  font-size: 1.35rem; font-weight: 800; line-height: 1.1;
+  letter-spacing: -0.03em; color: #0f172a; font-variant-numeric: tabular-nums;
+}
+.admin-page .stat-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.35rem; min-width: 0;
+  margin-top: 0.2rem; padding-top: 0.18rem; border-top: 1px solid #f1f5f9;
+}
+.admin-page .stat-sub {
+  font-size: 0.66rem; font-weight: 700; color: #334155; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.admin-page .stat-sub-label { font-weight: 500; color: var(--text-light); }
+.admin-page .stat-meter { height: 3px; margin-top: 0.25rem; background: #eef1f5; }
+.admin-page .stat-meter > i { background: #64748b; }
+.admin-page .stat-view {
+  font-size: 0.66rem; font-weight: 700; opacity: 0.75; white-space: nowrap;
+}
 /* Hover and no-hover rules from the base surface still win on specificity,
    but the touch override is weaker than the scoped rule, so repeat it here. */
 @media (hover: none) { .admin-page .stat-view { opacity: 1; color: var(--primary); } }
 
-.admin-page .stat-card-attention { background: #fffcf2; border-color: #f1e2c0; }
-.admin-page .stat-card-attention::after { width: 4px; border-radius: 4px 0 0 4px; }
+/* Queue tiles: the only warm surface on the page. Amber means "decide this",
+   so it stays exclusive to the attention section. */
+.admin-page .stat-card-attention {
+  background: linear-gradient(180deg, #fffdf5 0%, #fffaf0 100%);
+  border-color: #f2e3bd;
+}
+.admin-page .stat-card-attention::after {
+  width: 4px; border-radius: 4px 0 0 4px;
+  background: #f59e0b;
+}
+.admin-page .stat-card-attention .stat-value { color: #b45309; }
+.admin-page .stat-card-attention .stat-meta { border-top-color: #f7ecd4; }
+.admin-page .stat-card.stat-card-attention:hover { border-color: var(--warning, #f59e0b); }
 
-.admin-page .dash-clear { padding: 0.6rem 0.8rem; border-radius: 10px; margin-bottom: 1rem; }
-.admin-page .dash-clear p { font-size: 0.8rem; }
-.admin-page .dash-clear svg { width: 17px; height: 17px; }
+/* Clear-state banner. */
+.admin-page .dash-clear {
+  padding: 0.6rem 0.75rem; border-radius: 12px; margin-bottom: 1rem;
+  gap: 0.6rem; background: #f0fbf3; border-color: #c7e9cf;
+}
+.admin-page .dash-clear-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(57, 178, 76, 0.15); color: #1d6b2c;
+}
+.admin-page .dash-clear p { font-size: 0.78rem; color: #1d6b2c; }
+.admin-page .dash-clear svg { width: 15px; height: 15px; }
 
-.admin-page .dash-row { gap: 0.6rem; }
+/* Failed read: a dedicated panel so an outage never looks like an empty page. */
+.dash-error {
+  display: flex; align-items: flex-start; gap: 0.7rem;
+  padding: 0.9rem 1rem; border-radius: 12px;
+  background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+}
+.dash-error-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.12); color: #dc2626;
+}
+.dash-error b { font-size: 0.84rem; }
+.dash-error p { margin: 0.2rem 0 0.55rem; font-size: 0.75rem; line-height: 1.45; color: #b91c1c; }
+
+/* Loading skeleton: same rhythm as the real layout, so nothing jumps on swap. */
+.skel-block {
+  position: relative; overflow: hidden;
+  background: #eef1f6; border: 1px solid #e8ecf3; border-radius: 12px;
+}
+.skel-block::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: translateX(-100%); animation: skel-shimmer 1.3s infinite;
+}
+.skel-head { height: 20px; width: 170px; border-radius: 8px; margin-bottom: 0.45rem; }
+.skel-card { height: 86px; }
+.skel-panel { height: 200px; }
+@keyframes skel-shimmer { 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .skel-block::after { animation: none; background: none; }
+}
+
+/* Panels. */
+.admin-page .dash-row { gap: 0.5rem; }
 .admin-page .dash-panel {
-  padding: 0.85rem 0.95rem; border-radius: 12px; border-color: #e4e9f1;
+  padding: 0.6rem 0.75rem 0.65rem; border-radius: 12px;
+  border-color: #e5e9f2; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
-.admin-page .dash-panel-head { margin-bottom: 0.5rem; gap: 0.4rem; }
-.admin-page .dash-panel-head h3 { font-size: 0.9rem; gap: 0.35rem; }
-.admin-page .dash-panel-head h3 svg { width: 15px; height: 15px; }
-.admin-page .dash-pill { font-size: 0.68rem; padding: 0.1rem 0.5rem; }
-.admin-page .dash-panel-link { font-size: 0.76rem; }
+.admin-page .dash-panel-head {
+  margin-bottom: 0.3rem; padding-bottom: 0.4rem; gap: 0.4rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+.admin-page .dash-panel-head h3 {
+  font-size: 0.82rem; font-weight: 800; gap: 0.4rem; letter-spacing: -0.01em;
+}
+.admin-page .dash-panel-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 21px; height: 21px; border-radius: 7px; flex-shrink: 0;
+  background: #f1f5f9; color: #475569;
+}
+.admin-page .dash-panel-head .dash-panel-icon svg { width: 13px; height: 13px; color: inherit; }
+.admin-page .dash-pill {
+  font-size: 0.65rem; padding: 0.08rem 0.45rem;
+  color: #475569; background: #f1f5f9;
+}
+.admin-page .dash-panel-link { font-size: 0.72rem; }
+.admin-page .dash-panel-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
 .admin-page .dash-list-item {
-  padding: 0.45rem 0.4rem; margin: 0 -0.4rem; border-radius: 9px; gap: 0.55rem;
+  padding: 0.32rem 0.45rem; margin: 0 -0.45rem; border-radius: 9px;
+  gap: 0.5rem; border-bottom: 1px solid #f3f6fa; transition: background var(--transition);
 }
+.admin-page .dash-list-item:last-child { border-bottom: none; }
 .admin-page .dash-list-item:hover { background: #f6f9fc; }
-.admin-page .dash-av { width: 30px; height: 30px; font-size: 0.8rem; }
-.admin-page .dash-list-meta p { font-size: 0.82rem; }
-.admin-page .dash-program { font-size: 0.72rem; margin-left: 0.3rem; }
-.admin-page .dash-list-meta small { font-size: 0.7rem; }
-.admin-page .dash-status { font-size: 0.7rem; padding: 0.16rem 0.55rem; }
-.admin-page .dash-empty { padding: 1.1rem 0; gap: 0.35rem; }
-.admin-page .dash-empty p { font-size: 0.8rem; }
-
-.admin-page .dash-actions { gap: 0.35rem; }
-.admin-page .dash-action {
-  padding: 0.48rem 0.62rem; border-radius: 9px; font-size: 0.82rem; gap: 0.5rem;
+.admin-page .dash-list-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.admin-page .dash-av {
+  width: 26px; height: 26px; font-size: 0.72rem;
+  background: linear-gradient(135deg, #64748b, #334155);
 }
-.admin-page .dash-action-icon { width: 26px; height: 26px; border-radius: 8px; }
-.admin-page .dash-action-icon svg { width: 14px; height: 14px; }
-.admin-page .dash-tip { margin-top: 0.5rem; font-size: 0.7rem; }
+.admin-page .dash-list-meta p { font-size: 0.78rem; }
+.admin-page .dash-program { font-size: 0.7rem; margin-left: 0.3rem; }
+.admin-page .dash-list-meta small { font-size: 0.68rem; }
+.admin-page .dash-status { font-size: 0.66rem; font-weight: 700; padding: 0.14rem 0.5rem; }
+.dash-row-chev {
+  flex-shrink: 0; color: #cbd5e1;
+  transition: color var(--transition), transform var(--transition);
+}
+.admin-page .dash-list-item:hover .dash-row-chev { color: var(--primary); transform: translateX(2px); }
+.admin-page .dash-empty {
+  padding: 0.9rem 0.6rem; gap: 0.3rem; border-radius: 10px;
+  border: 1px dashed #dbe3ee; background: #fafbfd;
+}
+.admin-page .dash-empty svg { color: #94a3b8; }
+.admin-page .dash-empty p { font-size: 0.78rem; }
+
+/* Quick actions: neutral tiles, no per-action hue. */
+.admin-page .dash-actions { gap: 0.3rem; }
+.admin-page .dash-action {
+  padding: 0.42rem 0.55rem; border-radius: 10px; font-size: 0.78rem; gap: 0.5rem;
+  border-color: #e8ecf3; background: #fbfcfe; font-weight: 600;
+}
+.admin-page .dash-action:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.admin-page .dash-action svg:last-child { color: #94a3b8; }
+.admin-page .dash-action:hover { background: #fff; border-color: #cbd5e1; }
+.admin-page .dash-action:hover svg:last-child { color: #334155; }
+.admin-page .dash-action-icon {
+  width: 24px; height: 24px; border-radius: 7px;
+  background: #f1f5f9; color: #475569;
+}
+.admin-page .dash-action-icon svg { width: 13px; height: 13px; }
+.admin-page .dash-tip {
+  margin-top: 0.45rem; font-size: 0.68rem; color: var(--text-light);
+  padding-top: 0.4rem; border-top: 1px dashed #eef1f6;
+}
 
 @media (max-width: 640px) {
-  .admin-page .dash-section { margin-bottom: 0.95rem; }
-  .admin-page .admin-dash-grid { gap: 0.5rem; }
-  .admin-page .stat-card { padding: 0.7rem 0.75rem; }
-  .admin-page .stat-value { font-size: 1.45rem; }
-  .admin-page .stat-chip { width: 30px; height: 30px; flex-basis: 30px; border-radius: 8px; }
-  .admin-page .stat-chip svg { width: 14px; height: 14px; }
-  .admin-page .dash-row { gap: 0.5rem; }
-  .admin-page .dash-panel { padding: 0.8rem; }
+  .admin-page .dash-section { margin-bottom: 0.75rem; }
+  .admin-page .admin-dash-grid { gap: 0.4rem; }
+  .admin-page .stat-card { padding: 0.45rem 0.6rem; }
+  .admin-page .stat-value { font-size: 1.2rem; }
+  .admin-page .stat-chip { width: 24px; height: 24px; flex-basis: 24px; border-radius: 7px; }
+  .admin-page .stat-chip svg { width: 13px; height: 13px; }
+  .admin-page .dash-row { gap: 0.45rem; }
+  .admin-page .dash-panel { padding: 0.55rem 0.65rem; }
+  .admin-page .dash-section-tools p { white-space: normal; }
+  .admin-page .dash-section-head { align-items: flex-start; }
 }
 /* Same two-column rule as the base grid, with the smaller refresh sizes. */
 @media (max-width: 400px) {
   .admin-page .admin-dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-page .stat-value { font-size: 1.35rem; }
-  .admin-page .stat-chip { width: 30px; height: 30px; flex-basis: 30px; }
-  .admin-page .stat-chip svg { width: 14px; height: 14px; }
-  .admin-page .stat-label { font-size: 0.62rem; }
+  .admin-page .stat-value { font-size: 1.15rem; }
+  .admin-page .stat-chip { width: 24px; height: 24px; flex-basis: 24px; }
+  .admin-page .stat-chip svg { width: 13px; height: 13px; }
+  .admin-page .stat-label { font-size: 0.58rem; }
   .admin-page .stat-sub { display: none; }
 }
 

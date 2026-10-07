@@ -82,7 +82,7 @@ export default function News() {
                 <Link to={`/news/${p.slug}`} className="card news-card" style={{ textDecoration: 'none' }}>
                 <div className="image-placeholder">
                   {p.featuredImage ? (
-                    <img src={p.featuredImage} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={p.featuredImage} alt={p.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <>
                       <Image size={32} />

@@ -174,6 +174,11 @@ function applyUrl(title) {
 
 function Hero() {
   const [active, setActive] = useState(0);
+  // The five hero photos total about 1.3 MB, and the browser downloads every
+  // background it is handed whether the slide is visible or not. A slide is
+  // therefore painted only once it is needed: the one on screen plus the one
+  // coming next, which the 6 second rotation gives plenty of time to fetch.
+  const [painted, setPainted] = useState(() => new Set([0, 1 % heroImages.length]));
 
   useEffect(() => {
     const timer = setInterval(
@@ -183,6 +188,15 @@ function Hero() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    setPainted((prev) => {
+      const next = new Set(prev);
+      next.add(active);
+      next.add((active + 1) % heroImages.length);
+      return next;
+    });
+  }, [active]);
+
   return (
     <section className="hero">
       <div className="hero-bg" aria-hidden="true">
@@ -190,7 +204,7 @@ function Hero() {
           <div
             key={img}
             className={`hero-bg-slide ${i === active ? "active" : ""}`}
-            style={{ backgroundImage: `url(${img})` }}
+            style={painted.has(i) ? { backgroundImage: `url(${img})` } : undefined}
           />
         ))}
       </div>

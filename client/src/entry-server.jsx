@@ -25,11 +25,13 @@ export {
 const routeNamesFor = (path) =>
   path === '/' ? [] : [path.replace(/^\//, '').replace(/\//g, '')];
 
-// Effects do not run on the server, so a component that fetches its data in
-// useEffect never resolves its Suspense boundary here and onAllReady would wait
-// forever. That is why PRERENDER_PATHS is limited to fully static pages, and the
-// timeout below exists so a future route that breaks that rule fails the build
-// loudly instead of hanging it.
+// Effects do not run on the server, so a component that suspends on data it
+// fetches in useEffect never resolves its Suspense boundary here and
+// onAllReady would wait forever. Pages that fetch that way but simply render a
+// loading state (News, Team, Contact, Apply) are fine: they do not suspend, so
+// they prerender that loading markup, whose job is to carry the page's own head
+// tags. The timeout below exists so a route that breaks the rule fails the
+// build loudly instead of hanging it.
 const RENDER_TIMEOUT_MS = 15000;
 
 export async function render(url) {

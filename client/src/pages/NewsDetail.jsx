@@ -51,8 +51,10 @@ export default function NewsDetail() {
               </div>
               {post.featuredImage && (
                 <img
-                  src={post.featuredImage}
-                  alt={post.title}
+                src={post.featuredImage}
+                alt={post.title}
+                loading="lazy"
+                decoding="async"
                   style={{ width: '100%', borderRadius: 'var(--radius-lg)', marginBottom: '2rem' }}
                 />
               )}

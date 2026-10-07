@@ -15,6 +15,10 @@
          is required for that since Chrome 108/112. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#ffffff" />
+    <!-- Google Search Console ownership check. The matching verification file
+         lives at public/google3143a134740cc9d9.html; either one satisfies the
+         check, both are kept so a change to one does not break verification. -->
+    <meta name="google-site-verification" content="google3143a134740cc9d9.html" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -45,7 +49,13 @@
     <!--/prerender:head-->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Only the weights the stylesheet actually uses (300 is never referenced).
+         Each extra weight is another font file the browser has to fetch. -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- The hero photo is the largest paint on the landing page, but React only
+         applies it after the JS runs. Preloading starts the download alongside
+         the CSS and JS instead of after them. -->
+    <link rel="preload" as="image" href="/hero-1.jpg" fetchpriority="high" />
   </head>
   <body>
     <div id="root"></div>

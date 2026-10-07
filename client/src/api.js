@@ -135,6 +135,13 @@ async function apiFetchRaw(path, options = {}) {
     // and used to be reported as "Cannot reach the server", which is both wrong
     // and the reason a superseded request's caller could not tell the difference.
     if (error?.name === 'AbortError' || rest.signal?.aborted) throw error;
+    // `onLine === false` is the one failure fetch swallows into a generic
+    // TypeError, so the caller gets a message that names the real cause instead
+    // of pointing at a server the user cannot currently see. The strict
+    // comparison matters: Node's global navigator has no onLine property at all.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new Error('You are offline. Reconnect to load live data - pages you have already opened still work.');
+    }
     throw new Error('Cannot reach the server. Check your connection and try again.');
   }
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   MessageSquare, Users, FileText, Calendar, ClipboardList,
   ArrowUpRight, PlusCircle, ArrowRight, Inbox, GraduationCap, Star, UserCog,
-  CheckCircle2, AlertCircle,
+  CheckCircle2, AlertCircle, AlertTriangle, Activity, RefreshCw, ChevronRight, Zap,
 } from 'lucide-react';
 import apiFetch from '../../api';
 import { useToast } from '../../components/Toast';
@@ -89,32 +89,34 @@ function StatTile({ card, stats, variant }) {
   const part = card.meter ? stats[card.meter] ?? 0 : 0;
   const pct = total > 0 ? Math.round((part / total) * 100) : 0;
   const of = card.ofKey ? stats[card.ofKey] ?? 0 : null;
+  const unit = variant === 'attention' ? (card.ofLabel || '') : (card.subLabel || '');
 
   return (
     <Link
       to={card.to}
       className={`stat-card stat-chip-${card.iconBg}${variant === 'attention' ? ' stat-card-attention' : ''}`}
+      aria-label={`${card.label}: ${total}${unit ? ` ${unit}` : ''}. Open ${card.action || 'details'}`}
     >
       <div className="stat-head">
         <span className="stat-label">{card.label}</span>
         <span className={`stat-chip stat-chip-${card.iconBg}`}>{card.icon}</span>
       </div>
       <div className="stat-value">{total}</div>
-      {variant === 'attention' ? (
-        of !== null && <div className="stat-sub">{of} <span className="stat-sub-label">{card.ofLabel}</span></div>
-      ) : (
-        card.sub && (
-          <div className="stat-sub">
-            {stats[card.sub] ?? 0} <span className="stat-sub-label">{card.subLabel}</span>
-          </div>
-        )
-      )}
       {card.meter && (
         <div className={`stat-meter stat-meter-${card.iconBg}`} title={`${pct}% ${card.meterNote}`}>
           <i style={{ width: `${pct}%` }} />
         </div>
       )}
-      <div className="stat-footer">
+      <div className="stat-meta">
+        {variant === 'attention' ? (
+          of !== null && <span className="stat-sub">{of} <span className="stat-sub-label">{card.ofLabel}</span></span>
+        ) : (
+          card.sub && (
+            <span className="stat-sub">
+              {stats[card.sub] ?? 0} <span className="stat-sub-label">{card.subLabel}</span>
+            </span>
+          )
+        )}
         <span className="stat-view">
           {card.action || 'View'} <ArrowUpRight size={11} />
         </span>
@@ -128,34 +130,72 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState('');
   const [failed, setFailed] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  // `silent` re-reads the counts without unmounting the dashboard, so a manual
+  // refresh never wipes the screen back to a loading spinner.
+  const load = (silent = false) => {
+    if (!silent) setLoading(true);
+    setRefreshing(true);
     setFailed(false);
     apiFetch('/stats')
       .then((d) => {
         const { recentApplications, ...counts } = d || {};
         setStats(counts);
         setRecent(Array.isArray(recentApplications) ? recentApplications : []);
+        setUpdatedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+        if (silent) toast.success('Counts refreshed.');
       })
       .catch((err) => {
-        setFailed(true);
-        setStats(null);
-        toast.error(err.message || 'Failed to load dashboard statistics.');
+        const message = err.message || 'Failed to load dashboard statistics.';
+        if (silent) {
+          toast.error(message);
+        } else {
+          setFailed(true);
+          setStats(null);
+          toast.error(message);
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  if (loading) return <div className="loading"><div className="spinner" />Loading dashboard...</div>;
+  if (loading) {
+    return (
+      <div className="admin-dash admin-page" aria-busy="true">
+        <div className="skel-block skel-head" />
+        <div className="admin-dash-grid">
+          {[0, 1, 2, 3].map((i) => <div key={`a-${i}`} className="skel-block skel-card" />)}
+        </div>
+        <div className="skel-block skel-head" />
+        <div className="admin-dash-grid">
+          {[0, 1, 2, 3, 4].map((i) => <div key={`o-${i}`} className="skel-block skel-card" />)}
+        </div>
+        <div className="dash-row">
+          <div className="skel-block skel-panel" />
+          <div className="skel-block skel-panel" />
+        </div>
+      </div>
+    );
+  }
 
   if (failed || !stats) {
     return (
-      <div className="alert alert-error">
-        Statistics could not be loaded.{' '}
-        <button className="btn btn-outline btn-xs" onClick={load}>Retry</button>
+      <div className="admin-dash admin-page">
+        <div className="dash-error" role="alert">
+          <span className="dash-error-icon"><AlertTriangle size={17} /></span>
+          <div>
+            <b>Statistics could not be loaded.</b>
+            <p>The dashboard counts are unavailable right now. Check your connection and try again.</p>
+            <button className="btn btn-outline btn-xs" onClick={() => load()}>Retry</button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -169,9 +209,12 @@ export default function Dashboard() {
         <section className="dash-section">
           <div className="dash-section-head">
             <h2 className="is-attention">
-              <AlertCircle size={15} /> Needs attention
+              <span className="dash-head-icon"><AlertCircle size={13} /></span>
+              Needs attention
             </h2>
-            <p>{queueTotal} item{queueTotal === 1 ? '' : 's'} outstanding across {outstanding.length} queue{outstanding.length === 1 ? '' : 's'}</p>
+            <span className="dash-count-pill">
+              {queueTotal} item{queueTotal === 1 ? '' : 's'} &middot; {outstanding.length} queue{outstanding.length === 1 ? '' : 's'}
+            </span>
           </div>
           <div className="admin-dash-grid">
             {outstanding.map((card) => (
@@ -181,15 +224,31 @@ export default function Dashboard() {
         </section>
       ) : (
         <div className="dash-clear">
-          <CheckCircle2 size={17} />
+          <span className="dash-clear-icon"><CheckCircle2 size={16} /></span>
           <p><b>Nothing waiting.</b> No applications, messages or testimonials need a decision right now.</p>
         </div>
       )}
 
       <section className="dash-section">
         <div className="dash-section-head">
-          <h2>At a glance</h2>
-          <p>Live from the database &middot; {today}</p>
+          <h2>
+            <span className="dash-head-icon"><Activity size={13} /></span>
+            At a glance
+          </h2>
+          <div className="dash-section-tools">
+            <p>
+              Live from the database &middot; {today}
+              {updatedAt && <> &middot; {updatedAt}</>}
+            </p>
+            <button
+              type="button"
+              className={`dash-refresh${refreshing ? ' is-busy' : ''}`}
+              onClick={() => load(true)}
+              disabled={refreshing}
+            >
+              <RefreshCw size={11} /> {refreshing ? 'Refreshing' : 'Refresh'}
+            </button>
+          </div>
         </div>
         <div className="admin-dash-grid">
           {overviewCards.map((card) => (
@@ -202,7 +261,8 @@ export default function Dashboard() {
         <div className="dash-panel">
           <div className="dash-panel-head">
             <h3>
-              <Inbox size={17} /> Latest Applications
+              <span className="dash-panel-icon"><Inbox size={14} /></span>
+              Latest Applications
               {recent.length > 0 && <span className="dash-pill">{recent.length} recent</span>}
             </h3>
             <Link to="/admin/applications" className="dash-panel-link">
@@ -219,7 +279,12 @@ export default function Dashboard() {
               {recent.map((a) => {
                 const s = statusMap[a.status] || statusMap.pending;
                 return (
-                  <Link key={a._id} to={`/admin/applications`} className="dash-list-item">
+                  <Link
+                    key={a._id}
+                    to="/admin/applications"
+                    className="dash-list-item"
+                    title={`${a.name} · ${s.label}`}
+                  >
                     <div className="dash-av mini">{((a.name || 'A')[0]).toUpperCase()}</div>
                     <div className="dash-list-meta">
                       <p>{a.name} <span className="dash-program">{a.program}</span></p>
@@ -229,6 +294,7 @@ export default function Dashboard() {
                       className="dash-status"
                       style={{ color: s.color, background: s.tone }}
                     >{s.label}</span>
+                    <ChevronRight size={14} className="dash-row-chev" />
                   </Link>
                 );
               })}
@@ -238,7 +304,10 @@ export default function Dashboard() {
 
         <div className="dash-panel quick-panel">
           <div className="dash-panel-head">
-            <h3>Quick Actions</h3>
+            <h3>
+              <span className="dash-panel-icon"><Zap size={14} /></span>
+              Quick Actions
+            </h3>
           </div>
           <div className="dash-actions">
             {quickActions.map((a) => (
@@ -250,7 +319,7 @@ export default function Dashboard() {
             ))}
           </div>
           <p className="dash-tip">
-            <MessageSquare size={11} /> Counts refresh each time this page loads.
+            <MessageSquare size={11} /> Counts refresh on load, or use Refresh above.
           </p>
         </div>
       </div>

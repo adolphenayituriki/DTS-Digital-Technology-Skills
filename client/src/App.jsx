@@ -8,6 +8,8 @@ import RouteFallback from './components/RouteFallback';
 import MetaManager from './components/MetaManager';
 import BusyIndicator from './components/BusyIndicator';
 import MobileTabBar from './components/MobileTabBar';
+import OfflineBanner from './components/OfflineBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import RequireRole from './RequireRole';
 import Home from './pages/Home';
 
@@ -62,10 +64,16 @@ export function AppShell() {
       <MetaManager />
       <ScrollToTop />
       <BusyIndicator />
+      {/* In normal flow above every shell, so the offline message shows on
+          admin, staff and public pages alike without covering the navbar. */}
+      <OfflineBanner />
       {/* Every page below is code-split, so a single boundary here keeps a
           slow chunk from throwing "no fallback UI was specified" on the
-          role-gated dashboards, which render outside the public shell. */}
-      <Suspense fallback={<div className="loading"><div className="spinner" />Loading...</div>}>
+          role-gated dashboards, which render outside the public shell. It also
+          turns a chunk that fails to download (the offline case) into a
+          message instead of a white screen. */}
+      <ErrorBoundary>
+        <Suspense fallback={<div className="loading"><div className="spinner" />Loading...</div>}>
       <Routes>
         <Route
           path="/admin"
@@ -180,6 +188,7 @@ export function AppShell() {
         />
 </Routes>
       </Suspense>
+      </ErrorBoundary>
     </>
   );
 }

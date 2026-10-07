@@ -120,8 +120,7 @@ Disallow: /api/
 
 # /apply is deliberately NOT disallowed. It is a public conversion page - it needs
 # no login - and it is listed in sitemap.xml alongside /team, /news and /contact,
-# which are likewise public and likewise not prerendered. Listing a URL in the
-# sitemap while also disallowing it is a contradiction: crawlers drop the sitemap
+# which are likewise public. Listing a URL in the sitemap while also disallowing it is a contradiction: crawlers drop the sitemap
 # entry and treat the disallow as authoritative. The robots file now matches what
 # the sitemap already said.
 
