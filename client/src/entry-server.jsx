@@ -19,11 +19,17 @@ export {
   organizationJsonLd,
 } from './seo';
 
-// Mirrors the route table: / renders the eagerly-imported Home, every other
-// prerendered path maps to its page component's registered lazy name.
-// preloadRoutes ignores names it does not know, so an unmapped path is harmless.
+// Mirrors the route table: / renders the eagerly-imported Home, and every other
+// prerendered path maps to its page component's registered lazy name. The auth
+// screens are the exception - /login and /signup are one chunk registered as
+// 'auth', so both map to it. preloadRoutes ignores names it does not know, so
+// an unmapped path is harmless (it simply hits the prerender timeout below).
+const CHUNK_NAME = { '/login': 'auth', '/signup': 'auth' };
+
 const routeNamesFor = (path) =>
-  path === '/' ? [] : [path.replace(/^\//, '').replace(/\//g, '')];
+  path === '/'
+    ? []
+    : [CHUNK_NAME[path] || path.replace(/^\//, '').replace(/\//g, '')];
 
 // Effects do not run on the server, so a component that suspends on data it
 // fetches in useEffect never resolves its Suspense boundary here and

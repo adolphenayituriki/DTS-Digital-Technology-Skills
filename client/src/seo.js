@@ -159,7 +159,15 @@ const INTERNAL_TITLES = {
 //
 // /apply must not be Disallowed in robots.txt: it is public, and a URL that
 // the sitemap advertises while robots.txt blocks is a contradiction.
-export const PRERENDER_PATHS = ROUTES.map((route) => route.path);
+//
+// The two auth screens are prerendered as unlisted pages. They are not in
+// ROUTES, so they never reach the sitemap, and metaFor marks them noindex.
+// Without a static file the SPA fallback answered /login with the homepage's
+// markup, so a visitor watched the homepage turn into the login form after the
+// bundle loaded; now the form is in the served HTML itself.
+export const AUTH_PATHS = ['/login', '/signup'];
+
+export const PRERENDER_PATHS = [...ROUTES.map((route) => route.path), ...AUTH_PATHS];
 
 const byPath = new Map(ROUTES.map((route) => [route.path, route]));
 
@@ -182,6 +190,15 @@ export const canonicalFor = (pathname) => `${SITE_ORIGIN}${pathname.replace(/\/+
 // aspect ratio and crop the preview.
 const OG_IMAGE = `${SITE_ORIGIN}/og-dts-team-activity.jpg`;
 
+// Descriptions for the auth screens, which live outside ROUTES: a login page
+// should not describe the company, it should say what logging in gets you.
+const AUTH_DESCRIPTIONS = {
+  '/login':
+    'Log in to your DTS Rwanda account to track your applications, your training and messages from the team.',
+  '/signup':
+    'Create a DTS Rwanda account to apply for an open intake and follow your application from submission to admission.',
+};
+
 export const metaFor = (pathname) => {
   const route = matchRoute(pathname);
   const clean = pathname.replace(/\/+$/, '') || '/';
@@ -189,6 +206,7 @@ export const metaFor = (pathname) => {
   // A news detail page has no entry of its own, but it inherits the section's
   // description and canonical shape rather than dropping to the site default.
   const isDetail = clean.startsWith('/news/');
+  const isAuth = AUTH_PATHS.includes(clean);
 
   let title;
   if (isDetail) title = `News | ${TITLE_SUFFIX}`;
@@ -197,11 +215,16 @@ export const metaFor = (pathname) => {
 
   return {
     title,
-    description: (route && route.description) || DEFAULT_DESCRIPTION,
+    description:
+      (route && route.description) || AUTH_DESCRIPTIONS[clean] || DEFAULT_DESCRIPTION,
     canonical: canonicalFor(clean),
-    ogType: route ? 'website' : 'article',
+    // Only news articles are articles. Everything else - including the auth
+    // screens and the workspace tabs - is a plain web page.
+    ogType: isDetail ? 'article' : 'website',
     ogImage: OG_IMAGE,
-    noindex: Boolean(route && route.noindex),
+    // Auth screens are also Disallowed in robots.txt; the meta tag says the
+    // same thing for any crawler that reaches them anyway.
+    noindex: Boolean((route && route.noindex) || isAuth),
   };
 };
 
