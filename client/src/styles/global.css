@@ -268,6 +268,24 @@ input, textarea, select { font-family: inherit; }
 .navbar-dropdown-empty { padding: 1.1rem 0.6rem; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
 .btn.navbar-cta-desktop { border-radius: 8px; padding: 0.55rem 1.3rem; }
+.navbar-profile-wrap { position: relative; }
+.navbar-profile-menu {
+  position: absolute; right: 0; top: calc(100% + 8px);
+  min-width: 180px; background: var(--surface, #fff);
+  border: 1px solid #e5e7eb; border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.12); padding: 6px;
+  display: flex; flex-direction: column; gap: 2px; z-index: 200;
+}
+.navbar-profile-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.55rem 0.75rem; border: none; background: none;
+  border-radius: 8px; color: var(--text); font-size: 0.88rem;
+  cursor: pointer; text-decoration: none; width: 100%; text-align: left;
+}
+.navbar-profile-item:hover { background: #f0f7fb; color: var(--primary); }
+@media (max-width: 900px) {
+  .navbar-profile-wrap { display: none; }
+}
 .admin-icon {
   width: 34px; height: 34px; border-radius: 50%;
   border: 1.5px solid #d1d5db; display: flex; align-items: center; justify-content: center;
@@ -276,7 +294,7 @@ input, textarea, select { font-family: inherit; }
 .admin-icon:hover { border-color: var(--primary); color: var(--primary); background: #f0f7fb; }
 /* The avatar fills the whole round button, so drop the button's own border and
    padding - otherwise the circle sits inside a circle. */
-.admin-icon.navbar-avatar { border-color: transparent; padding: 0; background: none; overflow: hidden; }
+.admin-icon.navbar-avatar { border: 2px solid var(--primary, #2563eb); padding: 0; background: none; overflow: hidden; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
 .admin-icon.navbar-avatar:hover { background: none; border-color: transparent; box-shadow: 0 0 0 2px var(--primary); }
 .hamburger {
   display: none; background: none; border: none; padding: 0.45rem; border-radius: 8px;

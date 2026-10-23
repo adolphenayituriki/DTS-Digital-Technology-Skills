@@ -42,7 +42,7 @@ export default function NewsDetail() {
                 {post.author && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <User size={16} />
-                    {post.author}
+                    {post.author?.name || post.author}
                   </span>
                 )}
                 {post.category && (

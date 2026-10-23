@@ -22,6 +22,7 @@ const pageItems = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
   const [q, setQ] = useState('');
@@ -90,7 +91,14 @@ export default function Navbar() {
   }, []);
 
   // Following a link should never leave the overlay hanging open.
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!profileOpen) return undefined;
+    const onDoc = (e) => {
+      if (!e.target.closest('.navbar-profile-wrap')) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [profileOpen]);
 
   // The bottom tab bar's Menu tab opens this same overlay. A DOM event keeps
   // the tab bar free of any state it would otherwise have to lift out of the
@@ -375,31 +383,30 @@ export default function Navbar() {
             {!ready ? (
               <span className="navbar-auth-pending" aria-hidden="true" />
             ) : isLoggedIn ? (
-              <>
-                <Link
-                  to={user?.mustChangePassword ? '/account' : workspace}
-                  className="admin-icon"
-                  aria-label={workspaceLabel}
-                  title={workspaceLabel}
-                >
-                  <LayoutDashboard size={16} />
-                </Link>
-                {/* The avatar is the one control every signed-in user already
-                    looks at, so an outstanding password change is surfaced
-                    here rather than hidden inside the profile page. */}
-                <Link
-                  to="/account"
+              <div className="navbar-profile-wrap">
+                <button
                   className={`admin-icon navbar-avatar${user?.mustChangePassword ? ' is-alert' : ''}`}
-                  aria-label={user?.mustChangePassword ? 'Change your password' : 'My Profile'}
-                  title={user?.mustChangePassword ? 'Change your temporary password' : `My Profile${user?.name ? ` — ${user.name}` : ''}`}
+                  onClick={() => setProfileOpen((v) => !v)}
+                  aria-label="Profile menu"
+                  aria-expanded={profileOpen}
                 >
                   <Avatar size="sm" name={user?.name || user?.email} src={user?.photo} eager />
                   {user?.mustChangePassword && <span className="navbar-avatar-alert" aria-hidden="true" />}
-                </Link>
-                <button className="admin-icon" onClick={handleLogout} aria-label="Logout" title="Logout">
-                  <LogOut size={16} />
                 </button>
-              </>
+                {profileOpen && (
+                  <div className="navbar-profile-menu">
+                    <Link to={user?.mustChangePassword ? '/account' : workspace} onClick={() => setProfileOpen(false)} className="navbar-profile-item">
+                      <LayoutDashboard size={15} /> {workspaceLabel}
+                    </Link>
+                    <Link to="/account" onClick={() => setProfileOpen(false)} className="navbar-profile-item">
+                      <User size={15} /> My Profile
+                    </Link>
+                    <button onClick={() => { setProfileOpen(false); handleLogout(); }} className="navbar-profile-item">
+                      <LogOut size={15} /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link to="/login" className="btn btn-outline btn-sm navbar-login-desktop">
                 Log In

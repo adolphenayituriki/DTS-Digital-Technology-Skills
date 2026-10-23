@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Banknote, CreditCard, Receipt, TrendingDown, Users } from 'lucide-react';
 import apiFetch, { onFinanceRefresh } from '../api';
@@ -10,12 +11,16 @@ export default function FinanceDashboard() {
   const toast = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState(null);
+
+  const [selectedMonth, setSelectedMonth] = useState('all');
 
   const loadData = () => {
     apiFetch('/finance/dashboard')
       .then(setData)
       .catch((error) => toast.error(error.message || 'Failed to load finance dashboard.'))
       .finally(() => setLoading(false));
+    apiFetch('/finance/reports/monthly').then(setReport).catch(() => {});
   };
 
   useEffect(() => {
@@ -87,6 +92,41 @@ export default function FinanceDashboard() {
           <div className="readiness-list"><div><span>Other income</span><strong>{money(data.otherIncome)}</strong></div><div><span>Expenses</span><strong>{money(data.expenses)}</strong></div><div><span>Recent records</span><strong>{data.recentTransactions?.length || 0}</strong></div></div>
           <Link to="/finance/records" className="btn btn-outline btn-sm workspace-full-button"><Receipt size={14} /> Open ledger</Link>
         </div>
+      </div>
+      <div className="dash-panel">
+        <div className="dash-panel-head"><h3>Monthly report</h3>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+              <option value="all">All months</option>
+              {(report?.rows || []).map(r => <option key={r.month} value={r.month}>{r.month}</option>)}
+            </select>
+            <button className="btn btn-outline btn-sm" onClick={() => {
+              const rows = (report?.rows || []).filter(r => selectedMonth === 'all' || r.month === selectedMonth);
+              const wsData = [['Month','Fee income','Other income','Expenses','Net']];
+              rows.forEach(r => wsData.push([r.month, r.income, r.otherIncome, r.expenses, null]));
+              const ws = XLSX.utils.aoa_to_sheet(wsData);
+              rows.forEach((r, i) => {
+                const row = i + 2;
+                ws[`E${row}`] = { t: 'n', f: `B${row}+C${row}-D${row}` };
+              });
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, 'Monthly Report');
+              XLSX.writeFile(wb, selectedMonth === 'all' ? 'monthly-report.xlsx' : `monthly-report-${selectedMonth}.xlsx`);
+            }}>Export XLSX</button>
+          </div>
+        </div>
+        <div className="table-scroll"><table className="admin-table compact-table"><thead><tr><th>Month</th><th>Fee income</th><th>Other income</th><th>Expenses</th><th>Net</th></tr></thead><tbody>
+          {(report?.rows || []).filter(r => selectedMonth === 'all' || r.month === selectedMonth).map((r) => (
+            <tr key={r.month}>
+              <td>{r.month}</td>
+              <td>{money(r.income)}</td>
+              <td>{money(r.otherIncome)}</td>
+              <td>{money(r.expenses)}</td>
+              <td className={r.net >= 0 ? 'text-success' : 'text-danger'}>{money(r.net)}</td>
+            </tr>
+          ))}
+          {!report?.rows?.length && <tr><td colSpan={5} className="table-empty">No transactions yet.</td></tr>}
+        </tbody></table></div>
       </div>
     </div>
   );

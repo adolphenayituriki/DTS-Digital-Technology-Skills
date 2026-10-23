@@ -475,4 +475,36 @@ router.post("/students/send-balance-bulk", async (req, res) => {
   }
 });
 
+router.get("/reports/monthly", async (req, res) => {
+  try {
+    const transactions = await FinanceTransaction.find({ status: "completed" }).lean();
+    const payments = await FinanceTransaction.find({ kind: "payment", status: "completed" }).lean();
+    const byMonth = new Map();
+    const keyOf = (date) => {
+      const d = new Date(date);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    };
+    transactions.forEach((t) => {
+      const key = keyOf(t.occurredAt);
+      const row = byMonth.get(key) || { month: key, income: 0, otherIncome: 0, expenses: 0, payments: 0 };
+      if (t.kind === "expense") row.expenses += Number(t.amount || 0);
+      else if (t.kind === "income") row.otherIncome += Number(t.amount || 0);
+      byMonth.set(key, row);
+    });
+    payments.forEach((p) => {
+      const key = keyOf(p.occurredAt);
+      const row = byMonth.get(key) || { month: key, income: 0, otherIncome: 0, expenses: 0, payments: 0 };
+      row.payments += Number(p.amount || 0);
+      row.income += Number(p.amount || 0);
+      byMonth.set(key, row);
+    });
+    const rows = [...byMonth.values()]
+      .map((r) => ({ ...r, net: r.income + r.otherIncome - r.expenses }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+    res.json({ rows });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
