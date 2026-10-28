@@ -586,9 +586,11 @@ export default function Apply() {
                   ? "Full"
                   : deadlinePassed
                     ? "Closed"
-                    : intake.status === "open"
-                      ? "Open"
-                      : "Closed";
+                    : intake.status === "coming-soon"
+                      ? "Coming Soon"
+                      : intake.status === "open"
+                        ? "Open"
+                        : "Closed";
                 return (
                   <FadeIn key={intake._id}>
                     <div

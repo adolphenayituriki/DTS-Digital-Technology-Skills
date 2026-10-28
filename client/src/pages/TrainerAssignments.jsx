@@ -224,7 +224,7 @@ export default function TrainerAssignments() {
           <Users size={17} />
           <p>
             No trainer accounts exist yet. Create one with the <b>Trainer</b> role on{' '}
-            <Link to="/admin/users">User Access</Link> first — only trainer accounts can be assigned.
+            <Link to="/admin/users">User Access</Link> first, only trainer accounts can be assigned.
           </p>
         </div>
       )}

@@ -135,7 +135,7 @@ router.post(
     const email = normalizeEmail(rawEmail);
     const intake = await Intake.findById(intakeId);
     if (!intake) return fail(404, "Intake not found");
-    if (intake.status === "closed") {
+    if (intake.status === "closed" || intake.status === "coming-soon") {
       return fail(400, "This intake is no longer accepting applications");
     }
     if (intake.deadline && new Date(intake.deadline) < new Date()) {

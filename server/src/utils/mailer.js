@@ -18,7 +18,7 @@ const siteUrl = () =>
 // BREVO_LOGO_URL is checked first so an email host can override the logo with a
 // CDN or inline attachment. Otherwise the logo is served from the public site,
 // which email clients can actually reach (localhost would break in most inboxes).
-const getLogoUrl = () => process.env.BREVO_LOGO_URL || `${siteUrl()}/Logo.png`;;
+const getLogoUrl = () => process.env.BREVO_LOGO_URL || `https://dtsrw.vercel.app/Logo.png`;;
 
 export async function getAdminEmails() {
   const emails = new Set();

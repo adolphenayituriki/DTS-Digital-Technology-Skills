@@ -38,7 +38,7 @@ const intakeSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["open", "closed", "full"],
+    enum: ["open", "closed", "full", "coming-soon"],
     default: "open",
   },
   tuitionFee: {

@@ -204,9 +204,10 @@ export default function IntakesAdmin() {
               <div className="form-group">
                 <label>Status</label>
                 <select name="status" className="form-control" value={form.status} onChange={handleChange}>
-                  <option value="open">Open</option>
-                  <option value="closed">Closed</option>
-                  <option value="full">Full</option>
+<option value="open">Open</option>
+                   <option value="coming-soon">Coming Soon</option>
+                   <option value="closed">Closed</option>
+                   <option value="full">Full</option>
                 </select>
               </div>
             </div>
@@ -249,7 +250,7 @@ export default function IntakesAdmin() {
               <td>
                 <span style={{
                   fontSize: '0.8rem', fontWeight: 600, textTransform: 'capitalize',
-                  color: item.status === 'open' ? 'var(--success)' : item.status === 'full' ? 'var(--warning)' : 'var(--text-light)',
+                  color: item.status === 'open' ? 'var(--success)' : item.status === 'full' ? 'var(--warning)' : item.status === 'coming-soon' ? 'var(--info, #2563eb)' : 'var(--text-light)',
                 }}>
                   {item.status}
                 </span>
