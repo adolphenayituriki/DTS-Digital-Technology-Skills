@@ -17,7 +17,7 @@ export const EARLY_PAYMENT_NOTICE = {
     'This is not an extra fee. The 2,000 RWF is taken off the certificate fee you pay later, so you only pay what is left. You never pay it twice.',
   certificateFeeExample: 'For example, if the certificate fee were 6,000 RWF, you would pay 6,000 − 2,000 = 4,000 RWF now.',
   action:
-    'Bring or send your 2,000 RWF to the DTS office at UR-Huye Campus, or pay by mobile money to +250 788 300 300 (MTN), Kamugisha Elizabeth.',
+    'Bring or send your 2,000 RWF to the DTS office at UR-Huye Campus, or pay by mobile money to +250 790 741 531 (MTN), Kamugisha Elizabeth.',
 };
 
 // One line each, for the confirmation dialog. Mirrors
@@ -25,5 +25,5 @@ export const EARLY_PAYMENT_NOTICE = {
 export const EARLY_PAYMENT_NOTICE_COMPACT = {
   detail: 'Not an extra fee, it comes off your certificate fee later.',
   certificateFeeExample: 'Fee 6,000 → you pay 6,000 − 2,000 = 4,000 now.',
-  action: 'Pay at the DTS finance, or MTN +250 788 300 300 (Kamugisha Elizabeth).',
+  action: 'Pay at the DTS finance, or MTN +250 790 741 531 (Kamugisha Elizabeth).',
 };
