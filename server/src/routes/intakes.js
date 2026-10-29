@@ -39,7 +39,7 @@ const withEnrollment = async (intakes) => {
 
 router.get("/", async (req, res) => {
   try {
-    const intakes = await Intake.find({ status: "open" }).select("-tuitionFee -currency").sort({ deadline: 1 });
+    const intakes = await Intake.find({ status: { $in: ["open", "coming-soon"] } }).select("-tuitionFee -currency").sort({ deadline: 1 });
     res.json(await withEnrollment(intakes));
   } catch (error) {
     res.status(500).json({ message: error.message });
