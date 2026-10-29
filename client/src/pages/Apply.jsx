@@ -659,7 +659,7 @@ export default function Apply() {
                               </span>
                             </span>
                           )}
-                          {intake.deadline && (
+                          {intake.deadline && intake.status !== "coming-soon" && (
                             <span className="intake-meta-item">
                               <Clock size={15} />
                               <span>
