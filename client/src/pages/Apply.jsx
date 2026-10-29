@@ -700,7 +700,7 @@ export default function Apply() {
                         ) : (
                           <button className="btn intake-btn" disabled>
                             <XCircle size={15} />{" "}
-                            {full ? "Capacity Full" : "Applications Closed"}
+                            {full ? "Capacity Full" : intake.status === "coming-soon" ? "Coming Soon" : "Applications Closed"}
                           </button>
                         )}
                       </div>
