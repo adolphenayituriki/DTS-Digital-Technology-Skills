@@ -35,7 +35,7 @@ title: "Pay 1,000 RWF early",
 // constants, so the two can never disagree.
 export const EARLY_PAYMENT_NOTICE_COMPACT = {
   detail: "Not an extra fee, it comes off your certificate fee later.",
-  certificateFeeExample: "Fee 6,000 → you pay 6,000 − 2,000 = 4,000 now.",
+  certificateFeeExample: "Fee 6,000 → you pay 6,000 − 1,000 = 5,000 now.",
   action:
     "Pay at the DTS finance, or MTN +250 790 741 531 (Kamugisha Elizabeth).",
 };
