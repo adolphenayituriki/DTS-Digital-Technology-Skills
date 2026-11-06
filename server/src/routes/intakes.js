@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
+import Application from "../models/Application.js";
 import TrainerAssignment from "../models/TrainerAssignment.js";
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
@@ -29,7 +30,7 @@ const EDITABLE = [
 ];
 
 const withEnrollment = async (intakes) => {
-  const counts = await Student.aggregate([
+  const counts = await Application.aggregate([
     { $group: { _id: "$intakeId", count: { $sum: 1 } } },
   ]);
   const map = new Map(counts.map((r) => [String(r._id), r.count]));
