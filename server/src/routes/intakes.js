@@ -30,7 +30,6 @@ const EDITABLE = [
 
 const withEnrollment = async (intakes) => {
   const counts = await Student.aggregate([
-    { $match: { status: "active" } },
     { $group: { _id: "$intakeId", count: { $sum: 1 } } },
   ]);
   const map = new Map(counts.map((r) => [String(r._id), r.count]));
