@@ -18,14 +18,14 @@ export const EARLY_PAYMENT_CURRENCY = "RWF";
 export const EARLY_PAYMENT_NOTICE = {
   amount: EARLY_PAYMENT_AMOUNT,
   currency: EARLY_PAYMENT_CURRENCY,
-  title: "Pay 2,000 RWF early",
-  summary: `Pay ${EARLY_PAYMENT_AMOUNT.toLocaleString("en-US")} ${EARLY_PAYMENT_CURRENCY} early to secure your place.`,
-  detail:
-    "This is not an extra fee. The 2,000 RWF is taken off the certificate fee you pay later, so you only pay what is left. You never pay it twice.",
-  certificateFeeExample:
-    "For example, if the certificate fee were 6,000 RWF, you would pay 6,000 − 2,000 = 4,000 RWF now.",
-  action:
-    "Bring or send your 2,000 RWF to the DTS office at UR-Huye Campus, or pay by mobile money to +250 790 741 531 (MTN), Kamugisha Elizabeth.",
+title: "Pay 1,000 RWF early",
+    summary: `Pay ${EARLY_PAYMENT_AMOUNT.toLocaleString("en-US")} ${EARLY_PAYMENT_CURRENCY} early to secure your place.`,
+    detail:
+      "This is not an extra fee. The 1,000 RWF is taken off the certificate fee you pay later, so you only pay what is left. You never pay it twice.",
+    certificateFeeExample:
+      "For example, if the certificate fee were 6,000 RWF, you would pay 6,000 − 1,000 = 5,000 RWF now.",
+    action:
+      "Bring or send your 1,000 RWF to the DTS office at UR-Huye Campus, or pay by mobile money to +250 790 741 531 (MTN), Kamugisha Elizabeth.",
 };
 
 // The same facts in one line each. The confirmation dialog sits on top of the
@@ -37,7 +37,7 @@ export const EARLY_PAYMENT_NOTICE_COMPACT = {
   detail: "Not an extra fee, it comes off your certificate fee later.",
   certificateFeeExample: "Fee 6,000 → you pay 6,000 − 2,000 = 4,000 now.",
   action:
-    "Pay at the DTS finance, or MTN +250 788 300 300 (Kamugisha Elizabeth).",
+    "Pay at the DTS finance, or MTN +250 790 741 531 (Kamugisha Elizabeth).",
 };
 
 // The compact lines ride along under short* keys rather than replacing the long
