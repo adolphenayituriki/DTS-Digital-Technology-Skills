@@ -2,7 +2,7 @@
 // to POST /api/applications, so this is the offline default the notice card
 // falls back to if that response is from an older build.
 
-export const EARLY_PAYMENT_AMOUNT = 2000;
+export const EARLY_PAYMENT_AMOUNT = 1000;
 export const EARLY_PAYMENT_CURRENCY = 'RWF';
 
 // Keep in step with server/src/utils/fees.js word for word: the applicant

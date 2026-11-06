@@ -2,7 +2,7 @@
 // so the notice the applicant reads on screen, the amount in the confirmation
 // email and anything staff quote later can never disagree.
 
-export const EARLY_PAYMENT_AMOUNT = 2000;
+export const EARLY_PAYMENT_AMOUNT = 1000;
 export const EARLY_PAYMENT_CURRENCY = "RWF";
 
 // What the 2,000 RWF actually is: money paid now that comes off the
