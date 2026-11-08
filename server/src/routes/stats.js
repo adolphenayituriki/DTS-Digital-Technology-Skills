@@ -3,7 +3,6 @@ import auth from "../middleware/auth.js";
 import requireRole from "../middleware/roles.js";
 import Application from "../models/Application.js";
 import Attendance from "../models/Attendance.js";
-import FinanceTransaction from "../models/FinanceTransaction.js";
 import Intake from "../models/Intake.js";
 import Member from "../models/Member.js";
 import Message from "../models/Message.js";
@@ -150,103 +149,6 @@ router.get("/students", async (req, res) => {
         (acc, row) => ({ ...acc, [row._id || "unknown"]: row.count }),
         {}
       ),
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Read-only finance rollup for the secretary's office overview.
-//
-// The secretary has no access to /finance (that area is finance/admin only),
-// but the office still needs the headline money picture and something it can
-// export as a report. This endpoint mirrors the shape of the finance dashboard
-// while remaining strictly read-only, and is guarded by the same
-// admin/secretary role check the rest of this router uses.
-router.get("/finance", async (req, res) => {
-  try {
-    const [intakes, students, transactions] = await Promise.all([
-      Intake.find().select("title program tuitionFee currency createdAt").sort({ createdAt: -1 }).lean(),
-      Student.find().select("_id intakeId status").lean(),
-      FinanceTransaction.find({ status: "completed" })
-        .select("kind amount currency intakeId occurredAt")
-        .lean(),
-    ]);
-
-    const intakeMap = new Map(intakes.map((intake) => [String(intake._id), intake]));
-    const sum = (items, getter) => items.reduce((total, item) => total + Number(getter(item) || 0), 0);
-
-    // Expected fees come from the students actually enrolled per intake, so an
-    // intake with no students contributes nothing to the target even if it has
-    // a fee configured.
-    const studentCounts = new Map();
-    students.forEach((student) => {
-      const key = String(student.intakeId || "");
-      studentCounts.set(key, (studentCounts.get(key) || 0) + 1);
-    });
-
-    const payments = transactions.filter((t) => t.kind === "payment");
-    const paidByIntake = new Map();
-    payments.forEach((payment) => {
-      const key = String(payment.intakeId || "");
-      paidByIntake.set(key, (paidByIntake.get(key) || 0) + Number(payment.amount || 0));
-    });
-
-    const expected = students.reduce(
-      (total, student) => total + Number(intakeMap.get(String(student.intakeId))?.tuitionFee || 0),
-      0
-    );
-    const paid = sum(payments, (payment) => payment.amount);
-    const expenses = sum(transactions.filter((t) => t.kind === "expense"), (t) => t.amount);
-    const otherIncome = sum(transactions.filter((t) => t.kind === "income"), (t) => t.amount);
-
-    const byIntake = intakes.map((intake) => {
-      const studentCount = studentCounts.get(String(intake._id)) || 0;
-      const intakeExpected = studentCount * Number(intake.tuitionFee || 0);
-      const intakePaid = paidByIntake.get(String(intake._id)) || 0;
-      return {
-        _id: intake._id,
-        title: intake.title,
-        program: intake.program,
-        currency: intake.currency || "RWF",
-        tuitionFee: Number(intake.tuitionFee || 0),
-        studentCount,
-        expected: intakeExpected,
-        paid: intakePaid,
-        outstanding: Math.max(0, intakeExpected - intakePaid),
-      };
-    });
-
-    // Same month keys and arithmetic the finance report exports, so a report
-    // produced here matches one produced in the finance area.
-    const byMonth = new Map();
-    const keyOf = (date) => {
-      const d = new Date(date);
-      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    };
-    transactions.forEach((t) => {
-      const key = keyOf(t.occurredAt);
-      const row = byMonth.get(key) || { month: key, income: 0, otherIncome: 0, expenses: 0, net: 0 };
-      if (t.kind === "payment") row.income += Number(t.amount || 0);
-      else if (t.kind === "income") row.otherIncome += Number(t.amount || 0);
-      else if (t.kind === "expense") row.expenses += Number(t.amount || 0);
-      byMonth.set(key, row);
-    });
-    const monthly = [...byMonth.values()]
-      .map((row) => ({ ...row, net: row.income + row.otherIncome - row.expenses }))
-      .sort((a, b) => a.month.localeCompare(b.month));
-
-    res.json({
-      currency: "RWF",
-      studentCount: students.length,
-      expected,
-      paid,
-      outstanding: Math.max(0, expected - paid),
-      expenses,
-      otherIncome,
-      net: paid + otherIncome - expenses,
-      byIntake,
-      monthly,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

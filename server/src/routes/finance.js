@@ -52,7 +52,11 @@ router.get("/student/me", studentSession, async (req, res) => {
   }
 });
 
-router.use(auth, requireRole("finance", "admin"));
+// The secretary gets read-only access to the finance views so the office
+// overview can show the same live figures the finance team sees. Every write
+// route below is still restricted to finance/admin (see `financeWrite`).
+const financeWrite = requireRole("finance", "admin");
+router.use(auth, requireRole("finance", "admin", "secretary"));
 
 const validId = (value) => mongoose.isValidObjectId(value);
 const currencyValues = new Set(["RWF", "USD", "EUR", "GBP"]);
@@ -293,7 +297,7 @@ router.get("/transactions", async (req, res) => {
   }
 });
 
-router.post("/transactions", async (req, res) => {
+router.post("/transactions", financeWrite, async (req, res) => {
   try {
     const {
       kind,
@@ -357,7 +361,7 @@ router.post("/transactions", async (req, res) => {
   }
 });
 
-router.put("/transactions/:id/void", async (req, res) => {
+router.put("/transactions/:id/void", financeWrite, async (req, res) => {
   try {
     const transaction = await FinanceTransaction.findByIdAndUpdate(req.params.id, { status: "voided" }, { new: true });
     if (!transaction) return res.status(404).json({ message: "Transaction not found" });
@@ -368,7 +372,7 @@ router.put("/transactions/:id/void", async (req, res) => {
   }
 });
 
-router.put("/intakes/:id/fee", async (req, res) => {
+router.put("/intakes/:id/fee", financeWrite, async (req, res) => {
   try {
     const tuitionFee = Number(req.body.tuitionFee);
     const currency = req.body.currency || "RWF";
@@ -382,7 +386,7 @@ router.put("/intakes/:id/fee", async (req, res) => {
   }
 });
 
-router.post("/students/:id/send-balance", async (req, res) => {
+router.post("/students/:id/send-balance", financeWrite, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id).select("_id name email regNumber intakeId intakeTitle program").lean();
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -410,7 +414,7 @@ router.post("/students/:id/send-balance", async (req, res) => {
   }
 });
 
-router.post("/students/send-balance-bulk", async (req, res) => {
+router.post("/students/send-balance-bulk", financeWrite, async (req, res) => {
   try {
     const { intakeId, status, q } = req.body;
     // Reuses studentFilter rather than rebuilding the same $or by hand. This

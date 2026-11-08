@@ -138,8 +138,16 @@ export default function SecretaryDashboard() {
         toast.error(err.message || 'Failed to load office overview.');
       })
       .finally(() => setLoading(false));
-    apiFetch('/stats/finance')
-      .then(setFinance)
+    // Uses the same finance endpoints the finance team's own dashboard uses,
+    // so the secretary sees identical live figures rather than a second,
+    // potentially drifting calculation.
+    Promise.all([
+      apiFetch('/finance/dashboard'),
+      apiFetch('/finance/reports/monthly').catch(() => ({ rows: [] })),
+    ])
+      .then(([dashboard, report]) => {
+        setFinance({ ...(dashboard || {}), monthly: report?.rows || [] });
+      })
       .catch(() => {
         setFinanceFailed(true);
         setFinance(null);
