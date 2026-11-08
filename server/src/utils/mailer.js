@@ -321,7 +321,10 @@ const WHATSAPP_GROUPS = {
 
 const COURSE_START = "Saturday 14/11/2026 at 4:00 PM, Huye Campus";
 
+// The laptop is the one hard requirement; the rest are habits that make the
+// first session go smoothly. It is listed first so it cannot be missed.
 const ACCEPTANCE_TIPS = [
+  { title: "Bring your own laptop or computer (required)", text: "A working laptop or computer is the most important requirement for this course. Come with it charged and ready to use." },
   { title: "Join the WhatsApp group", text: "The group is where class updates, materials, and reminders are shared. Join it as soon as you can." },
   { title: "Arrive on time", text: "Come to Huye Campus a little before the start time so you can settle in and register." },
   { title: "Bring a notebook and pen", text: "Come ready to take notes and practise the exercises during the session." },
@@ -419,6 +422,9 @@ export async function sendApplicationStatusChange(application, student) {
       ]) : ""}
       ${noticeCard("Course Start Reminder", [
         `Your course starts on <strong>${escapeHtml(COURSE_START)}</strong>. Please plan to arrive early and come with a notebook and pen.`,
+      ])}
+      ${noticeCard("What You Must Bring", [
+        "A <strong>working laptop or computer is required</strong> for this course. This is the most important requirement &mdash; please come with it fully charged and ready to use.",
       ])}
       ${detailCard("Your WhatsApp Group", [
         ["Level", escapeHtml(levelLabel)],
