@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Intake from "../models/Intake.js";
 import { EARLY_PAYMENT_NOTICE } from "./fees.js";
 
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
@@ -311,6 +312,39 @@ const NEXT_STEPS = [
   { title: "Orientation & Training", text: "If accepted, you will receive details about orientation and the training schedule." },
 ];
 
+// Each accepted applicant is pointed at the group for their level, so the link
+// in the email always matches the session they were accepted into.
+const WHATSAPP_GROUPS = {
+  basic: "https://chat.whatsapp.com/C887htS2IzBBex6hwsCK4e",
+  advanced: "https://chat.whatsapp.com/IWQSTcwrTyeJzZdgjJbzla",
+};
+
+const COURSE_START = "Saturday 14/11/2026 at 4:00 PM, Huye Campus";
+
+const ACCEPTANCE_TIPS = [
+  { title: "Join the WhatsApp group", text: "The group is where class updates, materials, and reminders are shared. Join it as soon as you can." },
+  { title: "Arrive on time", text: "Come to Huye Campus a little before the start time so you can settle in and register." },
+  { title: "Bring a notebook and pen", text: "Come ready to take notes and practise the exercises during the session." },
+  { title: "Check your email", text: "Keep an eye on your inbox for any updates about the course and its schedule." },
+  { title: "Ask questions", text: "No question is too small. If something is unclear, ask your trainer or the group." },
+];
+
+const tipsList = (tips) => `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 4px;">
+    ${tips
+      .map(
+        (tip) => `
+      <tr>
+        <td width="22" valign="top" style="padding:0 0 12px;font-family:${FONT};font-size:14px;color:#1a7fd4;font-weight:800;">&#10003;</td>
+        <td valign="top" style="padding:0 0 12px 8px;">
+          <div style="font-family:${FONT};font-size:14px;color:#1a202c;font-weight:700;line-height:1.4;">${escapeHtml(tip.title)}</div>
+          <div style="font-family:${FONT};font-size:13px;color:#4b5563;line-height:1.6;margin-top:2px;">${escapeHtml(tip.text)}</div>
+        </td>
+      </tr>`
+      )
+      .join("")}
+  </table>`;
+
 export async function sendApplicationConfirmation(application, intake, credentials) {
   const intakeTitle = intake?.title || application.intakeTitle;
   const level = intake?.program || application.program;
@@ -357,6 +391,24 @@ export async function sendApplicationStatusChange(application, student) {
   let body;
 
   if (status === "accepted") {
+    // The level decides which group the applicant joins. The intake's own
+    // program is the authoritative source (application.program holds the
+    // applicant's chosen courses, not necessarily the level), so it is looked
+    // up here rather than inferred from the application title alone.
+    let intakeProgram = "";
+    if (application.intakeId) {
+      try {
+        const intake = await Intake.findById(application.intakeId).select("program").lean();
+        intakeProgram = intake?.program || "";
+      } catch {
+        /* fall back to the fields already on the application */
+      }
+    }
+    const isAdvanced = /advanced/i.test(
+      `${application.intakeTitle || ""} ${intakeProgram} ${application.program || ""}`
+    );
+    const levelLabel = isAdvanced ? "Advanced" : "Basic";
+    const groupUrl = isAdvanced ? WHATSAPP_GROUPS.advanced : WHATSAPP_GROUPS.basic;
     heading = "You are Accepted!";
     heroLabel = "Accepted";
     body = `
@@ -365,6 +417,17 @@ export async function sendApplicationStatusChange(application, student) {
       ${student ? detailCard("Your UR Registration", [
         ["Registration Number", `<strong style="color:#142851;">${escapeHtml(student.regNumber)}</strong>`],
       ]) : ""}
+      ${noticeCard("Course Start Reminder", [
+        `Your course starts on <strong>${escapeHtml(COURSE_START)}</strong>. Please plan to arrive early and come with a notebook and pen.`,
+      ])}
+      ${detailCard("Your WhatsApp Group", [
+        ["Level", escapeHtml(levelLabel)],
+        ["Group link", `<a href="${groupUrl}" target="_blank" style="color:#1a7fd4;word-break:break-all;">${escapeHtml(groupUrl)}</a>`],
+      ])}
+      ${ctaButton(`Join the ${levelLabel} WhatsApp Group`, groupUrl)}
+      <p style="font-family:${FONT};font-size:13px;line-height:1.65;color:#64748b;margin:8px 0 0;">Join the group so you can receive class updates, learning materials, and reminders directly from your trainer.</p>
+      ${sectionLabel("Tips for a Great Start")}
+      ${tipsList(ACCEPTANCE_TIPS)}
       ${student ? ctaButton("View My Profile", `${siteUrl()}/profile`) : ""}
       ${sectionLabel("What Happens Next?")}
       ${stepsList([...NEXT_STEPS])}
