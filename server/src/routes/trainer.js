@@ -5,6 +5,8 @@ import requireRole from "../middleware/roles.js";
 import User from "../models/User.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
+import Application from "../models/Application.js";
+import FinanceTransaction from "../models/FinanceTransaction.js";
 import TrainerAssignment from "../models/TrainerAssignment.js";
 import Attendance from "../models/Attendance.js";
 import { gradeForScore } from "../utils/grade.js";
@@ -18,6 +20,7 @@ router.use(auth, requireRole("trainer", "admin"));
 const cleanCourse = (value) => String(value || "").trim();
 const normalizeCourse = (value) => cleanCourse(value).toLowerCase();
 const validId = (value) => mongoose.isValidObjectId(value);
+const ACTIVE_STUDENT_MESSAGE = "Only active students are visible in the trainer workspace";
 
 const normalizeDate = (value) => {
   const raw = value instanceof Date ? value : String(value || "").slice(0, 10);
@@ -29,6 +32,7 @@ const normalizeDate = (value) => {
   const publicStudent = (student) => {
   const data = student.toObject ? student.toObject() : { ...student };
   delete data.pinHash;
+  delete data.applicationId;
   return data;
 };
 
@@ -39,6 +43,48 @@ const courseMatches = (student, course) => {
     .map(normalizeCourse)
     .filter(Boolean);
   return values.some((value) => value === target || value.includes(target) || target.includes(value));
+};
+
+const getActiveStudentIds = async (students) => {
+  if (!students.length) return new Set();
+
+  const applicationIds = [...new Set(students.map((student) => String(student.applicationId || "")).filter(Boolean))];
+  const intakeIds = [...new Set(students.map((student) => String(student.intakeId || "")).filter(Boolean))];
+  const studentIds = students.map((student) => student._id);
+  const [acceptedApplications, intakes, payments] = await Promise.all([
+    applicationIds.length
+      ? Application.find({ _id: { $in: applicationIds }, status: "accepted" }).select("_id").lean()
+      : [],
+    intakeIds.length
+      ? Intake.find({ _id: { $in: intakeIds } }).select("_id tuitionFee").lean()
+      : [],
+    studentIds.length
+      ? FinanceTransaction.find({ kind: "payment", status: "completed", studentId: { $in: studentIds } })
+          .select("studentId amount")
+          .lean()
+      : [],
+  ]);
+
+  const acceptedIds = new Set(acceptedApplications.map((application) => String(application._id)));
+  const feeById = new Map(intakes.map((intake) => [String(intake._id), Number(intake.tuitionFee || 0)]));
+  const paidById = new Map();
+  for (const payment of payments) {
+    const key = String(payment.studentId);
+    paidById.set(key, (paidById.get(key) || 0) + Number(payment.amount || 0));
+  }
+
+  const activeIds = new Set();
+  for (const student of students) {
+    const id = String(student._id);
+    if (student.status === "active" || acceptedIds.has(String(student.applicationId || ""))) {
+      activeIds.add(id);
+      continue;
+    }
+    const expected = feeById.get(String(student.intakeId)) || 0;
+    const paid = paidById.get(id) || 0;
+    if (expected > 0 && paid > 0 && paid < expected) activeIds.add(id);
+  }
+  return activeIds;
 };
 
 const getAssignments = async (user, intakeId) => {
@@ -60,7 +106,7 @@ const getAssignments = async (user, intakeId) => {
 // aggregates over them. The dashboard only ever asks how many there are, and
 // serves that from the count below instead.
 const ROSTER_FIELDS =
-  "name email regNumber phone intakeId intakeTitle program preferredCourses status completedCourses mustChangePin photo";
+  "name email regNumber phone applicationId intakeId intakeTitle program preferredCourses status completedCourses mustChangePin photo";
 
 const getRoster = async (user, { intakeId, course, q, withMarks, withMarkCounts } = {}) => {
   const requestedCourse = cleanCourse(course);
@@ -76,8 +122,10 @@ const getRoster = async (user, { intakeId, course, q, withMarks, withMarkCounts 
     if (!assignments.length) return { students: [], markCount: 0, studentsWithoutMarks: 0, assignments };
     const candidateStudents = await Student.find({
       intakeId: { $in: assignments.map((assignment) => assignment.intakeId) },
-    }).select("_id intakeId preferredCourses program").lean();
+    }).select("_id applicationId intakeId status preferredCourses program").lean();
+    const activeIds = await getActiveStudentIds(candidateStudents);
     const allowedIds = candidateStudents
+      .filter((student) => activeIds.has(String(student._id)))
       .filter((student) => assignments.some((assignment) => {
         if (String(assignment.intakeId) !== String(student.intakeId)) return false;
         if (requestedCourse && assignment.course && normalizeCourse(assignment.course) !== normalizeCourse(requestedCourse)) return false;
@@ -90,6 +138,10 @@ const getRoster = async (user, { intakeId, course, q, withMarks, withMarkCounts 
 
   const select = withMarks ? `${ROSTER_FIELDS} marks` : ROSTER_FIELDS;
   let students = await Student.find(filter).select(select).sort({ name: 1 }).lean();
+  if (user.role === "admin") {
+    const rosterActiveIds = await getActiveStudentIds(students);
+    students = students.filter((student) => rosterActiveIds.has(String(student._id)));
+  }
   if (requestedCourse) students = students.filter((student) => courseMatches(student, requestedCourse));
   if (q) {
     const query = String(q).trim().toLowerCase();
@@ -144,6 +196,8 @@ const getScopedStudent = async (user, studentId, course) => {
   if (!validId(studentId)) return { error: "Invalid student" };
   const student = await Student.findById(studentId).select("-pinHash");
   if (!student) return { error: "Student not found" };
+  const activeIds = await getActiveStudentIds([student]);
+  if (!activeIds.has(String(student._id))) return { error: ACTIVE_STUDENT_MESSAGE };
   if (user.role === "admin") return { student };
   const assignments = await TrainerAssignment.find({ trainerId: user._id, intakeId: student.intakeId, active: true }).lean();
   const requestedCourse = cleanCourse(course);
@@ -176,6 +230,10 @@ const getScopedStudents = async (user, studentIds, course, { withMarks = false }
   const rows = await Student.find({ _id: { $in: ids } }).select(select).lean();
   const byId = new Map(rows.map((row) => [String(row._id), row]));
   if (byId.size !== ids.length) return { students: new Map(), error: "Student not found" };
+  const activeIds = await getActiveStudentIds(rows);
+  if (rows.some((row) => !activeIds.has(String(row._id)))) {
+    return { students: new Map(), error: ACTIVE_STUDENT_MESSAGE };
+  }
 
   if (user.role === "admin") return { students: byId };
 

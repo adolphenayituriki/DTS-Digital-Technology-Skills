@@ -126,7 +126,7 @@ export default function TrainerDashboard() {
           <section className="dash-section">
             <div className="dash-section-head">
               <h2>At a glance</h2>
-              <p>Across every intake assigned to you</p>
+              <p>Across active students in every intake assigned to you</p>
             </div>
             <div className="admin-dash-grid">
               {cards.map((card) => {

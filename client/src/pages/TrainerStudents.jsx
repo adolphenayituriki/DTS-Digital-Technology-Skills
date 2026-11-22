@@ -89,7 +89,7 @@ export default function TrainerStudents() {
   return (
     <div className="workspace-page">
       <div className="workspace-intro">
-        <div><h2>My Students</h2><p>Only students in your assigned intakes and courses are shown.</p></div>
+        <div><h2>My Students</h2><p>Only active students in your assigned intakes and courses are shown.</p></div>
         <div className="workspace-actions">
           <Link to="/trainer/attendance" className="btn btn-outline btn-sm"><ClipboardCheck size={14} /> Attendance</Link>
           <Link to="/trainer/marks" className="btn btn-primary btn-sm"><BookOpen size={14} /> Marks</Link>
