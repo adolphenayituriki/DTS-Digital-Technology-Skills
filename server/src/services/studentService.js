@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import Student from "../models/Student.js";
+import Application from "../models/Application.js";
 
 const PIN_SALT_ROUNDS = 10;
 
@@ -26,6 +27,16 @@ export const studentStatusFromApplication = (status) =>
 
 export const applicationStatusFromStudent = (status) =>
   status === "active" ? "accepted" : status === "rejected" ? "rejected" : "pending";
+
+export async function acceptStudentFromPayment(student) {
+  const [updatedStudent, updatedApplication] = await Promise.all([
+    Student.findByIdAndUpdate(student._id, { status: "active" }).select("_id status"),
+    student.applicationId
+      ? Application.findByIdAndUpdate(student.applicationId, { status: "accepted" }).select("_id status")
+      : Promise.resolve(null),
+  ]);
+  return { student: updatedStudent, application: updatedApplication };
+}
 
 export async function createStudentForApplication(application, { userId } = {}) {
   let lastError;

@@ -6,6 +6,7 @@ import studentSession from "../middleware/studentSession.js";
 import Intake from "../models/Intake.js";
 import Student from "../models/Student.js";
 import FinanceTransaction from "../models/FinanceTransaction.js";
+import { acceptStudentFromPayment } from "../services/studentService.js";
 import { sendStudentBalanceNotification } from "../utils/mailer.js";
 import { parsePage, pageResponse } from "../utils/pagination.js";
 import { searchFilter } from "../utils/search.js";
@@ -320,7 +321,7 @@ router.post("/transactions", financeWrite, async (req, res) => {
     let student = null;
     if (studentId) {
       if (!validId(studentId)) return res.status(400).json({ message: "Invalid student" });
-      student = await Student.findById(studentId).select("intakeId intakeTitle");
+      student = await Student.findById(studentId).select("applicationId intakeId intakeTitle status");
     }
     if (kind === "payment" && !student) return res.status(400).json({ message: "A student is required for a payment" });
     if (rawIntakeId && !validId(rawIntakeId)) return res.status(400).json({ message: "Invalid intake" });
@@ -354,6 +355,9 @@ router.post("/transactions", financeWrite, async (req, res) => {
       notes: String(notes || "").trim(),
       recordedById: req.user._id,
     });
+    if (kind === "payment" && status === "completed" && student) {
+      await acceptStudentFromPayment(student);
+    }
     const populated = await populateTransaction(FinanceTransaction.findById(transaction._id));
     res.status(201).json(populated);
   } catch (error) {

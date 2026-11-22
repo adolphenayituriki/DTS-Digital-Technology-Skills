@@ -7,6 +7,7 @@
     "dev": "node --watch src/index.js",
     "seed": "node src/seed.js",
     "backfill:students": "node src/scripts/backfillStudents.js",
+    "backfill:paid-students": "node src/scripts/backfillAcceptedPayments.js",
     "migrate:certificates": "node src/scripts/migrateCertificatesToDrive.js",
     "migrate:avatars": "node src/scripts/migrateAvatarsToDrive.js",
     "drive:auth": "node src/scripts/googleAuth.js"
