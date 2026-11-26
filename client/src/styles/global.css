@@ -2098,28 +2098,42 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
    "the request failed" never reads as "you have nothing here". */
 .dash-empty-error { color: var(--error, #dc2626); }
 .dash-empty-error p { font-weight: 600; }
-.dash-actions { display: flex; flex-direction: column; gap: 0.3rem; }
+.dash-actions { display: flex; flex-direction: column; gap: 0.35rem; }
 .dash-action {
-  display: flex; align-items: center; gap: 0.4rem;
-  padding: 0.36rem 0.5rem; border-radius: 8px;
-  border: 1px solid #eaeef3; background: #fafbfc;
-  font-size: 0.7rem; font-weight: 600; color: var(--text);
-  transition: all var(--transition); text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #374151;
+  box-shadow: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.dash-action svg:last-child { margin-left: auto; color: var(--text-light); transition: transform var(--transition); }
-.dash-action:hover { border-color: var(--primary); background: #f0f7fb; }
-.dash-action:hover svg:last-child { color: var(--primary); transform: translateX(2px); }
+.dash-action svg:last-child { margin-left: auto; color: #9ca3af; transition: color 0.15s ease; }
+.dash-action:hover { border-color: #d1d5db; background: #f9fafb; color: #111827; }
+.dash-action:hover svg:last-child { color: #6b7280; }
 .dash-action-icon {
-  width: 22px; height: 22px; border-radius: 6px;
-  background: #eef4fb; color: var(--primary);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  background: #f3f4f6;
 }
-.dash-action-icon-sky    { background: rgba(2, 132, 193, 0.12);  color: #0284c7; }
-.dash-action-icon-green  { background: rgba(34, 197, 94, 0.12);   color: #22c55e; }
-.dash-action-icon-blue   { background: rgba(37, 99, 242, 0.12);  color: #2563eb; }
-.dash-action-icon-amber  { background: rgba(245, 158, 11, 0.12);  color: #f59e0b; }
-.dash-action-icon-violet { background: rgba(139, 92, 246, 0.12);  color: #8b5cf6; }
-.dash-action-icon-rose   { background: rgba(244, 114, 182, 0.12); color: #f4719e; }
+.dash-action-icon svg { width: 14px; height: 14px; }
+.dash-action-icon-sky,
+.dash-action-icon-green,
+.dash-action-icon-blue,
+.dash-action-icon-amber,
+.dash-action-icon-violet,
+.dash-action-icon-rose { background: #f3f4f6; color: #4b5563; }
 .dash-tip { display: flex; align-items: center; gap: 0.25rem; margin: 0.3rem 0 0; font-size: 0.65rem; color: var(--text-light); line-height: 1.4; }
 
 /* Inline ratio meter for table cells. */
@@ -2188,8 +2202,8 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   background: #eef2f7; color: #475569;
 }
 .admin-page .dash-section-head .dash-head-icon svg { width: 13px; height: 13px; }
-.admin-page h2.is-attention .dash-head-icon { background: var(--warning-soft, rgba(245, 158, 11, 0.14)); color: #b45309; }
-.admin-page h2.is-attention { color: #b45309; }
+.admin-page h2.is-attention .dash-head-icon { background: #f3f4f6; color: #4b5563; }
+.admin-page h2.is-attention { color: #111827; }
 .admin-page .dash-count-pill {
   display: inline-flex; align-items: center; gap: 0.25rem;
   font-size: 0.67rem; font-weight: 700; color: #b45309;
@@ -2228,79 +2242,118 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 /* Cards stay white with ink text: the tone class on the root would otherwise
    wash the whole tile (and every number in it) in the accent colour. */
 .admin-page .stat-card {
-  background: var(--surface); color: var(--text);
-  padding: 0.5rem 0.65rem; border-radius: 12px; gap: 0.1rem;
-  border: 1px solid #e5e9f2; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: #fff;
+  color: var(--text);
+  padding: 0.75rem 0.85rem;
+  border-radius: 6px;
+  gap: 0.2rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
 }
 .admin-page .stat-card:hover {
-  transform: translateY(-2px);
-  border-color: #cbd5e1;
-  box-shadow: 0 12px 24px -14px rgba(15, 23, 42, 0.35);
+  transform: none;
+  border-color: #d1d5db;
+  box-shadow: none;
 }
-.admin-page .stat-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.admin-page .stat-card:focus-visible { outline: 2px solid #9ca3af; outline-offset: 2px; }
 
 .admin-page .stat-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
 }
 .admin-page .stat-label {
-  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; color: #64748b;
-  line-height: 1.25;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #6b7280;
+  line-height: 1.3;
 }
-/* One neutral icon chip for every tile: colour is spent only on the queue
-   section, so the eye reads numbers first instead of a row of hues. */
 .admin-page .stat-chip {
-  width: 24px; height: 24px; flex-basis: 24px; border-radius: 7px;
-  background: #f1f5f9; color: #475569;
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4b5563;
 }
-.admin-page .stat-chip svg { width: 13px; height: 13px; }
+.admin-page .stat-chip svg { width: 14px; height: 14px; }
 .admin-page .stat-value {
-  font-size: 1.35rem; font-weight: 800; line-height: 1.1;
-  letter-spacing: -0.03em; color: #0f172a; font-variant-numeric: tabular-nums;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
 }
 .admin-page .stat-meta {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 0.35rem; min-width: 0;
-  margin-top: 0.2rem; padding-top: 0.18rem; border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 0;
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid #f3f4f6;
 }
 .admin-page .stat-sub {
-  font-size: 0.66rem; font-weight: 700; color: #334155; min-width: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.admin-page .stat-sub-label { font-weight: 500; color: var(--text-light); }
-.admin-page .stat-meter { height: 3px; margin-top: 0.25rem; background: #eef1f5; }
-.admin-page .stat-meter > i { background: #64748b; }
+.admin-page .stat-sub-label { font-weight: 500; color: #6b7280; }
+.admin-page .stat-meter { height: 3px; margin-top: 0.3rem; background: #e5e7eb; border-radius: 2px; }
+.admin-page .stat-meter > i { background: #6b7280; border-radius: 2px; }
 .admin-page .stat-view {
-  font-size: 0.66rem; font-weight: 700; opacity: 0.75; white-space: nowrap;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b7280;
+  opacity: 1;
+  white-space: nowrap;
 }
-/* Hover and no-hover rules from the base surface still win on specificity,
-   but the touch override is weaker than the scoped rule, so repeat it here. */
-@media (hover: none) { .admin-page .stat-view { opacity: 1; color: var(--primary); } }
+.admin-page .stat-card:hover .stat-view { color: #374151; }
+@media (hover: none) { .admin-page .stat-view { color: #374151; } }
 
-/* Queue tiles: the only warm surface on the page. Amber means "decide this",
-   so it stays exclusive to the attention section. */
+/* Queue tiles */
 .admin-page .stat-card-attention {
-  background: linear-gradient(180deg, #fffdf5 0%, #fffaf0 100%);
-  border-color: #f2e3bd;
+  background: #fff;
+  border-color: #e5e7eb;
 }
 .admin-page .stat-card-attention::after {
-  width: 4px; border-radius: 4px 0 0 4px;
-  background: #f59e0b;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+  background: #6b7280;
 }
-.admin-page .stat-card-attention .stat-value { color: #b45309; }
-.admin-page .stat-card-attention .stat-meta { border-top-color: #f7ecd4; }
-.admin-page .stat-card.stat-card-attention:hover { border-color: var(--warning, #f59e0b); }
+.admin-page .stat-card-attention .stat-value { color: #111827; }
+.admin-page .stat-card-attention .stat-meta { border-top-color: #f3f4f6; }
+.admin-page .stat-card.stat-card-attention:hover { border-color: #d1d5db; }
 
 /* Clear-state banner. */
 .admin-page .dash-clear {
-  padding: 0.6rem 0.75rem; border-radius: 12px; margin-bottom: 1rem;
-  gap: 0.6rem; background: #f0fbf3; border-color: #c7e9cf;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  gap: 0.6rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 .admin-page .dash-clear-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
-  background: rgba(57, 178, 76, 0.15); color: #1d6b2c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  color: #4b5563;
 }
-.admin-page .dash-clear p { font-size: 0.78rem; color: #1d6b2c; }
+.admin-page .dash-clear p { font-size: 0.8rem; color: #374151; }
 .admin-page .dash-clear svg { width: 15px; height: 15px; }
 
 /* Failed read: a dedicated panel so an outage never looks like an empty page. */
@@ -2338,35 +2391,57 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 /* Panels. */
 .admin-page .dash-row { gap: 0.5rem; }
 .admin-page .dash-panel {
-  padding: 0.6rem 0.75rem 0.65rem; border-radius: 12px;
-  border-color: #e5e9f2; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 0.75rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
 }
 .admin-page .dash-panel-head {
-  margin-bottom: 0.3rem; padding-bottom: 0.4rem; gap: 0.4rem;
-  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.5rem;
+  gap: 0.4rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 .admin-page .dash-panel-head h3 {
-  font-size: 0.82rem; font-weight: 800; gap: 0.4rem; letter-spacing: -0.01em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 0.4rem;
+  letter-spacing: 0;
+  color: #111827;
 }
 .admin-page .dash-panel-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 21px; height: 21px; border-radius: 7px; flex-shrink: 0;
-  background: #f1f5f9; color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  color: #4b5563;
 }
 .admin-page .dash-panel-head .dash-panel-icon svg { width: 13px; height: 13px; color: inherit; }
 .admin-page .dash-pill {
-  font-size: 0.65rem; padding: 0.08rem 0.45rem;
-  color: #475569; background: #f1f5f9;
+  font-size: 0.65rem;
+  padding: 0.08rem 0.4rem;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 4px;
 }
-.admin-page .dash-panel-link { font-size: 0.72rem; }
-.admin-page .dash-panel-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+.admin-page .dash-panel-link { font-size: 0.72rem; color: #6b7280; }
+.admin-page .dash-panel-link:hover { color: #374151; }
+.admin-page .dash-panel-link:focus-visible { outline: 2px solid #9ca3af; outline-offset: 2px; border-radius: 4px; }
 .admin-page .dash-list-item {
-  padding: 0.32rem 0.45rem; margin: 0 -0.45rem; border-radius: 9px;
-  gap: 0.5rem; border-bottom: 1px solid #f3f6fa; transition: background var(--transition);
+  padding: 0.4rem 0.35rem;
+  margin: 0 -0.35rem;
+  border-radius: 4px;
+  gap: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
 }
 .admin-page .dash-list-item:last-child { border-bottom: none; }
-.admin-page .dash-list-item:hover { background: #f6f9fc; }
-.admin-page .dash-list-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.admin-page .dash-list-item:hover { background: #f9fafb; }
+.admin-page .dash-list-item:focus-visible { outline: 2px solid #9ca3af; outline-offset: -2px; }
 .admin-page .dash-av {
   width: 26px; height: 26px; font-size: 0.72rem;
   background: linear-gradient(135deg, #64748b, #334155);
