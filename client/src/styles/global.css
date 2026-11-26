@@ -1933,18 +1933,24 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .tone-slate  { --tone: #5b6b7f; --tone-soft: #eef1f5; }
 
 .admin-dash-grid {
-  display: grid; gap: 0.5rem; margin-bottom: 0.9rem;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 /* Section headings split the wall of tiles into "act here" and "take note".
    Without them eight equal cards read as one undifferentiated block and the
    queues an admin must actually work through look identical to totals. */
-.dash-section { margin-bottom: 1rem; }
-.dash-section:last-of-type { margin-bottom: 0.9rem; }
+.dash-section { margin-bottom: 0.75rem; }
+.dash-section:last-of-type { margin-bottom: 0.65rem; }
 .dash-section-head {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 0.5rem 1rem; flex-wrap: wrap; margin-bottom: 0.45rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
 }
 .dash-section-head h2 {
   display: flex; align-items: center; gap: 0.35rem;
@@ -2244,43 +2250,49 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .admin-page .stat-card {
   background: #fff;
   color: var(--text);
-  padding: 0.75rem 0.85rem;
+  padding: 0.5rem 0.65rem;
   border-radius: 6px;
-  gap: 0.2rem;
+  gap: 0.15rem;
   border: 1px solid #e5e7eb;
   box-shadow: none;
 }
 .admin-page .stat-card:hover {
   transform: none;
-  border-color: #d1d5db;
+  border-color: #cbd5e1;
   box-shadow: none;
 }
-.admin-page .stat-card:focus-visible { outline: 2px solid #9ca3af; outline-offset: 2px; }
+.admin-page .stat-card:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 
 .admin-page .stat-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 .admin-page .stat-label {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
   color: #6b7280;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 .admin-page .stat-chip {
-  width: 24px;
-  height: 24px;
-  flex-basis: 24px;
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
   border-radius: 4px;
-  background: #f3f4f6;
-  color: #4b5563;
+  background: #eff6ff;
+  color: #2563eb;
 }
-.admin-page .stat-chip svg { width: 14px; height: 14px; }
+.admin-page .stat-chip svg { width: 13px; height: 13px; }
+.admin-page .stat-chip-green { background: #ecfdf5; color: #059669; }
+.admin-page .stat-chip-sky { background: #eff6ff; color: #2563eb; }
+.admin-page .stat-chip-blue { background: #eff6ff; color: #2563eb; }
+.admin-page .stat-chip-amber { background: #fffbeb; color: #b45309; }
+.admin-page .stat-chip-violet { background: #f5f3ff; color: #6d28d9; }
+.admin-page .stat-chip-rose { background: #fff1f2; color: #be123c; }
 .admin-page .stat-value {
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0;
@@ -2291,14 +2303,14 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.35rem;
+  gap: 0.3rem;
   min-width: 0;
-  margin-top: 0.25rem;
-  padding-top: 0.25rem;
+  margin-top: 0.15rem;
+  padding-top: 0.2rem;
   border-top: 1px solid #f3f4f6;
 }
 .admin-page .stat-sub {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #374151;
   min-width: 0;
@@ -2307,31 +2319,36 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
   text-overflow: ellipsis;
 }
 .admin-page .stat-sub-label { font-weight: 500; color: #6b7280; }
-.admin-page .stat-meter { height: 3px; margin-top: 0.3rem; background: #e5e7eb; border-radius: 2px; }
-.admin-page .stat-meter > i { background: #6b7280; border-radius: 2px; }
+.admin-page .stat-meter { height: 3px; margin-top: 0.2rem; background: #e5e7eb; border-radius: 2px; }
+.admin-page .stat-meter > i { background: #2563eb; border-radius: 2px; }
+.admin-page .stat-meter-green > i { background: #059669; }
 .admin-page .stat-view {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #2563eb;
   opacity: 1;
   white-space: nowrap;
 }
-.admin-page .stat-card:hover .stat-view { color: #374151; }
-@media (hover: none) { .admin-page .stat-view { color: #374151; } }
+.admin-page .stat-card:hover .stat-view { color: #1d4ed8; }
+@media (hover: none) { .admin-page .stat-view { color: #1d4ed8; } }
 
 /* Queue tiles */
 .admin-page .stat-card-attention {
-  background: #fff;
+  background: #f8fafc;
   border-color: #e5e7eb;
 }
 .admin-page .stat-card-attention::after {
   width: 3px;
   border-radius: 3px 0 0 3px;
-  background: #6b7280;
+  background: #2563eb;
+}
+.admin-page .stat-card-attention .stat-chip {
+  background: #eff6ff;
+  color: #2563eb;
 }
 .admin-page .stat-card-attention .stat-value { color: #111827; }
-.admin-page .stat-card-attention .stat-meta { border-top-color: #f3f4f6; }
-.admin-page .stat-card.stat-card-attention:hover { border-color: #d1d5db; }
+.admin-page .stat-card-attention .stat-meta { border-top-color: #e5e7eb; }
+.admin-page .stat-card.stat-card-attention:hover { border-color: #bfdbfe; }
 
 /* Clear-state banner. */
 .admin-page .dash-clear {

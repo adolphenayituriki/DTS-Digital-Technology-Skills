@@ -79,15 +79,16 @@ router.get("/", async (req, res) => {
         pending: [{ $match: { isApproved: false } }, { $count: "n" }],
       }),
       facet(User, {
-        active: [{ $match: { active: true } }, { $count: "n" }],
-        trainers: [{ $match: { role: "trainer", active: true } }, { $count: "n" }],
+        // Active staff accounts = active users who are NOT regular applicants (role user).
+        staffAccounts: [{ $match: { active: true, role: { $ne: 'user' } } }, { $count: 'n' }],
+        trainers: [{ $match: { role: 'trainer', active: true } }, { $count: 'n' }],
       }),
       // A standalone indexed count, not a $facet: it is a different collection
       // with no sibling counts to fold in, and a plain count off
       // { active: -1, createdAt: -1 } avoids scanning the whole collection.
       TrainerAssignment.countDocuments({ active: true }),
       Application.find({})
-        .select("name program intakeTitle status createdAt")
+        .select('name program intakeTitle status createdAt')
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
@@ -110,7 +111,7 @@ router.get("/", async (req, res) => {
       pendingTestimonials: testimonialCounts.pending?.[0]?.n || 0,
       trainers: userCounts.trainers?.[0]?.n || 0,
       activeAssignments,
-      staffAccounts: userCounts.active?.[0]?.n || 0,
+      staffAccounts: userCounts.staffAccounts?.[0]?.n || 0,
       recentApplications,
     });
   } catch (error) {
