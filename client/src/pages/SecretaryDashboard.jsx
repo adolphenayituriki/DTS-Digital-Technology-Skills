@@ -258,7 +258,7 @@ export default function SecretaryDashboard() {
       <section className="dash-section">
         <div className="dash-section-head">
           <h2>Office overview</h2>
-          <p>Key records across the website &middot; {today}</p>
+          <p>Last updated {today}</p>
         </div>
         <div className="admin-dash-grid">
           {overviewCards.map((card) => (

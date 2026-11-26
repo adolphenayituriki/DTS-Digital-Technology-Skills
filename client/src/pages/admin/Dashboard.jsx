@@ -237,7 +237,7 @@ export default function Dashboard() {
           </h2>
           <div className="dash-section-tools">
             <p>
-              Live from the database &middot; {today}
+              Last updated {today}{updatedAt ? ` · ${updatedAt}` : ''}
               {updatedAt && <> &middot; {updatedAt}</>}
             </p>
             <button
