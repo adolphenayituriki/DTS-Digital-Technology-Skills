@@ -4284,6 +4284,24 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .pw-input-wrap { position: relative; display: flex; align-items: center; }
 .pw-input-wrap > svg { position: absolute; left: 12px; color: var(--text-light); pointer-events: none; }
 .pw-input-wrap .form-control { padding-left: 2.4rem; padding-right: 2.6rem; }
+.pw-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.pw-toggle:hover { color: var(--primary); background: rgba(0,0,0,0.04); }
+.pw-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .pw-field-hint { display: block; margin-top: 0.3rem; font-size: 0.75rem; color: var(--text-light); }
 
 .pw-strength { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.4rem; }
@@ -4396,7 +4414,7 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .profile-input-wrap svg {
   position: absolute; left: 12px; color: var(--text-light); pointer-events: none;
 }
-.profile-input-wrap .form-control { padding-left: 2.4rem; }
+.profile-input-wrap .form-control { padding-left: 2.4rem; padding-right: 2.6rem; }
 .profile-reg {
   display: inline-flex; align-items: center; gap: 0.35rem;
   margin-top: 0.2rem; font-size: 0.78rem; font-weight: 700;

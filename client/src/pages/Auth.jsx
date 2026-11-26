@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap, IdCard, KeyRound, Mail,
+  LogIn, UserPlus, ArrowLeft, CheckCircle2, GraduationCap, IdCard, KeyRound, Mail, Eye, EyeOff,
 } from 'lucide-react';
 import apiFetch, { setStudentSession, clearStudentSession } from '../api';
 import useAuth from '../hooks/useAuth';
@@ -50,10 +50,13 @@ export default function Auth({ mode }) {
   const [login, setLogin] = useState({ email: '', password: '' });
   const [signup, setSignup] = useState({ name: '', email: '', password: '', campus: '' });
   const [loading, setLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   const [stuForm, setStuForm] = useState({ regNumber: '', pin: '' });
   const [stuAuthing, setStuAuthing] = useState(false);
   const [stuError, setStuError] = useState('');
+  const [showStuPin, setShowStuPin] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [stuForgot, setStuForgot] = useState({ regNumber: '', email: '' });
   const [stuForgotLoading, setStuForgotLoading] = useState(false);
@@ -179,7 +182,17 @@ export default function Auth({ mode }) {
               </div>
               <div className="form-group">
                 <label htmlFor="signup-password">Password (min 6 chars)</label>
-                <input id="signup-password" name="password" type="password" className="form-control" value={signup.password} onChange={change(setSignup)} placeholder="••••••••" required />
+                <div className="pw-input-wrap">
+                  <input id="signup-password" name="password" type={showSignupPassword ? 'text' : 'password'} className="form-control" value={signup.password} onChange={change(setSignup)} placeholder="••••••••" required />
+                  <button
+                    type="button"
+                    className="pw-toggle"
+                    onClick={() => setShowSignupPassword((v) => !v)}
+                    aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showSignupPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
               </div>
               <button type="submit" className="btn btn-accent" disabled={loading}>
                 <UserPlus size={16} /> {loading ? 'Creating account...' : 'Sign Up'}
@@ -212,7 +225,17 @@ export default function Auth({ mode }) {
                 </div>
                 <div className="form-group">
                   <label htmlFor="login-password">Password</label>
-                  <input id="login-password" name="password" type="password" className="form-control" value={login.password} onChange={change(setLogin)} placeholder="••••••••" required />
+                  <div className="pw-input-wrap">
+                    <input id="login-password" name="password" type={showLoginPassword ? 'text' : 'password'} className="form-control" value={login.password} onChange={change(setLogin)} placeholder="••••••••" required />
+                    <button
+                      type="button"
+                      className="pw-toggle"
+                      onClick={() => setShowLoginPassword((v) => !v)}
+                      aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showLoginPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   <LogIn size={16} /> {loading ? 'Logging in...' : 'Log In'}
@@ -274,7 +297,15 @@ export default function Auth({ mode }) {
                     <label htmlFor="stu-pin">PIN</label>
                     <div className="profile-input-wrap">
                       <KeyRound size={16} />
-                      <input id="stu-pin" name="pin" className="form-control" type="password" inputMode="numeric" maxLength={6} value={stuForm.pin} onChange={stuChange} placeholder="6-digit PIN" required />
+                      <input id="stu-pin" name="pin" className="form-control" type={showStuPin ? 'text' : 'password'} inputMode="numeric" maxLength={6} value={stuForm.pin} onChange={stuChange} placeholder="6-digit PIN" required />
+                      <button
+                        type="button"
+                        className="pw-toggle"
+                        onClick={() => setShowStuPin((v) => !v)}
+                        aria-label={showStuPin ? 'Hide PIN' : 'Show PIN'}
+                      >
+                        {showStuPin ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
                     </div>
                   </div>
                   {stuError && <div className="alert alert-error">{stuError}</div>}
