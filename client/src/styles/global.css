@@ -5035,34 +5035,31 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
   .trend-label { display: none; }
 }
 
-/* ---- Marks entry ----
-   The assessment being marked is chosen once at the top, then the class is
-   scored in a single grid. Previously every mark was "the" score for a course,
-   so a second quiz silently overwrote the first. */
+/* ---- Marks entry ---- */
 .marks-builder {
   border: 1px solid #e4e9f0;
-  border-radius: 14px;
+  border-radius: 10px;
   background: #fff;
-  padding: 0.75rem 0.85rem;
-  margin-bottom: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.5rem;
 }
 .marks-builder-head {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 0.5rem 1rem; flex-wrap: wrap; margin-bottom: 0.6rem;
+  gap: 0.4rem 0.75rem; flex-wrap: wrap; margin-bottom: 0.45rem;
 }
 .marks-builder-head h3 {
-  display: flex; align-items: center; gap: 0.35rem;
-  margin: 0; font-size: 0.82rem; font-weight: 700;
+  display: flex; align-items: center; gap: 0.3rem;
+  margin: 0; font-size: 0.8rem; font-weight: 700; color: #1a2b3d;
 }
 .marks-builder-head h3 svg { color: var(--primary, #23a8de); }
 
 .marks-type-chip {
-  padding: 0.28rem 0.6rem;
+  padding: 0.22rem 0.5rem;
   border: 1px solid #dbe3ec;
   border-radius: 999px;
   background: #f8fafc;
-  font: inherit; font-size: 0.73rem; font-weight: 700;
-  color: var(--text-light, #6b7280);
+  font: inherit; font-size: 0.7rem; font-weight: 700;
+  color: #5c6f82;
   cursor: pointer;
   transition: all var(--transition, 0.2s ease);
 }
@@ -5075,20 +5072,20 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 
 .marks-builder-fields {
   display: grid;
-  grid-template-columns: minmax(150px, 200px) 90px 160px;
-  gap: 0.5rem;
+  grid-template-columns: minmax(140px, 190px) 80px 150px;
+  gap: 0.4rem;
   align-items: end;
 }
 .marks-builder-fields .form-group { margin-bottom: 0; }
 .marks-builder-fields label {
-  display: block; margin-bottom: 0.2rem;
-  font-size: 0.68rem; font-weight: 700; color: var(--text-light, #6b7280);
+  display: block; margin-bottom: 0.15rem;
+  font-size: 0.66rem; font-weight: 700; color: #5c6f82;
 }
 .marks-builder-name {
-  margin: 0.6rem 0 0;
-  font-size: 0.75rem; color: var(--text-light, #6b7280);
+  margin: 0.5rem 0 0;
+  font-size: 0.72rem; color: #5c6f82; line-height: 1.4;
 }
-.marks-builder-name b { color: var(--text, #1a1a2e); }
+.marks-builder-name b { color: #0f2238; }
 
 /* Assessments already recorded, so a trainer can reopen Quiz 1 rather than
    typing the scores a second time. */
@@ -5100,10 +5097,10 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .marks-existing h3 svg { color: var(--primary, #23a8de); }
 .marks-existing-list { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .marks-existing-chip {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.35rem 0.6rem;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
   border: 1px solid #e6ebf1;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #fff;
   font: inherit; cursor: pointer;
   transition: all var(--transition, 0.2s ease);
@@ -5122,6 +5119,7 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 }
 
 .marks-entry-table th.is-narrow, .marks-entry-table td.is-narrow { width: 1%; white-space: nowrap; }
+.marks-entry-table td .marks-score-input { min-width: 160px; }
 .marks-student { text-align: left; font-weight: 400; }
 .marks-student strong { display: block; font-size: 0.82rem; }
 .marks-student small { display: block; font-size: 0.68rem; color: var(--text-light, #6b7280); }
@@ -5130,13 +5128,13 @@ main:has(.apply-page) /* The wizard re-anchors here on every step change, intake
 .grade-badge.is-invalid { background: #fef2f2; color: var(--error, #ef4444); }
 
 .marks-summary {
-  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
-  margin-top: 0.6rem;
+  display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+  margin-top: 0.5rem;
 }
 .marks-summary-chip {
-  display: inline-flex; align-items: center; gap: 0.25rem;
-  font-size: 0.73rem; font-weight: 600; color: #5b6b7f;
-  background: #f1f5f9; border-radius: 999px; padding: 0.2rem 0.6rem;
+  display: inline-flex; align-items: center; gap: 0.2rem;
+  font-size: 0.7rem; font-weight: 600; color: #5b6b7f;
+  background: #f1f5f9; border-radius: 999px; padding: 0.18rem 0.5rem;
 }
 .marks-summary-chip b { font-size: 0.8rem; }
 .marks-summary-chip.is-average { background: #eaf6fd; color: #16688f; }
@@ -6342,18 +6340,47 @@ body:has(.navbar.menu-open) .busy-pill { display: none; }
   body:has(.navbar.menu-open) .mobile-tabbar { display: none; }
 }
 
+/* -- Trainer workspace compact -- */
+.workspace-page .workspace-intro { margin-bottom: 0.55rem; padding-bottom: 0.45rem; }
+.workspace-page .workspace-intro h2 { font-size: 1.1rem; font-weight: 800; color: #0f2238; letter-spacing: -0.02em; margin: 0; }
+.workspace-page .workspace-intro p { font-size: 0.82rem; color: #4a5f73; line-height: 1.45; margin: 0.2rem 0 0; }
+.workspace-page .workspace-intro-actions .btn { padding: 0.38rem 0.6rem; font-size: 0.8rem; gap: 0.3rem; }
+.workspace-page .dash-section { margin-bottom: 0.5rem; }
+.workspace-page .dash-section-head { margin-bottom: 0.25rem; }
+.workspace-page .dash-section-head h2 { font-size: 0.85rem; font-weight: 800; color: #1a2b3d; gap: 0.3rem; }
+.workspace-page .dash-section-head h2 svg { width: 14px; height: 14px; }
+.workspace-page .dash-section-head p { font-size: 0.75rem; color: #556a7f; }
+.workspace-page .dash-panel { padding: 0.55rem 0.65rem; }
+.workspace-page .dash-panel-head { margin-bottom: 0.35rem; }
+.workspace-page .dash-panel-head h3 { font-size: 0.84rem; font-weight: 700; color: #1a2b3d; }
+.workspace-page .dash-panel-link { font-size: 0.72rem; font-weight: 600; }
+.workspace-page .stat-label { font-size: 0.72rem !important; font-weight: 600 !important; color: #3f5266 !important; letter-spacing: 0 !important; text-transform: none !important; line-height: 1.35 !important; }
+.workspace-page .stat-value { color: #0f2238 !important; font-size: 1.22rem !important; }
+.workspace-page .stat-card { padding: 0.5rem 0.6rem; }
+.workspace-page .dash-list-meta p { font-weight: 600; color: #0f2238; font-size: 0.82rem; }
+.workspace-page .dash-list-meta small { color: #5c6f82; font-size: 0.72rem; }
+.workspace-page .readiness-list > div { padding: 0.35rem 0; font-size: 0.8rem; }
+.workspace-page .readiness-list > div span { color: #4a5f73; }
+.workspace-page .readiness-list > div strong { color: #0f2238; font-weight: 700; font-size: 0.86rem; }
+.workspace-page .at-risk-row { padding: 0.3rem 0; }
+.workspace-page .at-risk-name strong { color: #0f2238; font-size: 0.84rem; }
+.workspace-page .at-risk-name small { color: #5c6f82; font-size: 0.7rem; }
+.workspace-page .at-risk-rate { font-size: 0.88rem; }
+.workspace-page .trend-value { font-size: 0.7rem; font-weight: 700; color: #1a2b3d; }
+.workspace-page .trend-label { font-size: 0.68rem; color: #5c6f82; font-weight: 600; }
+.workspace-page .dash-pill { font-size: 0.7rem; font-weight: 600; color: #4a5f73; background: #eef3f8; border: 1px solid #dbe4ee; padding: 0.12rem 0.4rem; }
+.workspace-page .dash-empty { padding: 0.85rem 0.5rem; }
+.workspace-page .dash-empty p { font-size: 0.82rem; }
+.workspace-page .trend { min-height: 140px; }
+.workspace-page .trend-bar-wrap { height: 110px; }
+
 /* -- Mobile touch polish -- */
 @media (max-width: 900px) {
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
-  /* iOS zooms the whole viewport when a focused field renders below 16px.
-     !important because several forms deliberately size their inputs down for
-     desktop density, and losing focus-zoom on a phone is worth more than
-     keeping that density. */
   input, select, textarea, .form-control { font-size: 16px !important; }
-  /* Comfortable targets on the controls that anchor the mobile chrome. */
   .hamburger, .navbar-panel-close {
     min-width: 44px;
     min-height: 44px;

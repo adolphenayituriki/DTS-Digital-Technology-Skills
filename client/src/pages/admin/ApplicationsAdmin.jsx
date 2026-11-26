@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Check, X, Eye, Trash2, Search, Download, Mail, Phone, MapPin,
   CalendarDays, BookOpen, FileText, GraduationCap, RefreshCcw,
-  User, Hash, Building2, Paperclip, MonitorPlay,
+  User, Hash, Building2, Paperclip, MonitorPlay, Send,
 } from 'lucide-react';
 import apiFetch, { getApiOrigin } from '../../api';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -55,6 +55,8 @@ export default function ApplicationsAdmin() {
   const [confirmId, setConfirmId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [sendingAllAccepted, setSendingAllAccepted] = useState(false);
+  const [confirmSendAccepted, setConfirmSendAccepted] = useState(false);
   const abortRef = useRef(null);
 
   // Server-side filter, search and paging, all in one request. The counts in the
@@ -192,39 +194,60 @@ export default function ApplicationsAdmin() {
       // so it is pulled in on demand rather than shipped to every visitor.
       const XLSX = await import('xlsx');
       const rows = matches.map((a, i) => ({
-      '#': i + 1,
-      'Full Name': a.name,
-      'Email': a.email,
-      'Phone': a.phone || '',
-      'DTS Reg Number': a.regNumber || '',
-      'Gender': a.gender || '',
-      'Level of Study': a.levelOfStudy || '',
-      'Department': a.department || '',
-      'Campus / Location': a.campus || '',
-      'Place of Learning': a.learningPlace || '',
-      'Intake': a.intakeTitle,
-      'Program': a.program || '',
-      'Preferred Courses': (a.preferredCourses || []).join('; '),
-      'Basic Certificate': a.certificateName || (a.certificate ? 'Uploaded' : ''),
-      'Motivation': a.motivation || '',
-      'Applied On': fmtDate(a.createdAt),
-      'Status': STATUS_META[a.status] ? STATUS_META[a.status].label : a.status,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    // Column order must match the header order above.
-    ws['!cols'] = [
-      { wch: 4 }, { wch: 24 }, { wch: 26 }, { wch: 16 }, { wch: 16 },
-      { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 28 },
-      { wch: 18 }, { wch: 30 }, { wch: 26 }, { wch: 48 }, { wch: 13 }, { wch: 12 },
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Applications');
-XLSX.writeFile(wb, `DTS_Applications_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        '#': i + 1,
+        'Full Name': a.name,
+        'Email': a.email,
+        'Phone': a.phone || '',
+        'DTS Reg Number': a.regNumber || '',
+        'Gender': a.gender || '',
+        'Level of Study': a.levelOfStudy || '',
+        'Department': a.department || '',
+        'Campus / Location': a.campus || '',
+        'Place of Learning': a.learningPlace || '',
+        'Intake': a.intakeTitle,
+        'Program': a.program || '',
+        'Preferred Courses': (a.preferredCourses || []).join('; '),
+        'Basic Certificate': a.certificateName || (a.certificate ? 'Uploaded' : ''),
+        'Motivation': a.motivation || '',
+        'Applied On': fmtDate(a.createdAt),
+        'Status': STATUS_META[a.status] ? STATUS_META[a.status].label : a.status,
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      // Column order must match the header order above.
+      ws['!cols'] = [
+        { wch: 4 }, { wch: 24 }, { wch: 26 }, { wch: 16 }, { wch: 16 },
+        { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 28 },
+        { wch: 18 }, { wch: 30 }, { wch: 26 }, { wch: 48 }, { wch: 13 }, { wch: 12 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Applications');
+      XLSX.writeFile(wb, `DTS_Applications_${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast.success(`Exported ${matches.length} application${matches.length === 1 ? '' : 's'} to Excel.`, { silent: true });
     } catch (err) {
       if (err?.name !== 'AbortError') toast.error(err.message || 'Failed to export applications.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const sendEmailToAllAccepted = async () => {
+    setSendingAllAccepted(true);
+    try {
+      const res = await apiFetch('/applications/send-email-accepted', { method: 'POST' });
+      const sent = Number(res?.sent || 0);
+      const failed = Number(res?.failed || 0);
+      const total = Number(res?.total || 0);
+      if (failed > 0) {
+        toast.error(res?.message || `Sent ${sent}/${total}, ${failed} failed.`);
+      } else {
+        toast.success(res?.message || `Sent ${sent} acceptance email${sent === 1 ? '' : 's'}.`, { silent: true });
+      }
+      setConfirmSendAccepted(false);
+      fetchApplications(page, { background: true });
+    } catch (err) {
+      toast.error(err.message || 'Failed to send emails.');
+    } finally {
+      setSendingAllAccepted(false);
     }
   };
 
@@ -234,19 +257,27 @@ XLSX.writeFile(wb, `DTS_Applications_${new Date().toISOString().slice(0, 10)}.xl
     <div>
       <div className="app-adm-head">
         <div>
-          {/* total from the server, not applications.length - the latter is one
-              page's worth once the list paginates. */}
           <h2 style={{ fontWeight: 700 }}>Applications ({total})</h2>
           <p className="app-adm-sub">Click any applicant to review their full profile and take action.</p>
         </div>
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={exportExcel}
-          disabled={exporting || refreshing}
-          title="Export to Excel"
-        >
-          <Download size={15} /> {exporting ? 'Exporting…' : 'Export Excel'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setConfirmSendAccepted(true)}
+            disabled={sendingAllAccepted || refreshing || exporting || (counts?.accepted || 0) === 0}
+            title="Send acceptance email to every accepted applicant"
+          >
+            <Send size={15} /> {sendingAllAccepted ? 'Sending...' : `Email all accepted (${counts?.accepted || 0})`}
+          </button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={exportExcel}
+            disabled={exporting || refreshing}
+            title="Export to Excel"
+          >
+            <Download size={15} /> {exporting ? 'Exporting...' : 'Export Excel'}
+          </button>
+        </div>
       </div>
 
       <div className="admin-filter-tabs">
@@ -561,6 +592,15 @@ XLSX.writeFile(wb, `DTS_Applications_${new Date().toISOString().slice(0, 10)}.xl
         loading={deleting}
         onConfirm={async () => { if (await deleteApplication(confirmId)) setConfirmId(null); }}
         onCancel={() => setConfirmId(null)}
+      />
+      <ConfirmDialog
+        open={confirmSendAccepted}
+        title="Send email to all accepted applicants?"
+        message={`This will email all applications with status Accepted (${counts?.accepted || 0}). It uses the same acceptance email sent when you accept an applicant.`}
+        confirmLabel="Send emails"
+        loading={sendingAllAccepted}
+        onConfirm={sendEmailToAllAccepted}
+        onCancel={() => setConfirmSendAccepted(false)}
       />
     </div>
   );

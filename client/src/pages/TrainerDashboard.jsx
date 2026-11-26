@@ -8,11 +8,11 @@ import apiFetch from '../api';
 import { useToast } from '../components/Toast';
 
 const cards = [
-  { key: 'studentCount', label: 'Assigned Students', icon: <Users size={17} />, tone: 'sky' },
-  { key: 'assignmentCount', label: 'Active Assignments', icon: <GraduationCap size={17} />, tone: 'violet' },
-  { key: 'attendanceRate', label: 'Attendance Rate', icon: <Percent size={17} />, tone: 'green', suffix: '%', meter: true },
-  { key: 'sessionCount', label: 'Sessions Recorded', icon: <CalendarDays size={17} />, tone: 'amber' },
-  { key: 'marksRecorded', label: 'Marks Recorded', icon: <ClipboardCheck size={17} />, tone: 'blue' },
+  { key: 'studentCount', label: 'Students', icon: <Users size={17} />, tone: 'sky' },
+  { key: 'assignmentCount', label: 'Assignments', icon: <GraduationCap size={17} />, tone: 'violet' },
+  { key: 'attendanceRate', label: 'Attendance %', icon: <Percent size={17} />, tone: 'green', suffix: '%', meter: true },
+  { key: 'sessionCount', label: 'Sessions', icon: <CalendarDays size={17} />, tone: 'amber' },
+  { key: 'marksRecorded', label: 'Marks entered', icon: <ClipboardCheck size={17} />, tone: 'blue' },
 ];
 
 const STATUS_TONE = {
@@ -47,17 +47,20 @@ export default function TrainerDashboard() {
   const atRisk = data.atRisk || [];
   const ungraded = data.studentsWithoutMarks || 0;
   const hasClasses = (data.assignmentCount || 0) > 0;
+  const updatedAt = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <div className="workspace-page">
       <div className="workspace-intro">
         <div>
           <h2>Your classes</h2>
-          <p>Take the register, record assessment scores, and watch who is slipping.</p>
+          <p>Register, marks, and students at risk.</p>
+          <p className="text-muted" style={{ margin: '4px 0 0', fontSize: 11 }}>Updated {updatedAt}</p>
         </div>
         <div className="workspace-intro-actions">
-          <Link to="/trainer/marks" className="btn btn-outline"><ClipboardCheck size={15} /> Enter marks</Link>
-          <Link to="/trainer/attendance" className="btn btn-primary">Take attendance <ArrowUpRight size={15} /></Link>
+          <Link to="/trainer/students" className="btn btn-outline"><Users size={14} /> Students</Link>
+          <Link to="/trainer/marks" className="btn btn-outline"><ClipboardCheck size={14} /> Marks</Link>
+          <Link to="/trainer/attendance" className="btn btn-primary">Attendance <ArrowUpRight size={14} /></Link>
         </div>
       </div>
 
@@ -73,19 +76,19 @@ export default function TrainerDashboard() {
           {(atRisk.length > 0 || ungraded > 0) ? (
             <section className="dash-section">
               <div className="dash-section-head">
-                <h2 className="is-attention"><TriangleAlert size={15} /> Needs attention</h2>
+                <h2 className="is-attention"><TriangleAlert size={14} /> Needs attention</h2>
                 <p>
-                  {ungraded > 0 ? `${ungraded} student${ungraded === 1 ? '' : 's'} with no marks` : null}
+                  {ungraded > 0 ? `${ungraded} no marks` : null}
                   {ungraded > 0 && atRisk.length > 0 ? ' · ' : null}
-                  {atRisk.length > 0 ? `${atRisk.length} below 75% attendance` : null}
+                  {atRisk.length > 0 ? `${atRisk.length} < 75% attendance` : null}
                 </p>
               </div>
               <div className="dash-row">
                 {atRisk.length > 0 && (
                   <div className="dash-panel">
                     <div className="dash-panel-head">
-                      <h3><TriangleAlert size={16} /> Lowest attendance</h3>
-                      <Link to="/trainer/attendance" className="dash-panel-link">Open register <ArrowUpRight size={13} /></Link>
+                      <h3>Lowest attendance</h3>
+                      <Link to="/trainer/attendance" className="dash-panel-link">Register <ArrowUpRight size={12} /></Link>
                     </div>
                     <div className="at-risk-list">
                       {atRisk.map((entry) => (
@@ -105,14 +108,19 @@ export default function TrainerDashboard() {
                 )}
                 <div className="dash-panel">
                   <div className="dash-panel-head">
-                    <h3><Award size={16} /> Marks coverage</h3>
-                    <Link to="/trainer/marks" className="dash-panel-link">Enter marks <ArrowUpRight size={13} /></Link>
+                    <h3>Marks coverage</h3>
+                    <Link to="/trainer/marks" className="dash-panel-link">Marks <ArrowUpRight size={12} /></Link>
                   </div>
                   <div className="readiness-list">
-                    <div><span>Students with no marks yet</span><strong className={ungraded > 0 ? 'is-warn' : 'is-ok'}>{ungraded}</strong></div>
-                    <div><span>Marks recorded in total</span><strong>{data.marksRecorded || 0}</strong></div>
-                    <div><span>Sessions recorded</span><strong>{data.sessionCount || 0}</strong></div>
+                    <div><span>No marks</span><strong className={ungraded > 0 ? 'is-warn' : 'is-ok'}>{ungraded}</strong></div>
+                    <div><span>Entered</span><strong>{data.marksRecorded || 0}</strong></div>
+                    <div><span>Sessions</span><strong>{data.sessionCount || 0}</strong></div>
                   </div>
+                  {ungraded > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <Link to="/trainer/students" className="dash-panel-link">Students <ArrowUpRight size={12} /></Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -125,8 +133,8 @@ export default function TrainerDashboard() {
 
           <section className="dash-section">
             <div className="dash-section-head">
-              <h2>At a glance</h2>
-              <p>Across active students in every intake assigned to you</p>
+              <h2>Overview</h2>
+              <p>Assigned intakes</p>
             </div>
             <div className="admin-dash-grid">
               {cards.map((card) => {
@@ -153,12 +161,13 @@ export default function TrainerDashboard() {
             <div className="dash-panel">
               <div className="dash-panel-head">
                 <h3><TrendingUp size={16} /> Attendance trend</h3>
-                <span className="dash-pill">last {trend.length} session{trend.length === 1 ? '' : 's'}</span>
+                <span className="dash-pill">{trend.length > 0 ? `last ${trend.length} session${trend.length === 1 ? '' : 's'}` : 'No data'}</span>
               </div>
               {trend.length === 0 ? (
                 <div className="dash-empty">
-                  <CalendarCheck size={26} />
-                  <p>No sessions recorded yet.</p>
+                  <CalendarCheck size={24} />
+                  <p>No sessions yet.</p>
+                  <Link to="/trainer/attendance" className="btn btn-outline" style={{ marginTop: 6, padding: '0.32rem 0.55rem', fontSize: '0.8rem' }}>Record</Link>
                 </div>
               ) : (
                 <div className="trend">
@@ -184,8 +193,9 @@ export default function TrainerDashboard() {
               </div>
               {(data.recentAttendance || []).length === 0 ? (
                 <div className="dash-empty">
-                  <CalendarDays size={26} />
-                  <p>Nothing recorded yet.</p>
+                  <CalendarDays size={24} />
+                  <p>No records yet.</p>
+                  <Link to="/trainer/attendance" className="btn btn-outline" style={{ marginTop: 6, padding: '0.32rem 0.55rem', fontSize: '0.8rem' }}>Attendance</Link>
                 </div>
               ) : (
                 <div className="dash-list">

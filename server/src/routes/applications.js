@@ -331,6 +331,35 @@ const EDITABLE = [
   "status",
 ];
 
+router.post(
+  "/send-email-accepted",
+  auth,
+  requireRole("admin", "secretary"),
+  async (req, res) => {
+    try {
+      const apps = await Application.find({ status: "accepted" }).lean();
+      if (!apps.length) {
+        return res.status(400).json({ message: "No accepted applications to email." });
+      }
+      let sent = 0;
+      let failed = 0;
+      for (const app of apps) {
+        try {
+          const student = await Student.findOne({ applicationId: app._id }).lean();
+          await sendApplicationStatusChange(app, student || null);
+          sent += 1;
+        } catch (err) {
+          failed += 1;
+          console.error("[applications] send-email-accepted failed for", app.email, err?.message || err);
+        }
+      }
+      res.json({ message: `Sent ${sent} email${sent === 1 ? "" : "s"}${failed ? `, ${failed} failed` : ""}.`, sent, failed, total: apps.length });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const previous = await Application.findById(req.params.id);

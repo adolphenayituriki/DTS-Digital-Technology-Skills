@@ -192,9 +192,10 @@ const getRoster = async (user, { intakeId, course, q, withMarks, withMarkCounts 
   return { students, markCount, studentsWithoutMarks, assignments: assignmentRows };
 };
 
-const getScopedStudent = async (user, studentId, course) => {
+const getScopedStudent = async (user, studentId, course, { doc = false } = {}) => {
   if (!validId(studentId)) return { error: "Invalid student" };
-  const student = await Student.findById(studentId).select("-pinHash");
+  const q = Student.findById(studentId).select("name regNumber intakeId preferredCourses marks completedCourses status applicationId");
+  const student = doc ? await q : await q.lean();
   if (!student) return { error: "Student not found" };
   const activeIds = await getActiveStudentIds([student]);
   if (!activeIds.has(String(student._id))) return { error: ACTIVE_STUDENT_MESSAGE };
@@ -221,13 +222,12 @@ const getScopedStudent = async (user, studentId, course) => {
  * per-student rule is then applied in memory. Same decision, same error message,
  * three queries instead of a thousand.
  */
-const getScopedStudents = async (user, studentIds, course, { withMarks = false } = {}) => {
+const getScopedStudents = async (user, studentIds, course) => {
   const ids = [...new Set(studentIds.map(String))];
   if (!ids.length) return { students: new Map(), error: "No students supplied" };
   if (ids.some((id) => !validId(id))) return { students: new Map(), error: "Invalid student" };
 
-  const select = withMarks ? "-pinHash marks" : "-pinHash";
-  const rows = await Student.find({ _id: { $in: ids } }).select(select).lean();
+  const rows = await Student.find({ _id: { $in: ids } }).select("name regNumber intakeId preferredCourses marks status applicationId").lean();
   const byId = new Map(rows.map((row) => [String(row._id), row]));
   if (byId.size !== ids.length) return { students: new Map(), error: "Student not found" };
   const activeIds = await getActiveStudentIds(rows);
@@ -624,7 +624,7 @@ router.post("/marks/bulk", async (req, res) => {
     // because matching an incoming mark to the one already stored needs them.
     // The old loop ran getScopedStudent and a full-document save per entry, which
     // is up to 1,500 serial round trips for a large class.
-    const { students, error } = await getScopedStudents(req.user, filled.map((entry) => entry.studentId), course, { withMarks: true });
+    const { students, error } = await getScopedStudents(req.user, filled.map((entry) => entry.studentId), course);
     if (error) return res.status(error === "Student not found" ? 404 : 403).json({ message: error });
 
     const recordedBy = req.user.name || req.user.email;
@@ -762,7 +762,7 @@ router.get("/assessments", async (req, res) => {
 
 router.post("/students/:id/marks", async (req, res) => {
   try {
-    const result = await getScopedStudent(req.user, req.params.id, req.body.course);
+    const result = await getScopedStudent(req.user, req.params.id, req.body.course, { doc: true });
     if (result.error) return res.status(result.error === "Student not found" ? 404 : 403).json({ message: result.error });
     const payload = markPayload(req.body, req.user);
     if (payload.error) return res.status(400).json({ message: payload.error });
@@ -776,7 +776,7 @@ router.post("/students/:id/marks", async (req, res) => {
 
 router.put("/students/:id/marks/:markId", async (req, res) => {
   try {
-    const result = await getScopedStudent(req.user, req.params.id, req.body.course);
+    const result = await getScopedStudent(req.user, req.params.id, req.body.course, { doc: true });
     if (result.error) return res.status(result.error === "Student not found" ? 404 : 403).json({ message: result.error });
     const mark = result.student.marks.id(req.params.markId);
     if (!mark) return res.status(404).json({ message: "Mark not found" });
@@ -785,6 +785,24 @@ router.put("/students/:id/marks/:markId", async (req, res) => {
     mark.set(payload);
     await result.student.save();
     res.json(publicStudent(result.student));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/students/:id/marks/:markId", async (req, res) => {
+  try {
+    const course = cleanCourse(req.query.course || req.body?.course);
+    const result = await getScopedStudent(req.user, req.params.id, course || undefined, { doc: true });
+    if (result.error) return res.status(result.error === "Student not found" ? 404 : 403).json({ message: result.error });
+    const mark = result.student.marks.id(req.params.markId);
+    if (!mark) return res.status(404).json({ message: "Mark not found" });
+    if (course && String(mark.course || "").toLowerCase() !== course.toLowerCase()) {
+      return res.status(403).json({ message: "Mark is outside the selected course" });
+    }
+    mark.deleteOne();
+    await result.student.save();
+    res.json({ ok: true, message: "Mark deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -804,13 +822,11 @@ router.put("/students/:id/courses", async (req, res) => {
   try {
     const course = cleanCourse(req.body.course);
     if (!course) return res.status(400).json({ message: "A course name is required" });
-    const result = await getScopedStudent(req.user, req.params.id, course);
+    const result = await getScopedStudent(req.user, req.params.id, course, { doc: true });
     if (result.error) {
       return res.status(result.error === "Student not found" ? 404 : 403).json({ message: result.error });
     }
     const student = result.student;
-    // Compared case-insensitively so ticking "Microsoft Office" twice from a
-    // differently-cased course picker cannot create duplicate rows.
     const existing = student.completedCourses.find(
       (entry) => String(entry.course || "").toLowerCase() === course.toLowerCase()
     );
@@ -818,7 +834,6 @@ router.put("/students/:id/courses", async (req, res) => {
     if (req.body.completed === false) {
       if (existing) student.completedCourses.pull({ _id: existing._id });
     } else if (existing) {
-      // Re-signing refreshes who did it and when, rather than adding a row.
       existing.completedAt = new Date();
       existing.recordedBy = req.user.name || req.user.email;
       existing.recordedById = req.user._id;

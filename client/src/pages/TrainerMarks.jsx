@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, Check, ClipboardList, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, ClipboardList, Download, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import apiFetch from '../api';
 import { useToast } from '../components/Toast';
 import { gradeForScore } from '../utils/grade';
@@ -13,8 +13,6 @@ const shortDate = (value) =>
     ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 
-// The identity of one assessment on one course. Marks saved before assessment
-// types existed have none, and match the blank slot rather than Quiz 1.
 const assessmentKey = (course, type, no) =>
   `${String(course || '').trim().toLowerCase()}::${String(type || '')}::${Number(no) || DEFAULT_ASSESSMENT_NO}`;
 
@@ -22,6 +20,12 @@ const labelFor = (assessment) =>
   assessment.assessmentType
     ? `${assessmentTypeLabel(assessment.assessmentType)} ${assessment.assessmentNo}`
     : 'Assessment';
+
+const normType = (t) => String(t || '').trim().toLowerCase() || 'quiz';
+const markMatchesCurrent = (mark, course, assessment) =>
+  String(mark.course || '').trim().toLowerCase() === String(course || '').trim().toLowerCase()
+  && normType(mark.assessmentType) === normType(assessment.assessmentType)
+  && Number(mark.assessmentNo || DEFAULT_ASSESSMENT_NO) === Number(assessment.assessmentNo || DEFAULT_ASSESSMENT_NO);
 
 export default function TrainerMarks() {
   const toast = useToast();
@@ -86,7 +90,7 @@ export default function TrainerMarks() {
       return;
     }
     Promise.all([
-      apiFetch(`/trainer/students?${query}`),
+      apiFetch(`/trainer/students?${query}${query ? '&' : ''}withMarks=1`),
       apiFetch(`/trainer/assessments?${query}`),
     ])
       .then(([studentData, assessmentData]) => {
@@ -182,13 +186,50 @@ export default function TrainerMarks() {
       );
       const assessmentData = await apiFetch(`/trainer/assessments?${query}`);
       setExisting(Array.isArray(assessmentData) ? assessmentData : []);
-      const studentData = await apiFetch(`/trainer/students?${query}`);
+      const studentData = await apiFetch(`/trainer/students?${query}${query ? '&' : ''}withMarks=1`);
       setStudents(Array.isArray(studentData) ? studentData : []);
     } catch (error) {
       toast.error(error.message || 'Failed to save marks.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const exportCurrentAssessmentCsv = () => {
+    if (!course) { toast.error('Choose a course first.'); return; }
+    if (!students.length) { toast.error('No students to export.'); return; }
+    const header = ['Student Name', 'Registration Number', 'Course', 'Assessment', 'Date', 'Score', 'Grade', 'Remarks'];
+    const rows = students.map((student) => {
+      const draft = drafts[student._id] || {};
+      const savedMark = (student.marks || []).find((m) => markMatchesCurrent(m, course, assessment));
+      const score = draft.score !== '' && draft.score !== null && draft.score !== undefined ? String(draft.score) : (savedMark?.score != null ? String(savedMark.score) : '');
+      const grade = score !== '' && Number.isFinite(Number(score)) ? gradeForScore(Number(score)) : '';
+      const remarks = (draft.remarks ?? savedMark?.remarks ?? '') || '';
+      const assessmentName = labelFor({ ...assessment, assessmentNo: Number(assessment.assessmentNo) || 1 });
+      return [
+        String(student.name || '').replace(/"/g, '""'),
+        String(student.regNumber || '').replace(/"/g, '""'),
+        String(course || '').replace(/"/g, '""'),
+        String(assessmentName).replace(/"/g, '""'),
+        String(assessment.assessmentDate || '').replace(/"/g, '""'),
+        score,
+        grade,
+        String(remarks).replace(/"/g, '""'),
+      ];
+    });
+    const csv = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeCourse = String(course).replace(/[^a-z0-9_-]+/gi, '_').slice(0, 40) || 'course';
+    const safeName = String(labelFor({ ...assessment, assessmentNo: Number(assessment.assessmentNo) || 1 })).replace(/[^a-z0-9_-]+/gi, '_');
+    a.download = `marks_${safeCourse}_${safeName}_${assessment.assessmentDate || 'date'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success('Exported CSV');
   };
 
   if (loading) return <div className="loading"><div className="spinner" />Loading marks...</div>;
@@ -199,17 +240,22 @@ export default function TrainerMarks() {
     <div className="workspace-page">
       <div className="workspace-intro">
         <div>
-          <h2>Marks Entry</h2>
-          <p>Record a quiz, exercise, assignment, CAT or exam for the whole class in one save.</p>
+          <h2>Marks</h2>
+          <p>Record assessments for the class (one save).</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !filled.length}>
-          <Save size={15} /> {saving ? 'Saving...' : `Save ${filled.length || ''} mark${filled.length === 1 ? '' : 's'}`.trim()}
-        </button>
+        <div className="workspace-intro-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-outline" onClick={exportCurrentAssessmentCsv} disabled={saving || !students.length}>
+            <Download size={15} /> Export CSV
+          </button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !filled.length}>
+            <Save size={15} /> {saving ? 'Saving...' : `Save${filled.length ? ` (${filled.length})` : ''}`}
+          </button>
+        </div>
       </div>
 
       <div className="attendance-toolbar">
         <select className="form-control" value={assignmentId} onChange={(e) => selectAssignment(e.target.value)} aria-label="Class">
-          <option value="">Choose a class</option>
+          <option value="">Class</option>
           {assignments.map((assignment) => {
             const intake = assignment.intakeId || {};
             return <option key={assignment._id} value={assignment._id}>{intake.title || 'Intake'}{assignment.course ? ` · ${assignment.course}` : ''}</option>;
@@ -221,7 +267,7 @@ export default function TrainerMarks() {
           value={course}
           onChange={(e) => setCourse(e.target.value)}
           placeholder="Course"
-          aria-label="Course name"
+          aria-label="Course"
         />
         <datalist id="trainer-course-options">
           {(selectedIntake?.courses || []).map((item) => <option key={item} value={item} />)}
@@ -331,6 +377,7 @@ export default function TrainerMarks() {
                   <th className="is-narrow">Score</th>
                   <th className="is-narrow">Grade</th>
                   <th>Remarks</th>
+                  <th className="is-narrow">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -338,37 +385,38 @@ export default function TrainerMarks() {
                   const draft = drafts[student._id] || {};
                   const score = draft.score === '' || draft.score === null ? null : Number(draft.score);
                   const bad = score !== null && (!Number.isFinite(score) || score < 0 || score > 100);
+                  const savedMark = (student.marks || []).find((m) => markMatchesCurrent(m, course, assessment));
                   return (
                     <tr key={student._id} className={draft.score !== '' && draft.score !== null ? 'is-marked' : undefined}>
                       <th scope="row" className="marks-student">
                         <strong>{student.name}</strong>
                         <small>{student.regNumber}</small>
                       </th>
-                       <td style={{ width: '160px' }}>
-                         <input
-                           className={`form-control mark-score-input${bad ? ' is-invalid' : ''}`}
-                           type="text"
-                           inputMode="decimal"
-                           pattern="[0-9]*\.?[0-9]{0,2}"
-                           value={draft.score ?? ''}
-                           onChange={(e) => {
-                             const v = e.target.value.replace(/[^0-9.]/g, '');
-                             const parts = v.split('.');
-                             if (parts.length > 2) return;
-                             if (parts[1] && parts[1].length > 2) return;
-                             update(student._id, 'score', v);
-                           }}
-                           onBlur={(e) => {
-                             const num = Number(e.target.value);
-                             if (Number.isFinite(num) && num >= 0 && num <= 100) {
-                               const formatted = num % 1 === 0 ? String(num) : num.toFixed(2);
-                               update(student._id, 'score', formatted);
-                             }
-                           }}
-                           placeholder="0 - 100"
-                           aria-label={`Score for ${student.name}`}
-                         />
-                       </td>
+                      <td style={{ width: '220px' }}>
+                        <input
+                          className="form-control marks-score-input"
+                          type="text"
+                          inputMode="decimal"
+                          pattern="[0-9]*\.?[0-9]{0,2}"
+                          value={draft.score || ''}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^0-9.]/g, '');
+                            const parts = v.split('.');
+                            if (parts.length > 2) return;
+                            if (parts[1] && parts[1].length > 2) return;
+                            update(student._id, 'score', v);
+                          }}
+                          onBlur={(e) => {
+                            const num = Number(e.target.value);
+                            if (Number.isFinite(num) && num >= 0 && num <= 100) {
+                              const formatted = num % 1 === 0 ? String(num) : num.toFixed(2);
+                              update(student._id, 'score', formatted);
+                            }
+                          }}
+                          placeholder="0-100"
+                          aria-label={`Score for ${student.name}`}
+                        />
+                      </td>
                       <td className="is-narrow">
                         <span className={`grade-badge${bad ? ' is-invalid' : ''}`}>
                           {bad ? '!' : score !== null && Number.isFinite(score) ? gradeForScore(score) : '—'}
@@ -379,9 +427,55 @@ export default function TrainerMarks() {
                           className="form-control"
                           value={draft.remarks || ''}
                           onChange={(e) => update(student._id, 'remarks', e.target.value)}
-                          placeholder="Optional remark"
+                          placeholder="Optional"
                           aria-label={`Remark for ${student.name}`}
                         />
+                      </td>
+                      <td className="is-narrow" style={{ whiteSpace: 'nowrap', display: 'flex', gap: 4, alignItems: 'center' }}>
+                        {savedMark ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              title="Load this saved mark into the row to edit, then Save"
+                              disabled={saving}
+                              onClick={() => {
+                                update(student._id, 'score', savedMark.score != null ? String(savedMark.score) : '');
+                                update(student._id, 'remarks', savedMark.remarks || '');
+                              }}
+                            >
+                              <Pencil size={14} /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              title="Delete this saved mark"
+                              disabled={saving}
+                              onClick={async () => {
+                                if (!window.confirm('Delete this saved mark for this student?')) return;
+                                setSaving(true);
+                                try {
+                                  await apiFetch(`/trainer/students/${student._id}/marks/${savedMark._id}?course=${encodeURIComponent(course)}`, { method: 'DELETE' });
+                                  toast.success('Mark deleted');
+              const [assessmentData, studentData] = await Promise.all([
+                apiFetch(`/trainer/assessments?${query}`),
+                apiFetch(`/trainer/students?${query}${query ? '&' : ''}withMarks=1`),
+              ]);
+                                  setExisting(Array.isArray(assessmentData) ? assessmentData : []);
+                                  setStudents(Array.isArray(studentData) ? studentData : []);
+                                } catch (e) {
+                                  toast.error(e.message || 'Failed to delete mark');
+                                } finally {
+                                  setSaving(false);
+                                }
+                              }}
+                            >
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--text-soft)', fontSize: 12 }} title="No saved mark for this assessment yet">Not saved</span>
+                        )}
                       </td>
                     </tr>
                   );
