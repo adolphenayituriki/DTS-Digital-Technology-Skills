@@ -18,9 +18,10 @@ const ROLES = [
   { value: 'trainer', label: 'Trainer' },
   { value: 'finance', label: 'Finance' },
   { value: 'editor', label: 'Editor' },
-  { value: 'user', label: 'User' },
   { value: 'admin', label: 'Admin' },
 ];
+
+const roleLabel = (role) => ROLES.find((r) => r.value === role)?.label || (role === 'user' ? 'User (applicant)' : role);
 
 const emptyForm = { name: '', email: '', role: 'trainer' };
 
@@ -227,7 +228,7 @@ export default function UserManagement() {
       <div className="workspace-intro">
         <div>
           <h2>User Access</h2>
-          <p>Create staff accounts and control who can sign in.</p>
+          <p>Create team accounts (staff roles) and control who can sign in. Applicant accounts are managed in Applications/Students.</p>
         </div>
       </div>
 
@@ -254,7 +255,7 @@ export default function UserManagement() {
       <div className="user-access-layout">
         <form className="dash-panel user-access-form" onSubmit={createUser}>
           <div className="dash-panel-head">
-            <h3><UserPlus size={17} /> Create staff account</h3>
+            <h3><UserPlus size={17} /> Create team account</h3>
           </div>
 
           <div className="student-form-grid">
@@ -346,14 +347,18 @@ export default function UserManagement() {
                       <small className="table-subtext">{user.email}</small>
                     </td>
                     <td>
-                      <select
-                        className="form-control"
-                        value={user.role}
-                        aria-label={`Role for ${user.name}`}
-                        onChange={(e) => updateUser(user, { role: e.target.value })}
-                      >
-                        {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                      </select>
+                      {user.role === 'user' ? (
+                        <span className="pw-badge" title="Applicant accounts are managed from Applications / Students, not here.">User (applicant)</span>
+                      ) : (
+                        <select
+                          className="form-control"
+                          value={user.role}
+                          aria-label={`Role for ${user.name}`}
+                          onChange={(e) => updateUser(user, { role: e.target.value })}
+                        >
+                          {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                      )}
                     </td>
                     <td>
                       {user.mustChangePassword ? (

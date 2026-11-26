@@ -66,7 +66,7 @@ const overviewCards = [
     icon: <Users size={16} />, iconBg: 'green', to: '/admin/members',
   },
   {
-    key: 'staffAccounts', label: 'Staff accounts', sub: 'trainers', subLabel: 'trainers',
+    key: 'staffAccounts', label: 'Team accounts', sub: 'trainers', subLabel: 'trainers',
     icon: <UserCog size={16} />, iconBg: 'rose', to: '/admin/users',
   },
 ];
